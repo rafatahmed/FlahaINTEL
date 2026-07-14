@@ -38,3 +38,9 @@ classifications. Immutable run-ID reuse and unsafe output paths were rejected.
 No PDF conversion or OCR result is reported because no approved engine was
 installed. pandas was detected but not executed. These results establish framework
 behavior only and do not justify adopting the stdlib HTML extractor.
+
+Phase 3E-B subsequently benchmarked pandas 2.3.3 against all seven governed
+dataset cases. Valid CSV/JSON/JSONL and both 256-row modes matched the stdlib
+semantic values; malformed JSON/JSONL matched rejection behavior. pandas recovered
+the malformed CSV instead of rejecting it, so the governed runner records one
+comparison failure and `RECOVERED_MALFORMED_INPUT`. See `pandas-results.md`.
