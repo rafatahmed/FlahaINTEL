@@ -65,3 +65,20 @@ The verified baseline now also includes:
 No Prisma schema change or new migration was required for Phase 1.1. Existing fingerprint generation, URL normalization, and collection-run database accounting semantics remain the compatibility baseline.
 
 RSS destination controls are defense-in-depth and are not a claim of complete SSRF prevention. Preserve redirect validation, bounded transport, connection address pinning, and the documented residual DNS/network-infrastructure limitations when changing collection behavior.
+
+## Phase 1.2 verified status
+
+The authoritative RSS source registry and onboarding workflow has been runtime verified on the `phase-1-2-authoritative-rss-sources` branch.
+
+The verified baseline now also includes:
+
+- a reviewed machine-readable registry with stable human-readable IDs and controlled authority, HTTPS, and verification states;
+- independent publisher-ownership and runtime-acceptance records;
+- no-write preflight through the hardened transport and parser;
+- manual content-suitability review before operational onboarding;
+- two-run acceptance with zero duplicate additions on the second run;
+- retained accepted, degraded, and rejected audit entries;
+- individual database source IDs for accepted operational sources;
+- documented safety findings and regional, language, and category coverage gaps.
+
+No Prisma schema change or migration was required for Phase 1.2. Keep individual feed URLs, collection results, publisher evidence, and source-specific limitations in the source registry rather than duplicating them in this file.
