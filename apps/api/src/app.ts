@@ -32,7 +32,10 @@ export function buildApp(dependencies: AppDependencies = {}) {
     logger: true,
     ajv: { customOptions: { removeAdditional: false } },
   });
-  app.register(cors, { origin: config.webOrigin });
+  app.register(cors, {
+    origin: config.webOrigin,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  });
   app.register(healthRoutes(prisma));
   app.register(articleRoutes(prisma), { prefix: "/api" });
   app.register(articleClassificationRoutes(prisma), { prefix: "/api" });

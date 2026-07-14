@@ -4,8 +4,10 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   FormControlLabel,
+  Link,
   Stack,
   Switch,
   TextField,
@@ -108,6 +110,19 @@ export function SourceManager() {
           </> : <>
             <Typography variant="h6">{source.name}</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>{source.url}</Typography>
+            <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+              {source.publisher && <Chip size="small" label={`Publisher: ${source.publisher}`} />}
+              {source.category && <Chip size="small" label={`Category: ${source.category}`} />}
+              {source.region && <Chip size="small" label={`Region: ${source.region}`} />}
+              {source.language && <Chip size="small" label={`Language: ${source.language}`} />}
+              {source.authorityType && <Chip size="small" label={source.authorityType.replaceAll("_", " ")} />}
+              {source.verificationStatus && <Chip size="small" color={source.verificationStatus === "ACCEPTED" ? "success" : "warning"} label={source.verificationStatus} />}
+              <Chip size="small" label={source.ownershipVerified ? "Ownership verified" : "Ownership unverified"} />
+            </Stack>
+            {(source.homepageUrl || source.evidenceUrl) && <Stack direction="row" spacing={2}>
+              {source.homepageUrl && <Link href={source.homepageUrl} target="_blank" rel="noopener noreferrer">Publisher homepage</Link>}
+              {source.evidenceUrl && <Link href={source.evidenceUrl} target="_blank" rel="noopener noreferrer">Ownership evidence</Link>}
+            </Stack>}
             <Button size="small" startIcon={<Edit />} disabled={sourceBusy || editingId !== null} onClick={() => beginEdit(source)}>Edit source</Button>
           </>}
           <FormControlLabel

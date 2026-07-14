@@ -39,6 +39,23 @@ afterEach(async () => {
 });
 
 describe("API contracts", () => {
+  it("allows browser preflights for governed mutation methods", async () => {
+    const app = buildApp({ prisma: database() });
+    apps.push(app);
+    const response = await app.inject({
+      method: "OPTIONS",
+      url: "/api/events/00000000-0000-4000-8000-000000000001",
+      headers: {
+        origin: "http://localhost:5174",
+        "access-control-request-method": "PATCH",
+      },
+    });
+    expect(response.statusCode).toBe(204);
+    expect(response.headers["access-control-allow-methods"]).toContain("PUT");
+    expect(response.headers["access-control-allow-methods"]).toContain("PATCH");
+    expect(response.headers["access-control-allow-methods"]).toContain("DELETE");
+  });
+
   it("returns liveness and database readiness separately", async () => {
     const app = buildApp({ prisma: database() });
     apps.push(app);
