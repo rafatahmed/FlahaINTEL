@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/artifact-reference.schema.json",
+  "title": "ArtifactReference",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifactId", "artifactClass", "role", "key", "mediaType", "byteLength", "checksumAlgorithm", "checksum", "immutable", "createdAt"],
+  "properties": {
+    "artifactId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "artifactClass": { "enum": ["RAW", "STAGING", "NORMALIZED", "EVIDENCE", "DATASET", "DIAGNOSTIC"] },
+    "role": { "enum": ["INPUT", "OUTPUT", "MARKDOWN", "STRUCTURED", "IMAGE", "TABLE", "PARQUET", "MANIFEST", "LOG"] },
+    "key": { "$ref": "common.schema.json#/$defs/relativeArtifactKey" },
+    "mediaType": { "$ref": "common.schema.json#/$defs/mediaType" },
+    "byteLength": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "checksumAlgorithm": { "const": "SHA256" },
+    "checksum": { "$ref": "common.schema.json#/$defs/sha256" },
+    "immutable": { "type": "boolean" },
+    "createdAt": { "$ref": "common.schema.json#/$defs/utcTimestamp" },
+    "originalFileName": { "type": "string", "minLength": 1, "maxLength": 255, "pattern": "^[^/\\\\:]+$" },
+    "language": { "$ref": "common.schema.json#/$defs/languageTag" },
+    "pageNumber": { "type": "integer", "minimum": 1, "maximum": 1000000 }
+  }
+}

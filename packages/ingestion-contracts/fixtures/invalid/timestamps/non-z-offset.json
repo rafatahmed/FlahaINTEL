@@ -1,0 +1,1 @@
+{"warningId":"00000000-0000-4000-8000-000000000902","code":"NON_Z_TIME","severity":"INFO","stage":"VALIDATE","message":"Numeric UTC offsets are rejected.","occurredAt":"2026-07-15T03:04:05.678+00:00","retryable":false}

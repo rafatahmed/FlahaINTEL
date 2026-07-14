@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/worker-request.schema.json",
+  "title": "WorkerRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "correlationId", "causationId", "jobId", "attemptId", "messageType", "sentAt", "operation", "provider", "policySnapshot", "payload"],
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/contractVersion" },
+    "correlationId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "causationId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/uuid" }, { "type": "null" }] },
+    "jobId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "attemptId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "messageType": { "const": "WORKER_REQUEST" },
+    "sentAt": { "$ref": "common.schema.json#/$defs/utcTimestamp" },
+    "operation": { "enum": ["DOCUMENT_CONVERSION", "CONTENT_EXTRACTION", "DATASET_TRANSFORM"] },
+    "provider": { "$ref": "common.schema.json#/$defs/providerIdentity" },
+    "policySnapshot": { "$ref": "policy-snapshot.schema.json" },
+    "payload": {
+      "oneOf": [
+        { "$ref": "document-conversion-request.schema.json" },
+        { "$ref": "extraction-request.schema.json" },
+        { "$ref": "dataset-transform-request.schema.json" }
+      ]
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "operation": { "const": "DOCUMENT_CONVERSION" } }, "required": ["operation"] }, "then": { "properties": { "policySnapshot": { "properties": { "operation": { "const": "DOCUMENT_CONVERSION" } } }, "payload": { "$ref": "document-conversion-request.schema.json" } } } },
+    { "if": { "properties": { "operation": { "const": "CONTENT_EXTRACTION" } }, "required": ["operation"] }, "then": { "properties": { "policySnapshot": { "properties": { "operation": { "const": "CONTENT_EXTRACTION" } } }, "payload": { "$ref": "extraction-request.schema.json" } } } },
+    { "if": { "properties": { "operation": { "const": "DATASET_TRANSFORM" } }, "required": ["operation"] }, "then": { "properties": { "policySnapshot": { "properties": { "operation": { "const": "DATASET_TRANSFORM" } } }, "payload": { "$ref": "dataset-transform-request.schema.json" } } } }
+  ]
+}

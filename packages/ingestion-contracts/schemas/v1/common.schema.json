@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/common.schema.json",
+  "title": "FlahaINGEST common definitions",
+  "$defs": {
+    "contractVersion": { "const": "1.0.0" },
+    "uuid": { "type": "string", "format": "uuid" },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "relativeArtifactKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*[ .](?:/|$))(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.[^/]*)?(?:/|$))[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "providerId": { "type": "string", "pattern": "^[a-z][a-z0-9.-]{1,63}$" },
+    "semanticVersion": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$", "maxLength": 64 },
+    "mediaType": { "type": "string", "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$", "maxLength": 255 },
+    "safeInteger": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "languageTag": { "type": "string", "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$", "maxLength": 64 },
+    "providerIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerId", "providerVersion", "adapterVersion"],
+      "properties": {
+        "providerId": { "$ref": "#/$defs/providerId" },
+        "providerVersion": { "$ref": "#/$defs/semanticVersion" },
+        "adapterVersion": { "$ref": "#/$defs/semanticVersion" }
+      }
+    },
+    "messageContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractVersion", "correlationId", "causationId", "jobId", "attemptId"],
+      "properties": {
+        "contractVersion": { "$ref": "#/$defs/contractVersion" },
+        "correlationId": { "$ref": "#/$defs/uuid" },
+        "causationId": { "oneOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }] },
+        "jobId": { "$ref": "#/$defs/uuid" },
+        "attemptId": { "$ref": "#/$defs/uuid" }
+      }
+    },
+    "resourceMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wallTimeMs", "peakMemoryBytes", "bytesRead", "bytesWritten"],
+      "properties": {
+        "wallTimeMs": { "$ref": "#/$defs/safeInteger" },
+        "peakMemoryBytes": { "$ref": "#/$defs/safeInteger" },
+        "bytesRead": { "$ref": "#/$defs/safeInteger" },
+        "bytesWritten": { "$ref": "#/$defs/safeInteger" }
+      }
+    },
+    "derivation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputChecksums", "provider", "optionsDigest"],
+      "properties": {
+        "inputChecksums": { "type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true, "items": { "$ref": "#/$defs/sha256" } },
+        "provider": { "$ref": "#/$defs/providerIdentity" },
+        "optionsDigest": { "$ref": "#/$defs/sha256" },
+        "modelDigests": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/$defs/sha256" } }
+      }
+    }
+  }
+}

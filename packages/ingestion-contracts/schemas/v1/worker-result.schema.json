@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/worker-result.schema.json",
+  "title": "WorkerResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "correlationId", "causationId", "jobId", "attemptId", "messageType", "sequence", "startedAt", "finishedAt", "outcome", "providerDescriptor", "warnings", "metrics", "result", "error"],
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/contractVersion" },
+    "correlationId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "causationId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/uuid" }, { "type": "null" }] },
+    "jobId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "attemptId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "messageType": { "const": "WORKER_RESULT" },
+    "sequence": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "startedAt": { "$ref": "common.schema.json#/$defs/utcTimestamp" },
+    "finishedAt": { "$ref": "common.schema.json#/$defs/utcTimestamp" },
+    "outcome": { "enum": ["SUCCEEDED", "FAILED", "CANCELLED"] },
+    "providerDescriptor": { "$ref": "provider-descriptor.schema.json" },
+    "warnings": { "type": "array", "maxItems": 1000, "items": { "$ref": "ingestion-warning.schema.json" } },
+    "metrics": { "$ref": "common.schema.json#/$defs/resourceMetrics" },
+    "result": { "oneOf": [{ "$ref": "document-conversion-result.schema.json" }, { "$ref": "extraction-result.schema.json" }, { "$ref": "dataset-transform-result.schema.json" }, { "type": "null" }] },
+    "error": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "category", "retryable", "message"],
+          "properties": {
+            "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,63}$" },
+            "category": { "enum": ["INVALID_REQUEST", "POLICY_VIOLATION", "UNSUPPORTED_FORMAT", "INPUT_CORRUPT", "LIMIT_EXCEEDED", "PROVIDER_FAILURE", "CANCELLED", "INTEGRITY_FAILURE", "INTERNAL_ERROR"] },
+            "retryable": { "type": "boolean" },
+            "message": { "type": "string", "minLength": 1, "maxLength": 2048 },
+            "diagnosticArtifact": { "$ref": "artifact-reference.schema.json" }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "outcome": { "const": "SUCCEEDED" } }, "required": ["outcome"] }, "then": { "properties": { "result": { "not": { "type": "null" } }, "error": { "type": "null" } } } },
+    { "if": { "properties": { "outcome": { "const": "FAILED" } }, "required": ["outcome"] }, "then": { "properties": { "result": { "type": "null" }, "error": { "not": { "type": "null" } } } } },
+    { "if": { "properties": { "outcome": { "const": "CANCELLED" } }, "required": ["outcome"] }, "then": { "properties": { "result": { "type": "null" } } } }
+  ]
+}

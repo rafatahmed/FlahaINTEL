@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/extraction-result.schema.json",
+  "title": "ExtractionResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "inputArtifactId", "structuredOutput", "textOutput", "titlePresent", "mainContentPresent", "detectedLanguage", "textDirection", "fieldCount", "linkCount", "tableCount", "confidence", "fieldProvenanceOutput", "warnings", "metrics", "derivation"],
+  "properties": {
+    "operation": { "const": "CONTENT_EXTRACTION" },
+    "inputArtifactId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "structuredOutput": { "$ref": "artifact-reference.schema.json" },
+    "textOutput": { "oneOf": [{ "$ref": "artifact-reference.schema.json" }, { "type": "null" }] },
+    "titlePresent": { "type": "boolean" },
+    "mainContentPresent": { "type": "boolean" },
+    "detectedLanguage": { "oneOf": [{ "$ref": "common.schema.json#/$defs/languageTag" }, { "type": "null" }] },
+    "textDirection": { "enum": ["LTR", "RTL", "MIXED", "UNKNOWN"] },
+    "fieldCount": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "linkCount": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "tableCount": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "fieldProvenanceOutput": { "$ref": "artifact-reference.schema.json" },
+    "warnings": { "type": "array", "maxItems": 1000, "items": { "$ref": "ingestion-warning.schema.json" } },
+    "metrics": { "$ref": "common.schema.json#/$defs/resourceMetrics" },
+    "derivation": { "$ref": "common.schema.json#/$defs/derivation" }
+  }
+}
