@@ -23,7 +23,7 @@ Last modified: 2026-07-15
 | Tesseract OCR | Not installed; benchmark pending | DEFER | Executable and language-data approval required |
 | PaddleOCR | Not installed | DEFER | Explicit later approval and model/runtime review required |
 | Trafilatura | Not installed; benchmark pending | LEGAL REVIEW REQUIRED | GPL posture requires explicit legal/architecture decision |
-| pandas 2.3.3 | Installed; not benchmarked | BENCHMARK FURTHER | Existing availability is not an adoption decision |
+| pandas 2.3.3 | Benchmarked | BENCHMARK FURTHER | Correct governed values except malformed CSV recovery; current user-site install is unavailable under Phase 3D `-I` isolation |
 | Polars | Not installed; benchmark pending | DEFER | Pinned wheel approval required |
 | PyArrow | Not installed; benchmark pending | DEFER | Pinned large wheel approval required |
 | DuckDB | Not installed; benchmark pending | DEFER | Pinned wheel and extension controls required |

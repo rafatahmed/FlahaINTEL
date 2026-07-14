@@ -44,5 +44,17 @@ those fields are explicitly `null` in generated environment JSON. The values abo
 came from a separate read-only Windows CIM audit. No `DATABASE_URL` value or
 ambient secret was copied.
 
+Phase 3E-B confirmed pandas 2.3.3 and NumPy 2.3.5 are installed in the
+CPython 3.14 per-user site, not globally or in a virtual environment. pandas
+metadata reports BSD 3-Clause and includes its licence file. PyArrow, openpyxl,
+numexpr, bottleneck, SciPy, PyTables, and XlsxWriter are absent.
+
+The npm discrepancy is environment-driven. Interactive PowerShell resolves
+`C:\Program Files\nodejs\npm.ps1`, whose prefix lookup finds user-prefix npm
+11.6.2. The sanitized subprocess resolves `C:\Program Files\nodejs\npm.CMD` but
+omits `APPDATA`, so it uses bundled system npm 11.4.2. Future manifests must
+record `C:\Program Files\nodejs\node.exe` and the exact resolved `npm-cli.js`:
+either the system CLI or the user-prefix CLI, rather than recording only a wrapper.
+
 Machine limitation: free disk is low for model-heavy engines and should be
 reassessed before any approved Docling, OCR, Java/Tika, or multi-engine install.

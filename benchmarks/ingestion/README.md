@@ -25,6 +25,7 @@ python benchmarks/ingestion/scripts/verify_corpus.py
 python -m unittest discover -s benchmarks/ingestion/tests -v
 python benchmarks/ingestion/scripts/run_baselines.py --determinism-runs 2
 python benchmarks/ingestion/scripts/summarize_results.py <run-directory>
+python benchmarks/ingestion/scripts/run_pandas_benchmark.py
 ```
 
 Generated run directories are ignored. The committed reports contain only small,
