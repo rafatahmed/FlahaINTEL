@@ -30,5 +30,25 @@ export interface RssSource {
   lastSuccessAt: string | null;
   lastError: string | null;
   collectionRuns: CollectionRun[];
+  isCollecting: boolean;
 }
 
+export interface ArticlePage {
+  items: Article[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface SchedulerStatus {
+  enabled: boolean;
+  started: boolean;
+  stopping: boolean;
+  running: boolean;
+  intervalMinutes: number;
+  lastStartedAt: string | null;
+  lastFinishedAt: string | null;
+  lastError: string | null;
+  activeSourceIds: string[];
+}

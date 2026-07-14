@@ -41,3 +41,27 @@ Initial migration:
 
 ```text
 20260714141236_init
+```
+
+## Phase 1.1 verified status
+
+RSS MVP hardening has been runtime verified on the `phase-1-1-rss-hardening` branch.
+
+The verified baseline now also includes:
+
+- strict Fastify request validation and stable error envelopes;
+- configurable RSS timeouts, response-size bounds, and redirect limits;
+- public-destination checks and redirect revalidation for RSS transport;
+- separate bounded transport and RSS parsing;
+- per-source collection overlap prevention;
+- malformed feed failure recording and malformed item skipping;
+- liveness and PostgreSQL readiness endpoints;
+- configurable scheduler enablement and lifecycle status;
+- bounded graceful shutdown behavior;
+- source editing and enable/disable operations;
+- article pagination controls and improved web runtime states;
+- controlled automated transport, collector, scheduler, and API tests.
+
+No Prisma schema change or new migration was required for Phase 1.1. Existing fingerprint generation, URL normalization, and collection-run database accounting semantics remain the compatibility baseline.
+
+RSS destination controls are defense-in-depth and are not a claim of complete SSRF prevention. Preserve redirect validation, bounded transport, connection address pinning, and the documented residual DNS/network-infrastructure limitations when changing collection behavior.
