@@ -7,7 +7,11 @@ import { prisma as defaultPrisma } from "./db.js";
 import { apiErrorHandler, errorResponse } from "./errors.js";
 import { articleRoutes } from "./routes/articles.js";
 import { articleClassificationRoutes } from "./routes/articleClassifications.js";
+import { entityRelationshipRoutes } from "./routes/entityRelationships.js";
+import { eventRoutes } from "./routes/events.js";
 import { healthRoutes } from "./routes/health.js";
+import { organizationRoutes } from "./routes/organizations.js";
+import { productRoutes } from "./routes/products.js";
 import { schedulerRoutes } from "./routes/scheduler.js";
 import { sourceRoutes } from "./routes/sources.js";
 import { taxonomyRoutes } from "./routes/taxonomy.js";
@@ -33,6 +37,10 @@ export function buildApp(dependencies: AppDependencies = {}) {
   app.register(articleRoutes(prisma), { prefix: "/api" });
   app.register(articleClassificationRoutes(prisma), { prefix: "/api" });
   app.register(taxonomyRoutes(prisma), { prefix: "/api" });
+  app.register(organizationRoutes(prisma), { prefix: "/api" });
+  app.register(productRoutes(prisma), { prefix: "/api" });
+  app.register(entityRelationshipRoutes(prisma), { prefix: "/api" });
+  app.register(eventRoutes(prisma), { prefix: "/api" });
   app.register(sourceRoutes({ prisma, coordinator, validateSourceUrl: dependencies.validateSourceUrl }), { prefix: "/api" });
   app.register(schedulerRoutes(scheduler), { prefix: "/api" });
   app.setNotFoundHandler((_request, reply) => {
