@@ -4,6 +4,8 @@ dist/
 *.log
 .vite/
 coverage/
+benchmarks/ingestion/results/*/
+!benchmarks/ingestion/results/.gitkeep
 
 
 *.tsbuildinfo
