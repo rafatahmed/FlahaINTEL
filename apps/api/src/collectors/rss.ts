@@ -1,11 +1,25 @@
 import { createHash } from "node:crypto";
 import type { PrismaClient, RssSource } from "@prisma/client";
 import Parser from "rss-parser";
+import { config } from "../config.js";
+import { fetchRssText } from "./rssTransport.js";
 
-const parser = new Parser({
-  timeout: 15_000,
-  headers: { "User-Agent": "FlahaINTEL/0.1 RSS collector" },
-});
+const parser = new Parser();
+
+type ParsedFeed = Awaited<ReturnType<typeof parser.parseString>>;
+
+export interface CollectSourceOptions {
+  loadFeed?: (url: string) => Promise<ParsedFeed>;
+}
+
+async function loadFeed(url: string): Promise<ParsedFeed> {
+  const content = await fetchRssText(url, {
+    timeoutMs: config.rssTimeoutMs,
+    maxResponseBytes: config.rssMaxResponseBytes,
+    maxRedirects: config.rssMaxRedirects,
+  });
+  return parser.parseString(content);
+}
 
 export function normalizeUrl(value: string): string {
   try {
@@ -42,16 +56,32 @@ function asDate(value?: string): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export async function collectSource(prisma: PrismaClient, source: RssSource) {
+function validArticleUrl(value: string): boolean {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+export async function collectSource(
+  prisma: PrismaClient,
+  source: RssSource,
+  options: CollectSourceOptions = {},
+) {
   const startedAt = new Date();
   try {
-    const feed = await parser.parseURL(source.url);
+    const feed = await (options.loadFeed ?? loadFeed)(source.url);
     let itemsAdded = 0;
+    let itemsSkipped = 0;
 
     for (const item of feed.items) {
       const title = item.title?.trim();
       const link = item.link?.trim();
-      if (!title || !link) continue;
+      if (!title || !link || !validArticleUrl(link)) {
+        itemsSkipped += 1;
+        continue;
+      }
 
       const published = item.isoDate ?? item.pubDate;
       const result = await prisma.article.createMany({
@@ -86,7 +116,7 @@ export async function collectSource(prisma: PrismaClient, source: RssSource) {
         data: { lastCollectedAt: finishedAt, lastSuccessAt: finishedAt, lastError: null },
       }),
     ]);
-    return { status: "SUCCESS" as const, itemsFound: feed.items.length, itemsAdded };
+    return { status: "SUCCESS" as const, itemsFound: feed.items.length, itemsAdded, itemsSkipped };
   } catch (error) {
     const finishedAt = new Date();
     const message = error instanceof Error ? error.message : "Unknown collection error";
@@ -99,11 +129,6 @@ export async function collectSource(prisma: PrismaClient, source: RssSource) {
         data: { lastCollectedAt: finishedAt, lastError: message },
       }),
     ]);
-    return { status: "FAILURE" as const, error: message, itemsFound: 0, itemsAdded: 0 };
+    return { status: "FAILURE" as const, error: message, itemsFound: 0, itemsAdded: 0, itemsSkipped: 0 };
   }
-}
-
-export async function collectAllSources(prisma: PrismaClient) {
-  const sources = await prisma.rssSource.findMany({ where: { enabled: true } });
-  return Promise.all(sources.map((source) => collectSource(prisma, source)));
 }
