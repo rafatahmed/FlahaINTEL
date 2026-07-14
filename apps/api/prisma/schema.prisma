@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CollectionStatus {
+  SUCCESS
+  FAILURE
+}
+
+model RssSource {
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String
+  url             String          @unique
+  enabled         Boolean         @default(true)
+  lastCollectedAt DateTime?
+  lastSuccessAt   DateTime?
+  lastError       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  articles        Article[]
+  collectionRuns  CollectionRun[]
+
+  @@index([enabled])
+}
+
+model Article {
+  id          String    @id @default(uuid()) @db.Uuid
+  sourceId    String    @db.Uuid
+  source      RssSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  title       String
+  url         String
+  summary     String?
+  author      String?
+  publishedAt DateTime?
+  collectedAt DateTime  @default(now())
+  fingerprint String    @unique
+
+  @@index([sourceId])
+  @@index([publishedAt])
+  @@index([collectedAt])
+}
+
+model CollectionRun {
+  id          String           @id @default(uuid()) @db.Uuid
+  sourceId    String           @db.Uuid
+  source      RssSource        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  status      CollectionStatus
+  startedAt   DateTime         @default(now())
+  finishedAt  DateTime
+  itemsFound  Int              @default(0)
+  itemsAdded  Int              @default(0)
+  error       String?
+
+  @@index([sourceId, startedAt])
+}
+

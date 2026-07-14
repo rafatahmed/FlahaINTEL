@@ -1,0 +1,16 @@
+{
+  "name": "flaha-intel",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/api", "apps/web"],
+  "scripts": {
+    "dev": "npm run dev --workspace=@flaha-intel/api & npm run dev --workspace=@flaha-intel/web",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspace=@flaha-intel/api",
+    "prisma:generate": "npm run prisma:generate --workspace=@flaha-intel/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
