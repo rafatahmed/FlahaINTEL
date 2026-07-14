@@ -6,9 +6,11 @@ import { config } from "./config.js";
 import { prisma as defaultPrisma } from "./db.js";
 import { apiErrorHandler, errorResponse } from "./errors.js";
 import { articleRoutes } from "./routes/articles.js";
+import { articleClassificationRoutes } from "./routes/articleClassifications.js";
 import { healthRoutes } from "./routes/health.js";
 import { schedulerRoutes } from "./routes/scheduler.js";
 import { sourceRoutes } from "./routes/sources.js";
+import { taxonomyRoutes } from "./routes/taxonomy.js";
 import { RssScheduler } from "./scheduler.js";
 
 export interface AppDependencies {
@@ -29,6 +31,8 @@ export function buildApp(dependencies: AppDependencies = {}) {
   app.register(cors, { origin: config.webOrigin });
   app.register(healthRoutes(prisma));
   app.register(articleRoutes(prisma), { prefix: "/api" });
+  app.register(articleClassificationRoutes(prisma), { prefix: "/api" });
+  app.register(taxonomyRoutes(prisma), { prefix: "/api" });
   app.register(sourceRoutes({ prisma, coordinator, validateSourceUrl: dependencies.validateSourceUrl }), { prefix: "/api" });
   app.register(schedulerRoutes(scheduler), { prefix: "/api" });
   app.setNotFoundHandler((_request, reply) => {
