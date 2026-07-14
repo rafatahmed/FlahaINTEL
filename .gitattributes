@@ -1,0 +1,31 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: Repository Git Attribute Policy
+# Introduction:
+# Defines canonical line endings and protects binary and governed corpus bytes.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-15
+
+# Normalize human-authored text to LF in both the index and working tree.
+* text=auto eol=lf
+
+# Binary formats must never pass through text or whitespace conversion.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
+*.gz binary
+
+# Governed corpus text has byte-stable UTF-8 LF representation.
+benchmarks/ingestion/corpus/**/*.csv text eol=lf
+benchmarks/ingestion/corpus/**/*.json text eol=lf
+benchmarks/ingestion/corpus/**/*.jsonl text eol=lf
+benchmarks/ingestion/corpus/**/*.html text eol=lf

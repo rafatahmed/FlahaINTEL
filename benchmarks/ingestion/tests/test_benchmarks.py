@@ -20,6 +20,7 @@ import os
 import pathlib
 import shutil
 import socket
+import subprocess
 import sys
 import unittest
 import uuid
@@ -30,6 +31,7 @@ TEMP_ROOT = ROOT / "results"
 sys.path.insert(0, str(ROOT / "scripts"))
 from benchmark_lib import extract_html, load_dataset, safe_relative, validate_run_id
 from inspect_environment import inventory
+from generate_corpus import generate
 from run_baselines import run
 from summarize_results import summarize
 from verify_corpus import verify
@@ -52,6 +54,16 @@ class CorpusTests(unittest.TestCase):
     def test_manifest_files_hashes_and_expected_outputs(self):
         self.assertEqual(verify(self.corpus), [])
         self.assertGreaterEqual(len(self.manifest["items"]), 20)
+        with test_directory() as temporary:
+            generated = temporary / "corpus"
+            generate(generated)
+            first = {path.relative_to(generated).as_posix(): path.read_bytes() for path in generated.rglob("*") if path.is_file()}
+            generate(generated)
+            second = {path.relative_to(generated).as_posix(): path.read_bytes() for path in generated.rglob("*") if path.is_file()}
+            canonical = {path.relative_to(self.corpus).as_posix(): path.read_bytes() for path in self.corpus.rglob("*") if path.is_file() and path.name != "README.md"}
+            self.assertEqual(first, second)
+            self.assertEqual(first, canonical)
+            self.assertEqual(verify(generated), [])
 
     def test_duplicate_ids_are_rejected(self):
         temporary, errors = self.mutate_manifest(lambda value: value["items"].append(copy.deepcopy(value["items"][0])))
@@ -60,6 +72,19 @@ class CorpusTests(unittest.TestCase):
     def test_unsafe_absolute_and_parent_paths_are_rejected(self):
         for unsafe in ("../outside", "/absolute", "C:\\absolute", "//server/share"):
             with self.assertRaises(ValueError): safe_relative(self.corpus, unsafe)
+        for path in [*self.corpus.rglob("*.csv"), *self.corpus.rglob("*.json"), *self.corpus.rglob("*.jsonl"), *self.corpus.rglob("*.html")]:
+            data = path.read_bytes()
+            self.assertNotIn(b"\r\n", data)
+            self.assertNotIn(b"\r", data)
+        attributes = git_attributes(["benchmarks/ingestion/corpus/documents/en-simple.pdf",
+                                     "benchmarks/ingestion/corpus/datasets/records.csv",
+                                     "benchmarks/ingestion/corpus/html/clean-article.html"])
+        self.assertIn("en-simple.pdf: text: unset", attributes)
+        self.assertIn("en-simple.pdf: binary: set", attributes)
+        self.assertIn("records.csv: text: set", attributes)
+        self.assertIn("records.csv: eol: lf", attributes)
+        self.assertIn("clean-article.html: text: set", attributes)
+        self.assertIn("clean-article.html: eol: lf", attributes)
 
     def test_unsafe_manifest_path_is_rejected(self):
         temporary, errors = self.mutate_manifest(lambda value: value["items"][0].update(path="../outside.pdf"))
@@ -136,6 +161,12 @@ def can_bind(port: int) -> bool:
             listener.bind(("127.0.0.1", port)); return True
         except OSError:
             return False
+
+
+def git_attributes(paths: list[str]) -> str:
+    completed = subprocess.run(["git", "check-attr", "text", "eol", "binary", "--", *paths], cwd=ROOT.parents[1],
+                               capture_output=True, text=True, check=True)
+    return "\n".join(line.replace("benchmarks/ingestion/corpus/documents/", "").replace("benchmarks/ingestion/corpus/datasets/", "").replace("benchmarks/ingestion/corpus/html/", "") for line in completed.stdout.splitlines())
 
 
 @contextmanager
