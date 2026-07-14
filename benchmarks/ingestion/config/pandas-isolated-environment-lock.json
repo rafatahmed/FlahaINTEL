@@ -1,0 +1,24 @@
+{
+  "environmentId": "pandas-2.3.3-py314-win-amd64",
+  "pythonVersion": "3.14.0",
+  "pythonExecutablePolicy": "Explicit CPython 3.14 Windows x64 interpreter; committed evidence must not contain a user-specific absolute path.",
+  "targetPlatform": "win_amd64",
+  "implementation": "cp",
+  "abi": "cp314",
+  "packageSource": "https://pypi.org/simple",
+  "createdDate": "2026-07-15",
+  "packages": [
+    {"name":"numpy","version":"2.3.5","wheel":"numpy-2.3.5-cp314-cp314-win_amd64.whl","sha256":"e6a0bc88393d65807d751a614207b7129a310ca4fe76a74e5c7da5fa5671417e","byteSize":12919388,"license":"BSD-3-Clause","purpose":"pandas numeric runtime"},
+    {"name":"pandas","version":"2.3.3","wheel":"pandas-2.3.3-cp314-cp314-win_amd64.whl","sha256":"1b07204a219b3b7350abaae088f451860223a52cfb8a6c53358e7948735158e5","byteSize":11109071,"license":"BSD-3-Clause","purpose":"candidate dataset engine"},
+    {"name":"python-dateutil","version":"2.9.0.post0","wheel":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","byteSize":229892,"license":"Apache-2.0 OR BSD-3-Clause","purpose":"pandas datetime dependency"},
+    {"name":"pytz","version":"2026.2","wheel":"pytz-2026.2-py2.py3-none-any.whl","sha256":"04156e608bee23d3792fd45c94ae47fae1036688e75032eea2e3bf0323d1f126","byteSize":510141,"license":"MIT","purpose":"pandas timezone dependency"},
+    {"name":"six","version":"1.17.0","wheel":"six-1.17.0-py2.py3-none-any.whl","sha256":"4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274","byteSize":11050,"license":"MIT","purpose":"python-dateutil compatibility dependency"},
+    {"name":"tzdata","version":"2026.3","wheel":"tzdata-2026.3-py2.py3-none-any.whl","sha256":"dc096730c87af6cab1b171c9d532be840741ff5d459015e7f6947bd7d7e54931","byteSize":348168,"license":"Apache-2.0","purpose":"pandas timezone data dependency"}
+  ],
+  "wheelhouseByteSize": 25127710,
+  "creationCommand": "<CPYTHON314> -m venv .benchmark-envs/pandas-2.3.3-py314",
+  "offlineInstallationCommand": "<VENV_PYTHON> -m pip install --no-index --find-links .benchmark-wheelhouse/pandas-2.3.3-py314-win-amd64 --require-hashes -r benchmarks/ingestion/config/pandas-isolated-requirements.txt",
+  "validationCommand": "<VENV_PYTHON> -I -m pip check",
+  "isolationRequirements": ["include-system-site-packages=false","no user site","offline install","sanitized worker environment"],
+  "limitations": ["Windows x64 and CPython 3.14 specific native wheels","wheel files and environment are ignored","pandas is benchmark-only"]
+}
