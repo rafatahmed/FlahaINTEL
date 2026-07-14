@@ -1,0 +1,641 @@
+{
+  "registryVersion": 1,
+  "lastReviewedAt": "2026-07-14",
+  "enums": {
+    "authorityType": [
+      "INTERGOVERNMENTAL_ORGANIZATION",
+      "GOVERNMENT_AGENCY",
+      "PUBLIC_SERVICE_MEDIA",
+      "MEDIA_ORGANIZATION",
+      "COMMERCIAL_MEDIA"
+    ],
+    "httpsStatus": [
+      "HTTPS_VALIDATED",
+      "HTTPS_SAFE_REDIRECT",
+      "HTTPS_FAILED",
+      "NO_VERIFIED_ENDPOINT"
+    ],
+    "verificationStatus": [
+      "PENDING",
+      "ACCEPTED",
+      "DEGRADED",
+      "REJECTED"
+    ]
+  },
+  "sources": [
+    {
+      "id": "fao-global-newsroom",
+      "sourceName": "FAO Global Newsroom",
+      "publisher": "Food and Agriculture Organization of the United Nations",
+      "officialFeedUrl": "https://www.fao.org/feeds/fao-newsroom-rss",
+      "publisherHomepage": "https://www.fao.org/newsroom/en",
+      "officialEvidenceUrl": "https://www.fao.org/newsroom/en",
+      "category": "AGRICULTURE_AND_FOOD",
+      "region": "GLOBAL",
+      "language": "en",
+      "authorityType": "INTERGOVERNMENTAL_ORGANIZATION",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": true,
+      "verificationStatus": "ACCEPTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "325359a2-b3c0-4e96-ba62-252f9fae71d6",
+      "preflight": {
+        "status": "PASS",
+        "responseBytes": 9682,
+        "responseTimeMs": 5255,
+        "feedTitle": "FAO Newsroom RSS",
+        "itemCount": 21
+      },
+      "contentSamples": [
+        {
+          "title": "A new FAO report examines how shocks affect global coffee, cocoa and tea markets and outlines policy options to address structural vulnerabilities",
+          "url": "https://www.fao.org/newsroom/detail/a-new-fao-report-examines-how-shocks-affect-global-coffee--cocoa-and-tea-markets-and-outlines-policy-options-to-address-structural-vulnerabilities/en"
+        },
+        {
+          "title": "North American ranchers engage with FAO on importance of healthy rangelands and pastoralists",
+          "url": "https://www.fao.org/newsroom/detail/north-american-ranchers-engage-with-fao-on-importance-of-healthy-rangelands-and-pastoralists/en"
+        },
+        {
+          "title": "State of Agricultural Commodity Markets explores how best to cope with shocks",
+          "url": "https://www.fao.org/newsroom/detail/state-of-agricultural-commodity-markets-explores-how-best-to-cope-with-shocks/en"
+        }
+      ],
+      "firstCollectionCount": {
+        "itemsFound": 21,
+        "itemsAdded": 21,
+        "itemsSkipped": 0
+      },
+      "secondCollectionAddedCount": 0,
+      "averageResponseMs": 2216.5,
+      "limitations": [
+        "Global newsroom coverage is not specific to the Near East and North Africa.",
+        "Response timing is observational and is not a performance guarantee."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "fao-nena-news",
+      "sourceName": "FAO Near East and North Africa News",
+      "publisher": "Food and Agriculture Organization of the United Nations",
+      "officialFeedUrl": null,
+      "publisherHomepage": "https://www.fao.org/neareast/en",
+      "officialEvidenceUrl": "https://www.fao.org/neareast/news/",
+      "category": "AGRICULTURE_AND_FOOD",
+      "region": "NEAR_EAST_AND_NORTH_AFRICA",
+      "language": "en",
+      "authorityType": "INTERGOVERNMENTAL_ORGANIZATION",
+      "httpsStatus": "NO_VERIFIED_ENDPOINT",
+      "enabledByDefault": false,
+      "verificationStatus": "REJECTED",
+      "ownershipVerified": false,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": null,
+      "preflight": {
+        "status": "NOT_RUN",
+        "responseBytes": null,
+        "responseTimeMs": null,
+        "feedTitle": null,
+        "itemCount": null
+      },
+      "contentSamples": [],
+      "firstCollectionCount": null,
+      "secondCollectionAddedCount": null,
+      "averageResponseMs": null,
+      "limitations": [
+        "The official regional newsroom was reviewed but did not declare an RSS endpoint."
+      ],
+      "rejectionReason": "No exact RSS endpoint could be verified from a publisher-operated page; guessed feed paths were not tested."
+    },
+    {
+      "id": "who-emro-news",
+      "sourceName": "WHO Eastern Mediterranean News",
+      "publisher": "World Health Organization Regional Office for the Eastern Mediterranean",
+      "officialFeedUrl": "https://www.emro.who.int/component/mediarss.html?feed_id=2&format=raw&utm_campaign=emronews&utm_medium=rssfeeds&utm_source=rss",
+      "publisherHomepage": "https://www.emro.who.int/",
+      "officialEvidenceUrl": "https://www.emro.who.int/rss-feeds.html",
+      "category": "PUBLIC_HEALTH",
+      "region": "EASTERN_MEDITERRANEAN",
+      "language": "en",
+      "authorityType": "INTERGOVERNMENTAL_ORGANIZATION",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": false,
+      "verificationStatus": "REJECTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": null,
+      "preflight": {
+        "status": "PARSE_FAILURE",
+        "responseBytes": 54395,
+        "responseTimeMs": 1749,
+        "feedTitle": null,
+        "itemCount": null
+      },
+      "contentSamples": [],
+      "firstCollectionCount": null,
+      "secondCollectionAddedCount": null,
+      "averageResponseMs": null,
+      "limitations": [
+        "The publisher still advertises the endpoint as RSS, but repeated requests returned an HTML error page rather than a feed."
+      ],
+      "rejectionReason": "Persistent malformed-feed response: two repeated hardened preflight attempts returned HTML that could not be parsed as RSS or Atom."
+    },
+    {
+      "id": "un-news-global",
+      "sourceName": "UN News Global",
+      "publisher": "United Nations News and Media Division",
+      "officialFeedUrl": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+      "publisherHomepage": "https://news.un.org/en/",
+      "officialEvidenceUrl": "https://news.un.org/en/rss-feeds",
+      "category": "GLOBAL_AFFAIRS",
+      "region": "GLOBAL",
+      "language": "en",
+      "authorityType": "INTERGOVERNMENTAL_ORGANIZATION",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": true,
+      "verificationStatus": "ACCEPTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "1fcbd354-0c5a-4fe2-8417-cd9dee43cf9e",
+      "preflight": {
+        "status": "PASS",
+        "responseBytes": 33908,
+        "responseTimeMs": 589,
+        "feedTitle": "UN News - Global perspective Human stories",
+        "itemCount": 30
+      },
+      "contentSamples": [
+        {
+          "title": "People continue to stand by refugees, Gen Z shows most empathy",
+          "url": "https://news.un.org/feed/view/en/story/2026/07/1167934"
+        },
+        {
+          "title": "‘This is a fire’: DRC Ebola outbreak is fastest-growing ever, warns WHO",
+          "url": "https://news.un.org/feed/view/en/story/2026/07/1167933"
+        },
+        {
+          "title": "International Criminal Court ‘a critical cog’ in global justice efforts",
+          "url": "https://news.un.org/feed/view/en/story/2026/07/1167932"
+        }
+      ],
+      "firstCollectionCount": {
+        "itemsFound": 30,
+        "itemsAdded": 30,
+        "itemsSkipped": 0
+      },
+      "secondCollectionAddedCount": 0,
+      "averageResponseMs": 2801.5,
+      "limitations": [
+        "The global feed mixes all UN News topics and regions.",
+        "Response timing is observational and is not a performance guarantee."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "reliefweb-updates",
+      "sourceName": "ReliefWeb Updates",
+      "publisher": "United Nations Office for the Coordination of Humanitarian Affairs",
+      "officialFeedUrl": "https://reliefweb.int/updates/rss.xml",
+      "publisherHomepage": "https://reliefweb.int/",
+      "officialEvidenceUrl": "https://reliefweb.int/updates",
+      "category": "HUMANITARIAN_AFFAIRS",
+      "region": "GLOBAL",
+      "language": "multilingual",
+      "authorityType": "INTERGOVERNMENTAL_ORGANIZATION",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": true,
+      "verificationStatus": "ACCEPTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "62d38794-ae74-4b87-9b18-a8fd7c5ada6b",
+      "preflight": {
+        "status": "PASS",
+        "responseBytes": 128365,
+        "responseTimeMs": 1252,
+        "feedTitle": "ReliefWeb - Updates",
+        "itemCount": 20
+      },
+      "contentSamples": [
+        {
+          "title": "DR Congo: West and Central Africa: Latest Events at a glance (7 - 13 July 2026)",
+          "url": "https://reliefweb.int/report/democratic-republic-congo/west-and-central-africa-latest-events-glance-7-13-july-2026"
+        },
+        {
+          "title": "DR Congo: Afrique de l’Ouest et centrale : Derniers événements en bref (7 - 13 juillet 2026)",
+          "url": "https://reliefweb.int/report/democratic-republic-congo/afrique-de-louest-et-centrale-derniers-evenements-en-bref-7-13-juillet-2026"
+        },
+        {
+          "title": "Angola: Southern Africa: Humanitarian Snapshot (as of July 2026)",
+          "url": "https://reliefweb.int/report/angola/southern-africa-humanitarian-snapshot-july-2026"
+        }
+      ],
+      "firstCollectionCount": {
+        "itemsFound": 20,
+        "itemsAdded": 20,
+        "itemsSkipped": 0
+      },
+      "secondCollectionAddedCount": 0,
+      "averageResponseMs": 5895,
+      "limitations": [
+        "The feed is multilingual and aggregates reports from many contributing organizations.",
+        "Response timing is observational and is not a performance guarantee."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "usda-news-releases",
+      "sourceName": "USDA News Releases",
+      "publisher": "United States Department of Agriculture",
+      "officialFeedUrl": "https://www.usda.gov/rss/latest-releases.xml",
+      "publisherHomepage": "https://www.usda.gov/about-usda/news/press-releases",
+      "officialEvidenceUrl": "https://www.usda.gov/about-usda/policies-and-links/digital/rss-feeds",
+      "category": "AGRICULTURE_AND_FOOD",
+      "region": "UNITED_STATES",
+      "language": "en",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": true,
+      "verificationStatus": "ACCEPTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "5967e6e6-c3bd-416f-b3c8-27a1da42e6db",
+      "preflight": {
+        "status": "PASS",
+        "responseBytes": 10147,
+        "responseTimeMs": 379,
+        "feedTitle": "USDA - Latest News Releases",
+        "itemCount": 10
+      },
+      "contentSamples": [
+        {
+          "title": "Secretary Rollins Announces Growing Momentum Behind USDA’s Product of USA Label with 10 New Companies Joining Initiative",
+          "url": "https://www.usda.gov/about-usda/news/press-releases/2026/07/10/secretary-rollins-announces-growing-momentum-behind-usdas-product-usa-label-10-new-companies-joining"
+        },
+        {
+          "title": "USDA, HHS, EPA Join Forces to Bolster Consumer Protections from Heavy Metals and Other Contaminants in Food",
+          "url": "https://www.usda.gov/about-usda/news/press-releases/2026/07/10/usda-hhs-epa-join-forces-bolster-consumer-protections-heavy-metals-and-other-contaminants-food"
+        },
+        {
+          "title": "USDA Celebrates One Year Anniversary of the Working Families Tax Cuts Act, Delivers Final ‘Farmers First’ Program Improvements",
+          "url": "https://www.usda.gov/about-usda/news/press-releases/2026/07/08/usda-celebrates-one-year-anniversary-working-families-tax-cuts-act-delivers-final-farmers-first"
+        }
+      ],
+      "firstCollectionCount": {
+        "itemsFound": 10,
+        "itemsAdded": 10,
+        "itemsSkipped": 0
+      },
+      "secondCollectionAddedCount": 0,
+      "averageResponseMs": 2356,
+      "limitations": [
+        "The feed covers department-wide releases and is not limited to agricultural market data.",
+        "Response timing is observational and is not a performance guarantee."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "usda-nass-news-events",
+      "sourceName": "USDA NASS News and Events",
+      "publisher": "United States Department of Agriculture National Agricultural Statistics Service",
+      "officialFeedUrl": "http://www.nass.usda.gov/rss/news.xml",
+      "publisherHomepage": "https://www.nass.usda.gov/Newsroom/",
+      "officialEvidenceUrl": "https://www.nass.usda.gov/Newsroom/Syndication/News/index.php",
+      "category": "AGRICULTURAL_STATISTICS",
+      "region": "UNITED_STATES",
+      "language": "en",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "httpsStatus": "HTTPS_SAFE_REDIRECT",
+      "enabledByDefault": false,
+      "verificationStatus": "DEGRADED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": null,
+      "preflight": {
+        "status": "PASS_STALE_CONTENT",
+        "responseBytes": 199410,
+        "responseTimeMs": 1610,
+        "feedTitle": "USDA - National Agricultural Statistics Service",
+        "itemCount": 313
+      },
+      "contentSamples": [
+        {
+          "title": "USDA To Measure Milk Production",
+          "url": "https://www.nass.usda.gov/Newsroom/2025/09-24-2025.php"
+        },
+        {
+          "title": "Family-owned farms account for 95% of U.S. farms, according to the Census of Agriculture Typology Report",
+          "url": "https://www.nass.usda.gov/Newsroom/2025/08-19-2025.php"
+        },
+        {
+          "title": "USDA Forecasts U.S. Corn Production Up and Soybean Production Down from 2024",
+          "url": "https://www.nass.usda.gov/Newsroom/2025/08-12-2025.php"
+        }
+      ],
+      "firstCollectionCount": null,
+      "secondCollectionAddedCount": null,
+      "averageResponseMs": null,
+      "limitations": [
+        "The feed is parseable but its newest entry is from September 2025 while the publisher newsroom contains 2026 releases.",
+        "The publisher advertises an HTTP URL that safely redirects to HTTPS."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "usda-nass-todays-reports",
+      "sourceName": "USDA NASS Today's Reports",
+      "publisher": "United States Department of Agriculture National Agricultural Statistics Service",
+      "officialFeedUrl": "http://www.nass.usda.gov/rss/reports.xml",
+      "publisherHomepage": "https://www.nass.usda.gov/Publications/",
+      "officialEvidenceUrl": "https://www.nass.usda.gov/Newsroom/Syndication/Todays_Reports/index.php",
+      "category": "AGRICULTURAL_STATISTICS",
+      "region": "UNITED_STATES",
+      "language": "en",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "httpsStatus": "HTTPS_SAFE_REDIRECT",
+      "enabledByDefault": false,
+      "verificationStatus": "DEGRADED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": null,
+      "preflight": {
+        "status": "PASS_INSUFFICIENT_SAMPLE",
+        "responseBytes": 925,
+        "responseTimeMs": 960,
+        "feedTitle": "USDA - National Agricultural Statistics Service Reports",
+        "itemCount": 1
+      },
+      "contentSamples": [
+        {
+          "title": "Crop Progress",
+          "url": "http://www.nass.usda.gov/Publications/Todays_Reports/reports/prog2826.pdf"
+        }
+      ],
+      "firstCollectionCount": null,
+      "secondCollectionAddedCount": null,
+      "averageResponseMs": null,
+      "limitations": [
+        "Only one item was present, so the required three-entry suitability inspection could not be completed.",
+        "The sole item had no publication date and linked to an HTTP PDF.",
+        "The publisher advertises an HTTP feed URL that safely redirects to HTTPS."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "ec-agriculture-news",
+      "sourceName": "European Commission Agriculture News",
+      "publisher": "European Commission Directorate-General for Agriculture and Rural Development",
+      "officialFeedUrl": "https://agriculture.ec.europa.eu/node/2/rss_en",
+      "publisherHomepage": "https://agriculture.ec.europa.eu/media_en",
+      "officialEvidenceUrl": "https://agriculture.ec.europa.eu/media/news_en",
+      "category": "AGRICULTURE_AND_RURAL_DEVELOPMENT",
+      "region": "EUROPEAN_UNION",
+      "language": "en",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": true,
+      "verificationStatus": "ACCEPTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "8fda6798-ead3-4aa1-b843-739e0ea3cfb2",
+      "preflight": {
+        "status": "PASS",
+        "responseBytes": 42779,
+        "responseTimeMs": 404,
+        "feedTitle": "Agriculture and rural development | News",
+        "itemCount": 30
+      },
+      "contentSamples": [
+        {
+          "title": "Commission adopts simpler rules for EU agri-food promotion policy",
+          "url": "https://agriculture.ec.europa.eu/media/news/commission-adopts-simpler-rules-eu-agri-food-promotion-policy-2026-07-14_en"
+        },
+        {
+          "title": "Farmers, fair markets and consumers: new report highlights the role of EU competition rules in agriculture",
+          "url": "https://agriculture.ec.europa.eu/media/news/farmers-fair-markets-and-consumers-new-report-highlights-role-eu-competition-rules-agriculture-2026-07-09_en"
+        },
+        {
+          "title": "Commission sets the direction for prosperous livestock sector and a self-sufficient protein system",
+          "url": "https://ec.europa.eu/commission/presscorner/detail/en/ip_26_1522"
+        }
+      ],
+      "firstCollectionCount": {
+        "itemsFound": 30,
+        "itemsAdded": 30,
+        "itemsSkipped": 0
+      },
+      "secondCollectionAddedCount": 0,
+      "averageResponseMs": 2334.5,
+      "limitations": [
+        "The feed includes agriculture policy and rural-development coverage across the European Union.",
+        "Response timing is observational and is not a performance guarantee."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "nasa-earth-observatory-image-of-day",
+      "sourceName": "NASA Earth Observatory Image of the Day",
+      "publisher": "National Aeronautics and Space Administration",
+      "officialFeedUrl": "https://science.nasa.gov/feed/earth-observatory/image-of-the-day",
+      "publisherHomepage": "https://science.nasa.gov/earth/earth-observatory/",
+      "officialEvidenceUrl": "https://science.nasa.gov/earth/earth-observatory/subscribe/feeds/",
+      "category": "EARTH_OBSERVATION",
+      "region": "GLOBAL",
+      "language": "en",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "httpsStatus": "HTTPS_FAILED",
+      "enabledByDefault": false,
+      "verificationStatus": "DEGRADED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": null,
+      "preflight": {
+        "status": "SAFETY_REJECTED",
+        "responseBytes": null,
+        "responseTimeMs": 24,
+        "feedTitle": null,
+        "itemCount": null
+      },
+      "contentSamples": [],
+      "firstCollectionCount": null,
+      "secondCollectionAddedCount": null,
+      "averageResponseMs": null,
+      "limitations": [
+        "The hardened collector rejected the publisher hostname because one resolved destination was classified as non-public.",
+        "No application-code change was made to investigate the apparent destination-classification false positive."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "nasa-earth-observatory-natural-events",
+      "sourceName": "NASA Earth Observatory Natural Events",
+      "publisher": "National Aeronautics and Space Administration",
+      "officialFeedUrl": "https://science.nasa.gov/feed/earth-observatory/natural-events",
+      "publisherHomepage": "https://science.nasa.gov/earth/earth-observatory/",
+      "officialEvidenceUrl": "https://science.nasa.gov/earth/earth-observatory/subscribe/feeds/",
+      "category": "EARTH_OBSERVATION",
+      "region": "GLOBAL",
+      "language": "en",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "httpsStatus": "HTTPS_FAILED",
+      "enabledByDefault": false,
+      "verificationStatus": "DEGRADED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": null,
+      "preflight": {
+        "status": "SAFETY_REJECTED",
+        "responseBytes": null,
+        "responseTimeMs": 1,
+        "feedTitle": null,
+        "itemCount": null
+      },
+      "contentSamples": [],
+      "firstCollectionCount": null,
+      "secondCollectionAddedCount": null,
+      "averageResponseMs": null,
+      "limitations": [
+        "The hardened collector rejected the publisher hostname because one resolved destination was classified as non-public.",
+        "No application-code change was made to investigate the apparent destination-classification false positive."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "nasa-jpl-news-existing",
+      "sourceName": "NASA JPL News",
+      "publisher": "National Aeronautics and Space Administration Jet Propulsion Laboratory",
+      "officialFeedUrl": "https://www.jpl.nasa.gov/feeds/news/",
+      "publisherHomepage": "https://www.jpl.nasa.gov/news/",
+      "officialEvidenceUrl": "https://www.jpl.nasa.gov/feeds/news/",
+      "category": "SPACE_AND_EARTH_SCIENCE",
+      "region": "GLOBAL",
+      "language": "en",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "httpsStatus": "HTTPS_FAILED",
+      "enabledByDefault": false,
+      "verificationStatus": "REJECTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "3a0a6dc2-5d3b-4529-be4e-e08e20cde720",
+      "preflight": {
+        "status": "HTTP_403",
+        "responseBytes": null,
+        "responseTimeMs": 449,
+        "feedTitle": null,
+        "itemCount": null
+      },
+      "contentSamples": [],
+      "firstCollectionCount": null,
+      "secondCollectionAddedCount": null,
+      "averageResponseMs": null,
+      "limitations": [
+        "The publisher returns HTTP 403 to the collector.",
+        "Existing failed operational collection records were retained."
+      ],
+      "recommendation": "Disable the existing database source to avoid repeated scheduled failures; explicit approval is required before changing its enabled state.",
+      "rejectionReason": "Persistent publisher-side HTTP 403 confirmed by historical collection runs and a new hardened preflight."
+    },
+    {
+      "id": "al-jazeera-english-all",
+      "sourceName": "Al Jazeera English",
+      "publisher": "Al Jazeera Media Network",
+      "officialFeedUrl": "https://www.aljazeera.com/xml/rss/all.xml",
+      "publisherHomepage": "https://www.aljazeera.com/",
+      "officialEvidenceUrl": "https://www.aljazeera.com/",
+      "category": "GENERAL_NEWS",
+      "region": "GLOBAL_WITH_MIDDLE_EAST_FOCUS",
+      "language": "en",
+      "authorityType": "MEDIA_ORGANIZATION",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": true,
+      "verificationStatus": "ACCEPTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "847b94ae-63a0-419c-aca7-0f2e8e2f9a21",
+      "preflight": {
+        "status": "PASS",
+        "responseBytes": 17137,
+        "responseTimeMs": 31,
+        "feedTitle": "Al Jazeera – Breaking News, World News and Video from Al Jazeera",
+        "itemCount": 25
+      },
+      "contentSamples": [
+        {
+          "title": "Jude Bellingham Station unveiled ahead of World Cup semi-final",
+          "url": "https://www.aljazeera.com/video/newsfeed/2026/7/14/jude-bellingham-station-unveiled-ahead-of-world-cup-semi-final?traffic_source=rss"
+        },
+        {
+          "title": "Leading Houthi threatens ‘siege’ on Saudi Arabia after Yemen airport attack",
+          "url": "https://www.aljazeera.com/news/2026/7/14/leading-houthi-threatens-siege-on-saudi-arabia-after-yemen-airport-attack?traffic_source=rss"
+        },
+        {
+          "title": "How the late Father Emir transformed Qatar’s economy",
+          "url": "https://www.aljazeera.com/video/money-works/2026/7/14/how-the-late-father-emir-transformed-qatar-s-economy?traffic_source=rss"
+        }
+      ],
+      "firstCollectionCount": {
+        "itemsFound": 25,
+        "itemsAdded": 25,
+        "itemsSkipped": 0
+      },
+      "secondCollectionAddedCount": 0,
+      "averageResponseMs": 2102.5,
+      "limitations": [
+        "The feed mixes text news, video, sport, and programme content.",
+        "Response timing is observational and is not a performance guarantee."
+      ],
+      "rejectionReason": null
+    },
+    {
+      "id": "bbc-news",
+      "sourceName": "BBC News",
+      "publisher": "British Broadcasting Corporation",
+      "officialFeedUrl": "https://feeds.bbci.co.uk/news/rss.xml",
+      "publisherHomepage": "https://www.bbc.com/news",
+      "officialEvidenceUrl": "https://support.bbc.co.uk/platform/feeds/NewsFeeds.htm",
+      "category": "GENERAL_NEWS",
+      "region": "GLOBAL_WITH_UNITED_KINGDOM_FOCUS",
+      "language": "en",
+      "authorityType": "PUBLIC_SERVICE_MEDIA",
+      "httpsStatus": "HTTPS_VALIDATED",
+      "enabledByDefault": true,
+      "verificationStatus": "ACCEPTED",
+      "ownershipVerified": true,
+      "latestTestDate": "2026-07-14",
+      "databaseSourceId": "d37dcd0b-4a12-4c5b-8e2d-4fe5f635e7d4",
+      "preflight": {
+        "status": "PASS",
+        "responseBytes": 30039,
+        "responseTimeMs": 155,
+        "feedTitle": "BBC News",
+        "itemCount": 38
+      },
+      "contentSamples": [
+        {
+          "title": "UK wasted £10bn on PPE that left NHS staff poorly protected, Covid inquiry finds",
+          "url": "https://www.bbc.co.uk/news/articles/czrxrlydyzzo?at_medium=RSS&at_campaign=rss"
+        },
+        {
+          "title": "Scott Mills was highest-paid BBC star before sacking",
+          "url": "https://www.bbc.co.uk/news/articles/c4gynyz4wqpo?at_medium=RSS&at_campaign=rss"
+        },
+        {
+          "title": "Wildfires burn in parts of UK as fire chiefs warn of extreme pressure",
+          "url": "https://www.bbc.co.uk/news/articles/cwyey14r4wzo?at_medium=RSS&at_campaign=rss"
+        }
+      ],
+      "firstCollectionCount": {
+        "itemsFound": 38,
+        "itemsAdded": 4,
+        "itemsSkipped": 0
+      },
+      "secondCollectionAddedCount": 0,
+      "averageResponseMs": 2177,
+      "limitations": [
+        "The headline feed has a strong United Kingdom focus alongside global coverage.",
+        "The existing database source was reused; the first collection count records this phase's acceptance run rather than initial onboarding.",
+        "Response timing is observational and is not a performance guarantee."
+      ],
+      "rejectionReason": null
+    }
+  ]
+}

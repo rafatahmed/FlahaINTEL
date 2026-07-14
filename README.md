@@ -86,6 +86,12 @@ These controls are defense-in-depth, not a claim of complete SSRF prevention. Ad
 
 Malformed feeds are recorded as failed collection runs. Malformed items without a usable title and public HTTP(S) article link are skipped while preserving the existing `itemsFound` and `itemsAdded` database accounting semantics.
 
+## Authoritative source registry
+
+Phase 1.2 maintains a reviewed, machine-readable registry of publisher-owned RSS candidates at [`docs/rss-source-registry.json`](docs/rss-source-registry.json). It records ownership evidence, controlled verification states, safety and parsing results, manual content samples, operational collection counts, database source IDs, limitations, and rejection reasons.
+
+The accompanying [`docs/rss-source-onboarding.md`](docs/rss-source-onboarding.md) documents the acceptance method, accepted, degraded, and rejected source summaries, database impact, safety findings, and current category and regional coverage gaps. Candidates are preflighted without database writes and are added individually only after publisher ownership, safe transport, valid parsing, and content suitability are established.
+
 ## Scheduler and shutdown
 
 The scheduler is in-process and disabled with `SCHEDULER_ENABLED=false`. It never starts a second scheduler cycle while one is running. Active sources are skipped by scheduled collection while other enabled sources continue.
