@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/ingestion-warning.schema.json",
+  "title": "IngestionWarning",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["warningId", "code", "severity", "stage", "message", "occurredAt", "retryable"],
+  "properties": {
+    "warningId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,63}$" },
+    "severity": { "enum": ["INFO", "WARNING", "ERROR"] },
+    "stage": { "enum": ["PROBE", "FETCH", "CONVERT", "NORMALIZE", "EXTRACT", "VALIDATE", "TRANSFORM", "PROMOTE"] },
+    "message": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "occurredAt": { "$ref": "common.schema.json#/$defs/utcTimestamp" },
+    "retryable": { "type": "boolean" },
+    "artifactId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "pageNumber": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+    "recordNumber": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "fieldPath": { "type": "string", "maxLength": 512 },
+    "providerId": { "$ref": "common.schema.json#/$defs/providerId" }
+  }
+}

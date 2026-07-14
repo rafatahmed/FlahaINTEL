@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/worker-progress.schema.json",
+  "title": "WorkerProgress",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "correlationId", "causationId", "jobId", "attemptId", "messageType", "sequence", "occurredAt", "stage", "status", "completedUnits", "totalUnits", "unit", "metrics"],
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/contractVersion" },
+    "correlationId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "causationId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/uuid" }, { "type": "null" }] },
+    "jobId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "attemptId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "messageType": { "const": "WORKER_PROGRESS" },
+    "sequence": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "occurredAt": { "$ref": "common.schema.json#/$defs/utcTimestamp" },
+    "stage": { "enum": ["PROBE", "FETCH", "CONVERT", "NORMALIZE", "EXTRACT", "VALIDATE", "TRANSFORM", "PROMOTE"] },
+    "status": { "enum": ["STARTED", "IN_PROGRESS", "CANCELLATION_ACKNOWLEDGED"] },
+    "completedUnits": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "totalUnits": { "oneOf": [{ "$ref": "common.schema.json#/$defs/safeInteger" }, { "type": "null" }] },
+    "unit": { "enum": ["BYTES", "PAGES", "ROWS", "FILES", "STEPS", "UNKNOWN"] },
+    "message": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "metrics": { "$ref": "common.schema.json#/$defs/resourceMetrics" }
+  }
+}

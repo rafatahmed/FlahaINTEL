@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/document-conversion-result.schema.json",
+  "title": "DocumentConversionResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "inputArtifactId", "outputs", "pageCount", "convertedPageCount", "detectedLanguages", "textDirection", "ocrUsed", "tableCount", "imageCount", "providerNativeOutput", "markdownOutput", "pageManifestOutput", "warnings", "metrics", "derivation"],
+  "properties": {
+    "operation": { "const": "DOCUMENT_CONVERSION" },
+    "inputArtifactId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "outputs": { "type": "array", "minItems": 1, "maxItems": 10000, "items": { "$ref": "artifact-reference.schema.json" } },
+    "pageCount": { "type": "integer", "minimum": 1, "maximum": 100000 },
+    "convertedPageCount": { "type": "integer", "minimum": 0, "maximum": 100000 },
+    "detectedLanguages": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/languageTag" } },
+    "textDirection": { "enum": ["LTR", "RTL", "MIXED", "UNKNOWN"] },
+    "ocrUsed": { "type": "boolean" },
+    "tableCount": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "imageCount": { "$ref": "common.schema.json#/$defs/safeInteger" },
+    "providerNativeOutput": { "oneOf": [{ "$ref": "artifact-reference.schema.json" }, { "type": "null" }] },
+    "markdownOutput": { "oneOf": [{ "$ref": "artifact-reference.schema.json" }, { "type": "null" }] },
+    "pageManifestOutput": { "$ref": "artifact-reference.schema.json" },
+    "warnings": { "type": "array", "maxItems": 1000, "items": { "$ref": "ingestion-warning.schema.json" } },
+    "metrics": { "$ref": "common.schema.json#/$defs/resourceMetrics" },
+    "derivation": { "$ref": "common.schema.json#/$defs/derivation" }
+  }
+}
