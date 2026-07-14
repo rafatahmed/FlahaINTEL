@@ -1,3 +1,17 @@
+<!--
+Flaha Agri Tech
+Precision Agriculture Division
+Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+
+Title: FlahaINTEL Agent Instructions
+Introduction:
+Defines repository-wide operating instructions for automated coding agents.
+
+Created by: Rafat Al Khashan
+Created date: 2026-07-15
+Last modified: 2026-07-15
+-->
+
 # FlahaINTEL Agent Instructions
 
 ## Project purpose
@@ -17,6 +31,18 @@ The current verified baseline is an RSS-only MVP that:
 Do not expand beyond the currently approved milestone unless explicitly instructed.
 
 When a new milestone is approved, preserve the verified RSS foundation and update this file and the project documentation to reflect the new scope.
+
+## Source file ownership headers
+
+All newly created human-authored files must follow `docs/standards/source-file-header-standard.md` automatically in all future Codex work.
+
+- Owner: Flaha Agri Tech
+- Division: Precision Agriculture Division
+- Copyright: © 2026–2027 Flaha Agri Tech. All rights reserved.
+- Created by: Rafat Al Khashan
+- Include title, introduction, created date, and last modified date using the format's native comment syntax.
+- Do not add comments to JSON, JSON Schema, lockfiles, generated files, binaries, database-generated migrations, third-party code, external fixtures, or formats without comments.
+- Do not modify existing files solely to add headers unless a dedicated migration is approved. When materially editing an owned file that already has the standard header, update its last modified date.
 
 ## Current verified status
 

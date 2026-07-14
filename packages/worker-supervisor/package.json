@@ -1,0 +1,7 @@
+{
+  "name": "@flaha-intel/worker-supervisor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": { "build": "tsc -p tsconfig.json", "test": "vitest run tests" }
+}

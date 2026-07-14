@@ -1,0 +1,20 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: FlahaINGEST Reference Worker Project Configuration
+# Introduction:
+# Defines standard-library-only Python package metadata and test discovery.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-15
+
+[project]
+name = "flaha-ingest-worker"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.unittest]
+start-directory = "tests"

@@ -2,7 +2,7 @@
   "name": "flaha-intel",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["apps/api", "apps/web", "packages/artifact-store"],
+  "workspaces": ["apps/api", "apps/web", "packages/artifact-store", "packages/worker-supervisor"],
   "scripts": {
     "dev": "npm run dev --workspace=@flaha-intel/api & npm run dev --workspace=@flaha-intel/web",
     "build": "npm run build --workspaces",
