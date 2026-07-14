@@ -1,11 +1,12 @@
 import { Add, Delete, Link as LinkIcon } from "@mui/icons-material";
 import {
-  Alert, Box, Button, Card, CardActionArea, CardContent, Chip, CircularProgress,
+  Alert, Box, Button, Card, CardActionArea, CardContent, Chip,
   Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, LinearProgress,
   Link, MenuItem, Pagination, Select, Stack, TextField, Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { BrandedState } from "./BrandedState";
 import type {
   Article, ArticleRelationships, ClassificationAssignment, ClassificationTerm,
   ClassificationType, Organization, Product, RssSource,
@@ -127,9 +128,9 @@ export function ArticleFeed() {
     {loading && articles.length > 0 && <LinearProgress aria-label="Loading articles" />}
     {error && <Alert severity="error" action={<Button color="inherit" onClick={() => setReload((value) => value + 1)}>Retry</Button>}>{error}</Alert>}
     {loading && articles.length === 0
-      ? <Stack sx={{ alignItems: "center", py: 4 }}><CircularProgress aria-label="Loading articles" /></Stack>
+      ? <BrandedState loading label="Loading articles" />
       : !error && articles.length === 0
-        ? <Alert severity="info">No articles match the selected filters.</Alert>
+        ? <BrandedState label="No articles match the selected filters." />
         : articles.map((article) => {
           const itemIntel = intel[article.id];
           return <Card key={article.id} variant="outlined"><CardActionArea onClick={() => setSelected(article)}>

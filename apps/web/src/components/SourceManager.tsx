@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "../api";
+import { BrandedState } from "./BrandedState";
 import type { RssSource, SchedulerStatus } from "../types";
 
 export function SourceManager() {
@@ -93,8 +94,8 @@ export function SourceManager() {
       <Button variant="text" onClick={() => void load()} disabled={loading}>Refresh status</Button>
     </Stack>
     {error && <Alert severity="error" action={<Button color="inherit" onClick={() => void load()}>Retry</Button>}>{error}</Alert>}
-    {loading && sources.length === 0 && <Stack sx={{ alignItems: "center", py: 3 }}><CircularProgress aria-label="Loading RSS sources" /></Stack>}
-    {!loading && !error && sources.length === 0 && <Alert severity="info">No RSS sources have been added yet.</Alert>}
+    {loading && sources.length === 0 && <BrandedState loading label="Loading RSS sources" />}
+    {!loading && !error && sources.length === 0 && <BrandedState label="No RSS sources have been added yet." />}
     {sources.map((source) => {
       const sourceBusy = busy.has(source.id) || source.isCollecting;
       const editing = editingId === source.id;

@@ -1,10 +1,11 @@
 import { AccountTree } from "@mui/icons-material";
 import {
-  Alert, Box, Card, CardContent, Chip, CircularProgress, FormControl, InputLabel,
+  Alert, Box, Card, CardContent, Chip, FormControl, InputLabel,
   MenuItem, Select, Stack, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { BrandedState } from "./BrandedState";
 import { CLASSIFICATION_TYPES, type ClassificationTerm, type ClassificationType } from "../types";
 
 export function TaxonomyExplorer() {
@@ -40,9 +41,9 @@ export function TaxonomyExplorer() {
     <FormControl sx={{ maxWidth: 420 }}><InputLabel>Classification type</InputLabel><Select label="Classification type" value={type} onChange={(event) => setType(event.target.value as ClassificationType)}>
       {CLASSIFICATION_TYPES.map((item) => <MenuItem key={item} value={item}>{item.replaceAll("_", " ")}</MenuItem>)}
     </Select></FormControl>
-    {loading && <Stack sx={{ alignItems: "center", py: 4 }}><CircularProgress aria-label="Loading taxonomy" /></Stack>}
+    {loading && <BrandedState loading label="Loading taxonomy" />}
     {error && <Alert severity="error">{error}</Alert>}
-    {!loading && !error && terms.length === 0 && <Alert severity="info">No active terms exist for this type.</Alert>}
+    {!loading && !error && terms.length === 0 && <BrandedState label="No active terms exist for this type." />}
     {!loading && terms.map((term) => <Card key={term.id} variant="outlined" sx={{ ml: Math.min(depthByCode.get(term.code) ?? 0, 4) * 3 }}>
       <CardContent><Stack spacing={1}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>

@@ -1,11 +1,12 @@
 import { Add, Edit, Link as LinkIcon } from "@mui/icons-material";
 import {
-  Alert, Box, Button, Card, CardActionArea, CardContent, CircularProgress, Dialog,
+  Alert, Box, Button, Card, CardActionArea, CardContent, Dialog,
   DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, InputLabel,
   MenuItem, Pagination, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { api, type ProductInput } from "../api";
+import { BrandedState } from "./BrandedState";
 import type { ClassificationTerm, Organization, OrganizationProductRole, Product } from "../types";
 
 const ROLES: OrganizationProductRole[] = ["MANUFACTURER", "BRAND_OWNER", "DEVELOPER", "DISTRIBUTOR", "SUPPLIER", "IMPORTER"];
@@ -84,7 +85,7 @@ export function ProductWorkspace() {
   return <Stack spacing={2}>
     <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}><Box><Typography variant="h5">Products</Typography><Typography color="text.secondary">Governed commercial offerings; commodity data remains out of scope.</Typography></Box><Button variant="contained" startIcon={<Add />} onClick={openCreate}>Create product</Button></Stack>
     <Stack direction={{ xs: "column", md: "row" }} spacing={1}><TextField fullWidth label="Search products" value={q} onChange={(event) => { setQ(event.target.value); setPage(1); }} /><FormControl fullWidth><InputLabel>Commercial category</InputLabel><Select label="Commercial category" value={categoryTermId} onChange={(event) => { setCategoryTermId(event.target.value); setPage(1); }}><MenuItem value="">All categories</MenuItem>{categories.map((category) => <MenuItem key={category.id} value={category.id}>{category.label}</MenuItem>)}</Select></FormControl><FormControl fullWidth><InputLabel shrink>State</InputLabel><Select native label="State" value={active} onChange={(event) => { setActive(event.target.value as typeof active); setPage(1); }}><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></Select></FormControl></Stack>
-    {error && <Alert severity="error">{error}</Alert>}{loading && <CircularProgress aria-label="Loading products" />}{!loading && items.length === 0 && <Alert severity="info">No products match these filters.</Alert>}
+    {error && <Alert severity="error">{error}</Alert>}{loading && <BrandedState loading label="Loading products" />}{!loading && items.length === 0 && <BrandedState label="No products match these filters." />}
     {items.map((item) => <Card key={item.id} variant="outlined"><CardActionArea onClick={() => void refreshDetail(item.id)}><CardContent><Typography variant="h6">{item.code} — {item.name}</Typography><Typography color="text.secondary">{item.category.label} · {item.active ? "Active" : "Inactive"}</Typography></CardContent></CardActionArea></Card>)}
     {!loading && items.length > 0 && <Pagination page={page} count={totalPages} onChange={(_event, value) => setPage(value)} aria-label="Product pages" sx={{ alignSelf: "center" }} />}
 

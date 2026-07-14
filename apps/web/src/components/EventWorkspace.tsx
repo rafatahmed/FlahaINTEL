@@ -1,11 +1,12 @@
 import { Add, Delete, Edit } from "@mui/icons-material";
 import {
-  Alert, Box, Button, Card, CardActionArea, CardContent, Chip, CircularProgress,
+  Alert, Box, Button, Card, CardActionArea, CardContent, Chip,
   Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel,
   InputLabel, Link, MenuItem, Pagination, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { api, type EventInput } from "../api";
+import { BrandedState } from "./BrandedState";
 import type { Article, ClassificationTerm, ClassificationType, IntelligenceEvent } from "../types";
 import { CLASSIFICATION_TYPES } from "../types";
 
@@ -101,7 +102,7 @@ export function EventWorkspace() {
       <TextField type="date" label="Starts from" slotProps={{ inputLabel: { shrink: true } }} value={startsAtFrom} onChange={(event) => { setStartsAtFrom(event.target.value); setPage(1); }} />
       <TextField type="date" label="Starts to" slotProps={{ inputLabel: { shrink: true } }} value={startsAtTo} onChange={(event) => { setStartsAtTo(event.target.value); setPage(1); }} />
     </Stack>
-    {error && <Alert severity="error">{error}</Alert>}{loading && <CircularProgress aria-label="Loading events" />}{!loading && items.length === 0 && <Alert severity="info">No events match these filters.</Alert>}
+    {error && <Alert severity="error">{error}</Alert>}{loading && <BrandedState loading label="Loading events" />}{!loading && items.length === 0 && <BrandedState label="No events match these filters." />}
     {items.map((item) => <Card key={item.id} variant="outlined"><CardActionArea onClick={() => void refreshDetail(item.id)}><CardContent><Stack spacing={0.5}><Stack direction="row" spacing={1}><Chip size="small" label={item.primaryEventType.label} /><Chip size="small" label={item.active ? "Active" : "Inactive"} /></Stack><Typography variant="h6">{item.title}</Typography><Typography color="text.secondary">{item.locationName || "Location not specified"}{item.startsAt ? ` · ${new Date(item.startsAt).toLocaleString()}` : ""}</Typography></Stack></CardContent></CardActionArea></Card>)}
     {!loading && items.length > 0 && <Pagination page={page} count={totalPages} onChange={(_event, value) => setPage(value)} aria-label="Event pages" sx={{ alignSelf: "center" }} />}
 

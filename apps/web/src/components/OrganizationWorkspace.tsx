@@ -1,11 +1,12 @@
 import { Add, Edit, Link as LinkIcon } from "@mui/icons-material";
 import {
-  Alert, Box, Button, Card, CardActionArea, CardContent, CircularProgress, Dialog,
+  Alert, Box, Button, Card, CardActionArea, CardContent, Dialog,
   DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, InputLabel,
   MenuItem, Pagination, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { api, type OrganizationInput } from "../api";
+import { BrandedState } from "./BrandedState";
 import type { Organization, OrganizationProductRole, OrganizationType, Product } from "../types";
 
 const ROLES: OrganizationProductRole[] = ["MANUFACTURER", "BRAND_OWNER", "DEVELOPER", "DISTRIBUTOR", "SUPPLIER", "IMPORTER"];
@@ -93,8 +94,8 @@ export function OrganizationWorkspace() {
       <FormControl fullWidth><InputLabel shrink>State</InputLabel><Select native label="State" value={active} onChange={(event) => { setActive(event.target.value as typeof active); setPage(1); }}><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></Select></FormControl>
     </Stack>
     {error && <Alert severity="error">{error}</Alert>}
-    {loading && <CircularProgress aria-label="Loading organizations" />}
-    {!loading && items.length === 0 && <Alert severity="info">No organizations match these filters.</Alert>}
+    {loading && <BrandedState loading label="Loading organizations" />}
+    {!loading && items.length === 0 && <BrandedState label="No organizations match these filters." />}
     {items.map((item) => <Card key={item.id} variant="outlined"><CardActionArea onClick={() => void refreshDetail(item.id)}><CardContent><Typography variant="h6">{item.canonicalName}</Typography><Typography color="text.secondary">{item.type.label}{item.countryCode ? ` · ${item.countryCode}` : ""} · {item.active ? "Active" : "Inactive"}</Typography></CardContent></CardActionArea></Card>)}
     {!loading && items.length > 0 && <Pagination page={page} count={totalPages} onChange={(_event, value) => setPage(value)} aria-label="Organization pages" sx={{ alignSelf: "center" }} />}
 
