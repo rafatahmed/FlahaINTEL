@@ -11,9 +11,12 @@
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:status": "prisma migrate status",
     "prisma:studio": "prisma studio",
-    "taxonomy:validate": "tsx src/taxonomy/validateTaxonomies.ts"
+    "taxonomy:validate": "tsx src/taxonomy/validateTaxonomies.ts",
+    "governance:seed": "node --env-file=../../.env --import tsx src/governance/seedGovernedData.ts",
+    "governance:backfill-sources": "node --env-file=../../.env --import tsx src/governance/backfillSourceMetadata.ts"
   },
   "dependencies": {
     "@fastify/cors": "latest",

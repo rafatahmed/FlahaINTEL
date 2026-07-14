@@ -82,3 +82,18 @@ The verified baseline now also includes:
 - documented safety findings and regional, language, and category coverage gaps.
 
 No Prisma schema change or migration was required for Phase 1.2. Keep individual feed URLs, collection results, publisher evidence, and source-specific limitations in the source registry rather than duplicating them in this file.
+
+## Phase 2 Gate 3 verified status
+
+The contextual intelligence foundation migration and governed seed/backfill process have been applied and verified against local PostgreSQL.
+
+The verified foundation now includes:
+
+- governed RSS source metadata linked to the reviewed source registry;
+- 186 contextual and agricultural `ClassificationTerm` records;
+- 20 governed `OrganizationType` records;
+- empty event, classification, organization, product, and relationship tables ready for later approved workflows;
+- idempotent, validation-first taxonomy and organization-type seeding;
+- all-or-nothing source metadata backfill with exact database ID and feed URL matching.
+
+Migration `20260714165722_phase_2_intelligence_foundation` is applied. Existing source IDs and enabled states, all article IDs and fingerprints, article counts, source counts, and collection-run counts were preserved. NASA JPL remains disabled and `REJECTED`. Do not infer classifications or create organizations, products, or intelligence events without a separately approved workflow.
