@@ -32,10 +32,17 @@ function boolean(env: NodeJS.ProcessEnv, name: string, fallback: boolean): boole
   throw new ConfigurationError(`${name} must be either true or false.`);
 }
 
+function loopbackHost(env: NodeJS.ProcessEnv): "127.0.0.1" | "::1" {
+  const value = env.API_HOST ?? "127.0.0.1";
+  if (value === "127.0.0.1" || value === "::1") return value;
+  throw new ConfigurationError("API_HOST must be a loopback address: 127.0.0.1 or ::1.");
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const webPort = integer(env, "WEB_PORT", 5174, 1, 65_535);
 
   return {
+    host: loopbackHost(env),
     port: integer(env, env.API_PORT !== undefined ? "API_PORT" : "PORT", 3003, 1, 65_535),
     webOrigin: env.WEB_ORIGIN ?? `http://localhost:${webPort}`,
     collectionIntervalMinutes: integer(env, "COLLECTION_INTERVAL_MINUTES", 15, 1, 10_080),

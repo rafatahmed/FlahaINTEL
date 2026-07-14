@@ -18,12 +18,13 @@ FlahaINTEL is a local-first RSS news application. It manages public RSS sources,
    - `npm run dev --workspace=@flaha-intel/api`
    - `npm run dev --workspace=@flaha-intel/web`
 
-The API listens on port 3003 and the web app on port 5174 by default. Development commands load configuration from the root `.env`.
+The API listens on `127.0.0.1:3003` and the web app on port 5174 by default. Development commands load configuration from the root `.env`.
 
 ## Configuration
 
 | Variable | Default | Purpose |
 | --- | ---: | --- |
+| `API_HOST` | `127.0.0.1` | Fastify listen host; only `127.0.0.1` or `::1` is accepted |
 | `API_PORT` | `3003` | Fastify listen port |
 | `WEB_PORT` | `5174` | Vite development port and fallback CORS origin port |
 | `WEB_ORIGIN` | `http://localhost:5174` | Allowed browser origin |
