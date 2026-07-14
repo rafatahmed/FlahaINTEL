@@ -22,6 +22,11 @@ ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "corpus"
 
 
+def write_utf8_lf(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
+
+
 def pdf_bytes(lines: list[str]) -> bytes:
     safe_lines = [line.encode("utf-16-be").hex().upper() for line in lines]
     commands = ["BT", "/F1 12 Tf", "50 790 Td"]
@@ -83,35 +88,34 @@ DATASETS = {
 }
 
 
-def main() -> None:
+def generate(corpus_root: Path = CORPUS) -> None:
     entries = []
     for item_id, title, category, language, fmt, relative, lines, dimensions in ITEMS:
-        path = CORPUS / relative
+        path = corpus_root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(pdf_bytes(lines))
         expected = {"expectedPlainText": "\n".join(lines), "expectedNormalizedText": "\n".join(lines), "expectedLanguage": language,
                     "expectedHeadings": [lines[0]], "expectedTableCells": lines if item_id == "doc-table" else [], "expectedErrorClassification": None}
-        entries.append(entry(item_id, title, category, language, fmt, relative, expected, dimensions, "Dependency-free synthetic PDF; visual fidelity is limited."))
+        entries.append(entry(corpus_root, item_id, title, category, language, fmt, relative, expected, dimensions, "Dependency-free synthetic PDF; visual fidelity is limited."))
     for item_id, (language, relative, content, expected_text) in HTML.items():
-        path = CORPUS / relative; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(content, encoding="utf-8")
+        path = corpus_root / relative; write_utf8_lf(path, content)
         expected = {"expectedPlainText": expected_text, "expectedNormalizedText": expected_text, "expectedLanguage": language,
                     "expectedMetadata": {}, "expectedErrorClassification": None}
-        entries.append(entry(item_id, item_id.replace("-", " ").title(), "HTML", language, "html", relative, expected,
+        entries.append(entry(corpus_root, item_id, item_id.replace("-", " ").title(), "HTML", language, "html", relative, expected,
                              ["MAIN_CONTENT", "BOILERPLATE", "UNICODE"], "Synthetic HTML parser fixture."))
     for item_id, (language, relative, content, count, error) in DATASETS.items():
-        path = CORPUS / relative; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(content, encoding="utf-8", newline="")
+        path = corpus_root / relative; write_utf8_lf(path, content)
         expected = {"expectedRecordCount": count, "expectedLanguage": language, "expectedErrorClassification": error}
-        entries.append(entry(item_id, item_id.replace("-", " ").title(), "DATASET", language, Path(relative).suffix[1:], relative, expected,
+        entries.append(entry(corpus_root, item_id, item_id.replace("-", " ").title(), "DATASET", language, Path(relative).suffix[1:], relative, expected,
                              ["ROW_COUNT", "UNICODE", "MALFORMED_BEHAVIOR", "DETERMINISM"], "Synthetic bounded dataset."))
-    (CORPUS / "manifest.json").write_text(json.dumps({"manifestVersion": "1.0.0", "items": entries}, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    write_utf8_lf(corpus_root / "manifest.json", json.dumps({"manifestVersion": "1.0.0", "items": entries}, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
 
 
-def entry(item_id: str, title: str, category: str, language: str, fmt: str, relative: str, expected: dict, dimensions: list[str], limitations: str) -> dict:
+def entry(corpus_root: Path, item_id: str, title: str, category: str, language: str, fmt: str, relative: str, expected: dict, dimensions: list[str], limitations: str) -> dict:
     expected_relative = f"expected/{item_id}.json"
-    expected_path = CORPUS / expected_relative
-    expected_path.parent.mkdir(parents=True, exist_ok=True)
-    expected_path.write_text(json.dumps(expected, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
-    data = (CORPUS / relative).read_bytes()
+    expected_path = corpus_root / expected_relative
+    write_utf8_lf(expected_path, json.dumps(expected, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+    data = (corpus_root / relative).read_bytes()
     return {"id": item_id, "title": title, "category": category, "language": language, "format": fmt,
             "sourceOwnership": "Flaha Agri Tech", "synthetic": True, "sha256": hashlib.sha256(data).hexdigest(), "byteSize": len(data),
             "path": relative, "expectedOutputReference": expected_relative, "benchmarkDimensions": dimensions, "limitations": limitations,
@@ -119,4 +123,4 @@ def entry(item_id: str, title: str, category: str, language: str, fmt: str, rela
 
 
 if __name__ == "__main__":
-    main()
+    generate()
