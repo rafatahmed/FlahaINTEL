@@ -5,6 +5,7 @@ describe("configuration", () => {
   it("uses the Phase 1.1 defaults", () => {
     const value = loadConfig({});
     expect(value).toMatchObject({
+      host: "127.0.0.1",
       port: 3003,
       schedulerEnabled: true,
       rssTimeoutMs: 15_000,
@@ -18,6 +19,17 @@ describe("configuration", () => {
     expect(value.port).toBe(4000);
     expect(value.schedulerEnabled).toBe(false);
   });
+
+  it("accepts an explicit IPv6 loopback host", () => {
+    expect(loadConfig({ API_HOST: "::1" }).host).toBe("::1");
+  });
+
+  it.each(["0.0.0.0", "::", "localhost", " 127.0.0.1", "127.0.0.1 ", "not-a-host", ""])(
+    "rejects unsafe or malformed API_HOST %j",
+    (value) => {
+      expect(() => loadConfig({ API_HOST: value })).toThrow(ConfigurationError);
+    },
+  );
 
   it.each([
     ["API_PORT", "nope"],
