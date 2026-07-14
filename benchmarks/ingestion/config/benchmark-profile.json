@@ -1,0 +1,1 @@
+{"frameworkVersion":"1.0.0","maximumCorpusItemBytes":1048576,"maximumResultBytes":10485760,"determinismRuns":2,"networkMode":"DENY_ALL","baselines":["python-stdlib-html","python-stdlib-datasets"],"supportedCategories":["DOCUMENT","HTML","OCR","DATASET"],"supportedLanguages":["en","ar","ar-en","und"]}
