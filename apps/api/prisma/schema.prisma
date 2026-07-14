@@ -12,33 +12,102 @@ enum CollectionStatus {
   FAILURE
 }
 
+enum ClassificationType {
+  GENERAL_DOMAIN
+  GENERAL_EVENT_TYPE
+  SECTOR
+  AGRICULTURE_DOMAIN
+  PRODUCT_CATEGORY
+  TECHNOLOGY_CATEGORY
+  MARKET_CATEGORY
+  IMPACT_TYPE
+  RELEVANCE_TARGET
+  GEOGRAPHIC_SCOPE
+}
+
+enum AssignmentProvenance {
+  MANUAL
+  RULE_BASED
+  IMPORTED
+}
+
+enum SourceAuthorityType {
+  INTERGOVERNMENTAL_ORGANIZATION
+  GOVERNMENT_AGENCY
+  REGULATORY_AUTHORITY
+  PUBLIC_SERVICE_MEDIA
+  COMMERCIAL_MEDIA
+  RESEARCH_INSTITUTION
+  UNIVERSITY
+  NON_GOVERNMENTAL_ORGANIZATION
+  INDUSTRY_ASSOCIATION
+  COMMERCIAL_ORGANIZATION
+  DATA_PROVIDER
+  OTHER
+}
+
+enum SourceVerificationStatus {
+  PENDING
+  ACCEPTED
+  DEGRADED
+  REJECTED
+}
+
+enum ProductEntityEligibility {
+  CLASSIFICATION_ONLY
+  COMMERCIAL_PRODUCT
+}
+
+enum OrganizationProductRole {
+  MANUFACTURER
+  BRAND_OWNER
+  DEVELOPER
+  DISTRIBUTOR
+  SUPPLIER
+  IMPORTER
+}
+
 model RssSource {
-  id              String          @id @default(uuid()) @db.Uuid
-  name            String
-  url             String          @unique
-  enabled         Boolean         @default(true)
-  lastCollectedAt DateTime?
-  lastSuccessAt   DateTime?
-  lastError       String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  articles        Article[]
-  collectionRuns  CollectionRun[]
+  id                 String                   @id @default(uuid()) @db.Uuid
+  name               String
+  url                String                   @unique
+  enabled            Boolean                  @default(true)
+  registryId         String?                  @unique
+  publisher          String?
+  category           String?
+  region             String?
+  language           String?
+  authorityType      SourceAuthorityType?
+  verificationStatus SourceVerificationStatus @default(PENDING)
+  homepageUrl        String?
+  evidenceUrl        String?
+  ownershipVerified  Boolean?
+  lastCollectedAt    DateTime?
+  lastSuccessAt      DateTime?
+  lastError          String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  articles           Article[]
+  collectionRuns     CollectionRun[]
 
   @@index([enabled])
 }
 
 model Article {
-  id          String    @id @default(uuid()) @db.Uuid
-  sourceId    String    @db.Uuid
-  source      RssSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  title       String
-  url         String
-  summary     String?
-  author      String?
-  publishedAt DateTime?
-  collectedAt DateTime  @default(now())
-  fingerprint String    @unique
+  id              String                  @id @default(uuid()) @db.Uuid
+  sourceId        String                  @db.Uuid
+  source          RssSource               @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  title           String
+  url             String
+  summary         String?
+  author          String?
+  publishedAt     DateTime?
+  collectedAt     DateTime                @default(now())
+  fingerprint     String                  @unique
+  classifications ArticleClassification[]
+  eventEvidence   EventEvidence[]
+  organizations   ArticleOrganization[]
+  products        ArticleProduct[]
 
   @@index([sourceId])
   @@index([publishedAt])
@@ -46,16 +115,189 @@ model Article {
 }
 
 model CollectionRun {
-  id          String           @id @default(uuid()) @db.Uuid
-  sourceId    String           @db.Uuid
-  source      RssSource        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  status      CollectionStatus
-  startedAt   DateTime         @default(now())
-  finishedAt  DateTime
-  itemsFound  Int              @default(0)
-  itemsAdded  Int              @default(0)
-  error       String?
+  id         String           @id @default(uuid()) @db.Uuid
+  sourceId   String           @db.Uuid
+  source     RssSource        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  status     CollectionStatus
+  startedAt  DateTime         @default(now())
+  finishedAt DateTime
+  itemsFound Int              @default(0)
+  itemsAdded Int              @default(0)
+  error      String?
 
   @@index([sourceId, startedAt])
 }
 
+model ClassificationTerm {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  type                ClassificationType
+  code                String
+  label               String
+  description         String?
+  parentId            String?                   @db.Uuid
+  parent              ClassificationTerm?       @relation("ClassificationHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children            ClassificationTerm[]      @relation("ClassificationHierarchy")
+  standardCode        String?
+  aliases             String[]                  @default([])
+  entityEligibility   ProductEntityEligibility?
+  assignable          Boolean                   @default(true)
+  active              Boolean                   @default(true)
+  sortOrder           Int                       @default(0)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  articleAssignments  ArticleClassification[]
+  eventAssignments    EventClassification[]
+  primaryEvents       IntelligenceEvent[]
+  categorizedProducts Product[]
+
+  @@unique([type, code])
+  @@unique([type, standardCode])
+  @@index([type, active, sortOrder])
+  @@index([parentId])
+}
+
+model ArticleClassification {
+  articleId     String               @db.Uuid
+  termId        String               @db.Uuid
+  article       Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  term          ClassificationTerm   @relation(fields: [termId], references: [id], onDelete: Restrict)
+  provenance    AssignmentProvenance
+  provenanceRef String?
+  confidence    Decimal?             @db.Decimal(5, 4)
+  assignedAt    DateTime             @default(now())
+
+  @@id([articleId, termId])
+  @@index([termId])
+  @@index([provenance])
+}
+
+model IntelligenceEvent {
+  id                     String                @id @default(uuid()) @db.Uuid
+  primaryEventTypeTermId String                @db.Uuid
+  primaryEventType       ClassificationTerm    @relation(fields: [primaryEventTypeTermId], references: [id], onDelete: Restrict)
+  title                  String
+  summary                String?
+  startsAt               DateTime?
+  endsAt                 DateTime?
+  observedAt             DateTime?
+  locationName           String?
+  active                 Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  classifications        EventClassification[]
+  evidence               EventEvidence[]
+
+  @@index([primaryEventTypeTermId])
+  @@index([startsAt])
+  @@index([observedAt])
+}
+
+model EventClassification {
+  eventId       String               @db.Uuid
+  termId        String               @db.Uuid
+  event         IntelligenceEvent    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  term          ClassificationTerm   @relation(fields: [termId], references: [id], onDelete: Restrict)
+  provenance    AssignmentProvenance
+  provenanceRef String?
+  confidence    Decimal?             @db.Decimal(5, 4)
+  assignedAt    DateTime             @default(now())
+
+  @@id([eventId, termId])
+  @@index([termId])
+  @@index([provenance])
+}
+
+model EventEvidence {
+  eventId   String            @db.Uuid
+  articleId String            @db.Uuid
+  event     IntelligenceEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  article   Article           @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  addedAt   DateTime          @default(now())
+
+  @@id([eventId, articleId])
+  @@index([articleId])
+}
+
+model OrganizationType {
+  id            String         @id @default(uuid()) @db.Uuid
+  code          String         @unique
+  label         String
+  description   String?
+  active        Boolean        @default(true)
+  sortOrder     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  organizations Organization[]
+}
+
+model Organization {
+  id             String                @id @default(uuid()) @db.Uuid
+  typeId         String                @db.Uuid
+  type           OrganizationType      @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  canonicalName  String
+  normalizedName String
+  homepageUrl    String?
+  countryCode    String?
+  region         String?
+  description    String?
+  active         Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  articles       ArticleOrganization[]
+  products       OrganizationProduct[]
+
+  @@index([typeId])
+  @@index([normalizedName])
+  @@index([countryCode])
+}
+
+model Product {
+  id             String                @id @default(uuid()) @db.Uuid
+  code           String                @unique
+  name           String
+  categoryTermId String                @db.Uuid
+  category       ClassificationTerm    @relation(fields: [categoryTermId], references: [id], onDelete: Restrict)
+  description    String?
+  active         Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  articles       ArticleProduct[]
+  organizations  OrganizationProduct[]
+
+  @@index([categoryTermId])
+}
+
+model ArticleOrganization {
+  articleId      String       @db.Uuid
+  organizationId String       @db.Uuid
+  article        Article      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  linkedAt       DateTime     @default(now())
+
+  @@id([articleId, organizationId])
+  @@index([organizationId])
+}
+
+model ArticleProduct {
+  articleId String   @db.Uuid
+  productId String   @db.Uuid
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  linkedAt  DateTime @default(now())
+
+  @@id([articleId, productId])
+  @@index([productId])
+}
+
+model OrganizationProduct {
+  organizationId String                  @db.Uuid
+  productId      String                  @db.Uuid
+  role           OrganizationProductRole
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  product        Product                 @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdAt      DateTime                @default(now())
+
+  @@id([organizationId, productId, role])
+  @@index([productId])
+  @@index([role])
+}

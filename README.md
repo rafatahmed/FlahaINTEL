@@ -6,7 +6,7 @@ FlahaINTEL is a local-first RSS news application. It manages public RSS sources,
 
 - Node.js 20 or newer
 - PostgreSQL on `localhost:5432`
-- The existing `flaha_intel` database with migration `20260714141236_init` applied
+- The existing `flaha_intel` database with migrations `20260714141236_init` and `20260714165722_phase_2_intelligence_foundation` applied
 
 ## Setup
 
@@ -92,6 +92,17 @@ Phase 1.2 maintains a reviewed, machine-readable registry of publisher-owned RSS
 
 The accompanying [`docs/rss-source-onboarding.md`](docs/rss-source-onboarding.md) documents the acceptance method, accepted, degraded, and rejected source summaries, database impact, safety findings, and current category and regional coverage gaps. Candidates are preflighted without database writes and are added individually only after publisher ownership, safe transport, valid parsing, and content suitability are established.
 
+## Governed intelligence foundation
+
+The approved taxonomy files under [`docs/taxonomy`](docs/taxonomy) seed 186 contextual and agricultural classification terms and 20 organization types. The current foundation stores governed vocabularies and source metadata only; it does not automatically classify articles or create organizations, products, or intelligence events.
+
+The seed and source backfill commands are validation-first and idempotent:
+
+- `npm run governance:seed --workspace=@flaha-intel/api`
+- `npm run governance:backfill-sources --workspace=@flaha-intel/api`
+
+Source backfill requires every registry `databaseSourceId` and `officialFeedUrl` to match PostgreSQL before any metadata is written. It preserves source enablement and collection state.
+
 ## Scheduler and shutdown
 
 The scheduler is in-process and disabled with `SCHEDULER_ENABLED=false`. It never starts a second scheduler cycle while one is running. Active sources are skipped by scheduled collection while other enabled sources continue.
@@ -104,3 +115,5 @@ SIGINT and SIGTERM stop new scheduled cycles, wait for active collection only up
 - `npm run build` — build both applications
 - `npm run prisma:validate --workspace=@flaha-intel/api` — validate the Prisma schema
 - `npm run prisma:generate` — generate the Prisma client without changing the database
+- `npm run governance:seed --workspace=@flaha-intel/api` — validate and upsert governed taxonomy and organization types
+- `npm run governance:backfill-sources --workspace=@flaha-intel/api` — validate and backfill governed RSS source metadata
