@@ -1,8 +1,8 @@
 # Phase 3A: FlahaINGEST architecture and engine evaluation
 
-Status: architecture gate proposal only  
-Date: 2026-07-15  
-Branch audited: `phase-3a-ingestion-architecture`  
+Status: architecture gate proposal only
+Date: 2026-07-15
+Branch audited: `phase-3a-ingestion-architecture`
 Baseline release: `v0.4.0-intelligence-foundation`
 
 ## 1. Decision summary
