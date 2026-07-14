@@ -6,4 +6,3 @@ export function schedulerRoutes(scheduler: RssScheduler): FastifyPluginAsync {
     app.get("/scheduler", async () => scheduler.status());
   };
 }
-

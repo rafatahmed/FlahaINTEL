@@ -62,4 +62,3 @@ describe("CollectionCoordinator", () => {
     await active;
   });
 });
-
