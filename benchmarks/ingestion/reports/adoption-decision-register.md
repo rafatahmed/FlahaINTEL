@@ -20,12 +20,19 @@ Last modified: 2026-07-16
 | lxml 6.1.1 | Benchmarked in isolation | REQUIRES TECHNICAL HARDENING | Correct and deterministic; native deployment and supervisor resource limits remain |
 | selectolax 0.4.10 | Benchmarked in isolation | REQUIRES TECHNICAL HARDENING | Lexbor correct and deterministic in scope; native deployment and depth behavior remain |
 | Python csv/json/jsonl | Benchmarked | ADOPT AS BENCHMARK BASELINE | Dependency-free reference, not full dataset engine |
-| Docling | Not installed; benchmark pending | DEFER | Installation/model approval required |
-| Apache Tika | Not installed; benchmark pending | DEFER | Java and pinned binary approval required |
+| Docling Slim 2.111.0 — English PDF text/layout/sections/tables | Comparative benchmark passed | ADOPT AS PRIMARY | Benchmark architecture only; corrected offline lock, local models, correctness and determinism passed; no production registration |
+| Docling Slim 2.111.0 — Arabic/bilingual extraction | Governed extraction failed | REJECT | Arabic logical order is invalid; unsupported/manual-review classification required |
+| Apache Tika 3.3.1 — PDF and DOCX/PPTX/RTF/text fallback | Comparative benchmark passed | ADOPT AS FALLBACK | Benchmark architecture only; broad-format evidence passed with PARTIAL cache/temp containment and LIMITED resources |
+| Apache Tika 3.3.1 — Arabic/bilingual extraction | Governed extraction failed | REJECT | Undecodable glyph output; unsupported/manual-review classification required |
+| pdfminer.six 20260107 — general extraction | Arabic-first fast gate stopped | REJECT | Governed Arabic CID glyphs were undecodable |
+| pdfminer.six 20260107 — Arabic extraction | Governed rejection evidence retained | REJECT | No CID repair or candidate-specific correction is authorized |
 | pypdf 6.14.2 — general PDF text extraction | Stopped on governed Arabic correctness failure | REJECT | Logical Arabic `الزراعة` was extracted as reversed Unicode `ةعارزلا` |
 | pypdf 6.14.2 — Arabic extraction | Governed rejection evidence retained | REJECT | Arabic logical order is invalid; ground truth and output were not rewritten |
 | pypdf 6.14.2 — narrow inspection/metadata role | Partial evidence only | BENCHMARK FURTHER | Full metadata, action, and embedded-file benchmark did not complete |
-| pypdf 6.14.2 — production document extractor | Candidate gate rejected | REJECT | Production registration is not authorized |
+| Embedded-content inventory | Synthetic marker evidence only | BENCHMARK FURTHER | Populated attachment streams and realistic embedded content were not tested |
+| Malformed/encrypted document handling | Bounded policy and supervision passed | REQUIRES TECHNICAL HARDENING | Broader hostile realism and production containment remain incomplete |
+| Large-document processing | Bounded page/size rejection passed | BENCHMARK FURTHER | Maximum-scale and peak resource evidence are limited |
+| Production document provider | Comparative benchmark only | DEFER | Production registration is not authorized |
 | Tesseract OCR | Not installed; benchmark pending | DEFER | Executable and language-data approval required |
 | PaddleOCR | Not installed | DEFER | Explicit later approval and model/runtime review required |
 | Trafilatura 2.1.0 | Resolver-audited; not installed | DEFER | `tld` dependency licence expression requires business/legal review |

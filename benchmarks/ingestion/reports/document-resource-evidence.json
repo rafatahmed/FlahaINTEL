@@ -1,0 +1,21 @@
+{
+  "measurementDate": "2026-07-16",
+  "doclingWheelhouseBytes": 303546968,
+  "doclingModelBytes": 384428156,
+  "doclingInstalledEnvironmentBytes": 1308829688,
+  "tikaJarBytes": 65460062,
+  "temurinArchiveBytes": 49005708,
+  "doclingColdModelAndFirstExtractionNanoseconds": 8333468100,
+  "doclingWarmExtractionRangeNanoseconds": [1215968400, 2552509000],
+  "comparativeFirstRunWallNanoseconds": 21794755900,
+  "comparativeSecondRunWallNanoseconds": 21779455700,
+  "doclingEnglishOutputBytes": 60,
+  "peakProcessTreeMemory": null,
+  "temporaryDiskGrowth": null,
+  "resourceEvidenceDecision": "LIMITED",
+  "limitations": [
+    "Peak process-tree memory was not reliably captured on Windows.",
+    "Private temporary disk growth was not reliably separable from dependency cache metadata.",
+    "pypdf inspection is not compared as equivalent work to Docling layout extraction."
+  ]
+}

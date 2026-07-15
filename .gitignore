@@ -19,4 +19,6 @@ __pycache__/
 .venv/
 .benchmark-wheelhouse/
 .benchmark-envs/
+.benchmark-models/
+.benchmark-runtime/
 benchmarks/ingestion/generated-corpus/

@@ -521,8 +521,8 @@ Each gate requires an explicit approval before implementation and stops with evi
    - **3E-F — DuckDB:** governed DuckDB benchmark.
    - **3E-G — HTML extraction:** governed HTML-extraction evaluation.
    - **3E-H — PDF and general document extraction:** governed PDF/document evaluation.
-   - **3E-I — OCR:** governed OCR evaluation.
-   - **3E-J — crawler and browser:** governed crawler/browser evaluation.
+   - **3E-I — OCR:** omitted from the current implementation program; future optional development only.
+   - **3E-J — crawler and browser:** governed crawler/browser evaluation and the next active phase after 3E-H.
 6. **3F — Provider framework:** provider-neutral framework work begins here.
 7. **3G — Durable jobs and database persistence:** durable queue, lease, attempt, and persistence work begins here.
 8. **3H — Acquisition pipeline:** production acquisition work begins here.
@@ -537,8 +537,8 @@ Each gate requires an explicit approval before implementation and stops with evi
 Phase numbers and scopes must not be silently repurposed. In particular, `3E-E`
 is PyArrow and must not be used for Polars hardening. `3E-F` is DuckDB and must
 not be renamed as a final-comparison phase. PyArrow and DuckDB must not be
-skipped. HTML, PDF/general-document extraction, OCR, and crawler/browser remain
-separate gates.
+skipped. HTML, PDF/general-document extraction, optional future OCR, and
+crawler/browser remain separate scopes; omitting 3E-I does not renumber 3E-J.
 
 Provider framework work begins only at `3F`; durable jobs and database work only
 at `3G`; acquisition only at `3H`; extraction routing only at `3I`; production

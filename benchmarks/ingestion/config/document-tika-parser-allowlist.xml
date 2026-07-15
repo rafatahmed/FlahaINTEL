@@ -1,0 +1,21 @@
+<!--
+Flaha Agri Tech
+Precision Agriculture Division
+Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+
+Title: Apache Tika Document Parser Allowlist
+Introduction:
+Restricts the governed one-shot Tika runtime to approved document formats.
+
+Created by: Rafat Al Khashan
+Created date: 2026-07-16
+Last modified: 2026-07-16
+-->
+<properties>
+  <parsers>
+    <parser class="org.apache.tika.parser.pdf.PDFParser"/>
+    <parser class="org.apache.tika.parser.microsoft.ooxml.OOXMLParser"/>
+    <parser class="org.apache.tika.parser.microsoft.rtf.RTFParser"/>
+    <parser class="org.apache.tika.parser.txt.TXTParser"/>
+  </parsers>
+</properties>

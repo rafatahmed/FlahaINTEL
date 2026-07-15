@@ -1,0 +1,24 @@
+{
+  "firstRunId": "20260715T224408Z-c01a648b",
+  "secondRunId": "20260715T224431Z-c1765d06",
+  "resultCount": 16,
+  "successfulResults": 10,
+  "governedQuarantines": 0,
+  "unsupportedResults": 3,
+  "rejectedExistingEvidenceResults": 2,
+  "otherClassifiedResults": 1,
+  "hashesCompared": 16,
+  "hashMismatches": 0,
+  "classificationMismatches": 0,
+  "determinismFailures": 0,
+  "firstTotalWallNanoseconds": 21794755900,
+  "secondTotalWallNanoseconds": 21779455700,
+  "doclingColdModelAndFirstExtractionNanoseconds": 8333468100,
+  "doclingWarmExtractionRangeNanoseconds": [1215968400, 2552509000],
+  "privateTikaTempCleanup": "PARTIAL",
+  "notes": [
+    "Canonical hashes normalize whitespace and include classification plus text.",
+    "Arabic and bilingual inputs are governed UNSUPPORTED_LANGUAGE_EXTRACTION results requiring analyst review; no candidate correction or OCR ran.",
+    "Tika private temp deletion was denied to the sandboxed parent on Windows and requires the verified elevated closure cleanup."
+  ]
+}
