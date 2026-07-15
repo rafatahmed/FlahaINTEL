@@ -1,0 +1,78 @@
+{
+  "environmentId": "html-selectolax-0.4.10-py314-win-amd64",
+  "pythonVersion": "3.14.0",
+  "pythonAbi": "cp314-win_amd64",
+  "pythonCacheTag": "cpython-314",
+  "operatingSystem": "Windows 11 Pro 10.0.26200",
+  "architecture": "AMD64",
+  "createdDate": "2026-07-15",
+  "distributions": [
+    {
+      "name": "selectolax",
+      "version": "0.4.10",
+      "wheel": "selectolax-0.4.10-cp314-cp314-win_amd64.whl",
+      "tags": {
+        "python": "cp314",
+        "abi": "cp314",
+        "platform": "win_amd64"
+      },
+      "sha256": "ab07fc342cf477c0320d22fac52917b824871caf5ab177a0fd94377a901ab657",
+      "byteSize": 1970092,
+      "license": "MIT",
+      "licenseEvidence": [
+        "METADATA License-Expression: MIT",
+        "selectolax-0.4.10.dist-info/licenses/LICENSE"
+      ],
+      "officialSource": "https://pypi.org/project/selectolax/0.4.10/",
+      "requiresDist": [],
+      "optionalRequiresDist": [
+        "Cython"
+      ],
+      "dependencyParents": [],
+      "nativeBinary": true
+    }
+  ],
+  "downloadedWheelInventory": {
+    "topLevelWheelCount": 1,
+    "topLevelWheelByteSize": 1970092,
+    "inspectionArtifactDirectory": ".inspection",
+    "inspectionArtifactFileCount": 2
+  },
+  "recordEntries": 28,
+  "verifiedRecordEntries": 27,
+  "nativeExtensions": [
+    "selectolax/lexbor.cp314-win_amd64.pyd",
+    "selectolax/parser.cp314-win_amd64.pyd"
+  ],
+  "bundledNativeComponents": {
+    "primary": "Lexbor backend exposed by selectolax.lexbor.LexborHTMLParser",
+    "secondary": "Legacy Modest backend exposed by selectolax.parser.HTMLParser and excluded as the primary benchmark candidate",
+    "separateDlls": []
+  },
+  "peArchitecture": "AMD64",
+  "peImports": [
+    "python314.dll",
+    "KERNEL32.dll",
+    "VCRUNTIME140.dll",
+    "api-ms-win-crt-*"
+  ],
+  "windowsValidationScope": "Windows 11 x64 build 26200 with regular-GIL CPython 3.14.0 only",
+  "linuxLockRequirement": "A separate manylinux wheel, hash, native-component inventory, and runtime validation are required.",
+  "macosLockRequirement": "A separate macOS wheel, hash, native-component inventory, and runtime validation are required.",
+  "downloadCommand": "C:\\Python314\\python.exe -I -m pip download --index-url https://pypi.org/simple --disable-pip-version-check --only-binary=:all: --no-deps --dest .benchmark-wheelhouse/html-selectolax-0.4.10-py314-win-amd64 selectolax==0.4.10",
+  "creationCommand": "C:\\Python314\\python.exe -m venv .benchmark-envs/html-selectolax-0.4.10-py314",
+  "offlineInstallationCommand": ".benchmark-envs/html-selectolax-0.4.10-py314/Scripts/python.exe -I -m pip install --no-index --find-links .benchmark-wheelhouse/html-selectolax-0.4.10-py314-win-amd64 --require-hashes -r benchmarks/ingestion/config/html-selectolax-isolated-requirements.txt",
+  "validationCommands": [
+    "<VENV_PYTHON> -I -m pip check",
+    "<VENV_PYTHON> -I -c from selectolax.lexbor import LexborHTMLParser; import selectolax; print(selectolax.__version__)",
+    "<VENV_PYTHON> -I -m pip list --format=json"
+  ],
+  "securityLimitations": [
+    "Benchmark-only; no production registration",
+    "LexborHTMLParser is the sole primary parser",
+    "Legacy Modest presence is recorded but it is not the primary benchmark backend",
+    "No parser-level setting is treated as an OS-level outbound-network sandbox",
+    "Input, tree, time, memory, and output limits require supervisor enforcement",
+    "Windows-only native evidence"
+  ]
+}

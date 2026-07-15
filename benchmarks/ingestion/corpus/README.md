@@ -26,3 +26,8 @@ OCR quality scoring until an approved renderer/OCR engine can consume it.
 The bounded streaming dataset contains 256 records and remains under the profile's
 one-megabyte corpus-item ceiling. Regenerate owned fixtures only with
 `scripts/generate_corpus.py`, then review all hash changes.
+
+The HTML corpus contains 31 byte-governed fixtures. Non-UTF-8 encoding cases are
+marked binary in `.gitattributes`; all other governed text remains LF-normalized.
+Expected files contain independent human-review assertions and never treat candidate
+output as ground truth. No HTML fixture was acquired from a live website.

@@ -1,0 +1,13 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: selectolax Isolated Benchmark Requirements
+# Introduction:
+# Pins the exact audited selectolax wheel for offline HTML benchmark reconstruction.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-15
+
+selectolax==0.4.10 --hash=sha256:ab07fc342cf477c0320d22fac52917b824871caf5ab177a0fd94377a901ab657

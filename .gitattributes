@@ -29,3 +29,10 @@ benchmarks/ingestion/corpus/**/*.csv text eol=lf
 benchmarks/ingestion/corpus/**/*.json text eol=lf
 benchmarks/ingestion/corpus/**/*.jsonl text eol=lf
 benchmarks/ingestion/corpus/**/*.html text eol=lf
+
+# Governed non-UTF-8 and intentionally invalid HTML fixtures are binary.
+benchmarks/ingestion/corpus/html/encoding-windows-1252.html binary
+benchmarks/ingestion/corpus/html/encoding-iso-8859-1.html binary
+benchmarks/ingestion/corpus/html/encoding-windows-1256.html binary
+benchmarks/ingestion/corpus/html/encoding-iso-8859-6.html binary
+benchmarks/ingestion/corpus/html/encoding-invalid-utf8.html binary

@@ -31,6 +31,10 @@ from inspect_environment import inventory
 from verify_corpus import verify
 
 ROOT = Path(__file__).resolve().parents[1]
+STDLIB_HTML_BASELINE_IDS = {
+    "html-clean", "html-noisy", "html-nested", "html-arabic", "html-bilingual",
+    "html-malformed", "html-metadata-hidden",
+}
 
 
 def git_value(args: list[str]) -> str:
@@ -59,6 +63,8 @@ def run(determinism_runs: int, run_id: str | None = None, results_root: Path | N
     determinism_failures = 0
     for item in manifest["items"]:
         if item["category"] not in {"HTML", "DATASET"}:
+            continue
+        if item["category"] == "HTML" and item["id"] not in STDLIB_HTML_BASELINE_IDS:
             continue
         source = safe_relative(corpus, item["path"])
         expected = json.loads(safe_relative(corpus, item["expectedOutputReference"]).read_text(encoding="utf-8"))

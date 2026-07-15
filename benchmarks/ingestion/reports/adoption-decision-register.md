@@ -16,13 +16,15 @@ Last modified: 2026-07-15
 
 | Candidate | Benchmark state | Adoption status | Basis |
 | --- | --- | --- | --- |
-| Python stdlib HTML | Benchmarked | BENCHMARK FURTHER | Baseline only; inadequate evidence for production |
+| Python stdlib HTML | Benchmarked on 31 fixtures | ADOPT | Governed benchmark baseline only; no production routing |
+| lxml 6.1.1 | Benchmarked in isolation | REQUIRES TECHNICAL HARDENING | Correct and deterministic; native deployment and supervisor resource limits remain |
+| selectolax 0.4.10 | Benchmarked in isolation | REQUIRES TECHNICAL HARDENING | Lexbor correct and deterministic in scope; native deployment and depth behavior remain |
 | Python csv/json/jsonl | Benchmarked | ADOPT AS BENCHMARK BASELINE | Dependency-free reference, not full dataset engine |
 | Docling | Not installed; benchmark pending | DEFER | Installation/model approval required |
 | Apache Tika | Not installed; benchmark pending | DEFER | Java and pinned binary approval required |
 | Tesseract OCR | Not installed; benchmark pending | DEFER | Executable and language-data approval required |
 | PaddleOCR | Not installed | DEFER | Explicit later approval and model/runtime review required |
-| Trafilatura | Not installed; benchmark pending | LEGAL REVIEW REQUIRED | GPL posture requires explicit legal/architecture decision |
+| Trafilatura 2.1.0 | Resolver-audited; not installed | DEFER | `tld` dependency licence expression requires business/legal review |
 | pandas 2.3.3 | Benchmarked | BENCHMARK FURTHER | Correct governed values except malformed CSV recovery; current user-site install is unavailable under Phase 3D `-I` isolation |
 | Polars 1.42.1 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct behind strict validation; lazy/streaming hashes match, but full materialization, resource evidence, and native deployment need hardening |
 | PyArrow 25.0.0 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct eager/threaded/batch hashes behind strict validation; normalized rows remain retained and total memory is unproven |

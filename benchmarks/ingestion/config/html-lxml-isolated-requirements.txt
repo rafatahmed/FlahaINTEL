@@ -1,0 +1,13 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: lxml Isolated Benchmark Requirements
+# Introduction:
+# Pins the exact audited lxml wheel for offline HTML benchmark reconstruction.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-15
+
+lxml==6.1.1 --hash=sha256:b2d444f2e66624d68e9c6b211e28a76e22fff5fcabcfff4deac18b529b7d4137

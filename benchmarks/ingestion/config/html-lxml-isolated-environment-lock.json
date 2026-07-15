@@ -1,0 +1,90 @@
+{
+  "environmentId": "html-lxml-6.1.1-py314-win-amd64",
+  "pythonVersion": "3.14.0",
+  "pythonAbi": "cp314-win_amd64",
+  "pythonCacheTag": "cpython-314",
+  "operatingSystem": "Windows 11 Pro 10.0.26200",
+  "architecture": "AMD64",
+  "createdDate": "2026-07-15",
+  "distributions": [
+    {
+      "name": "lxml",
+      "version": "6.1.1",
+      "wheel": "lxml-6.1.1-cp314-cp314-win_amd64.whl",
+      "tags": {
+        "python": "cp314",
+        "abi": "cp314",
+        "platform": "win_amd64"
+      },
+      "sha256": "b2d444f2e66624d68e9c6b211e28a76e22fff5fcabcfff4deac18b529b7d4137",
+      "byteSize": 4064497,
+      "license": "BSD-3-Clause",
+      "licenseEvidence": [
+        "METADATA License: BSD-3-Clause",
+        "lxml-6.1.1.dist-info/licenses/LICENSE.txt",
+        "lxml-6.1.1.dist-info/licenses/LICENSES.txt"
+      ],
+      "officialSource": "https://pypi.org/project/lxml/6.1.1/",
+      "requiresDist": [],
+      "optionalRequiresDist": [
+        "cssselect>=0.7",
+        "html5lib",
+        "BeautifulSoup4",
+        "lxml_html_clean"
+      ],
+      "dependencyParents": [],
+      "nativeBinary": true
+    }
+  ],
+  "downloadedWheelInventory": {
+    "topLevelWheelCount": 1,
+    "topLevelWheelByteSize": 4064497,
+    "inspectionArtifactDirectory": ".inspection",
+    "inspectionArtifactFileCount": 7
+  },
+  "recordEntries": 178,
+  "verifiedRecordEntries": 177,
+  "nativeExtensions": [
+    "lxml/_elementpath.cp314-win_amd64.pyd",
+    "lxml/builder.cp314-win_amd64.pyd",
+    "lxml/etree.cp314-win_amd64.pyd",
+    "lxml/objectify.cp314-win_amd64.pyd",
+    "lxml/sax.cp314-win_amd64.pyd",
+    "lxml/html/_difflib.cp314-win_amd64.pyd",
+    "lxml/html/diff.cp314-win_amd64.pyd"
+  ],
+  "bundledNativeLibraries": {
+    "libxml2": "2.11.9",
+    "libxslt": "1.1.45",
+    "libexslt": "0.8.25",
+    "evidence": "Version macros from the wheel's bundled lxml include headers; the wheel contains no separate libxml2 or libxslt DLL."
+  },
+  "peArchitecture": "AMD64",
+  "peImports": [
+    "python314.dll",
+    "WS2_32.dll",
+    "ADVAPI32.dll",
+    "KERNEL32.dll",
+    "VCRUNTIME140.dll",
+    "api-ms-win-crt-*"
+  ],
+  "windowsValidationScope": "Windows 11 x64 build 26200 with regular-GIL CPython 3.14.0 only",
+  "linuxLockRequirement": "A separate manylinux wheel, hash, native inventory, libxml2/libxslt inventory, and runtime validation are required.",
+  "macosLockRequirement": "A separate macOS wheel, hash, native inventory, libxml2/libxslt inventory, and runtime validation are required.",
+  "downloadCommand": "C:\\Python314\\python.exe -I -m pip download --index-url https://pypi.org/simple --disable-pip-version-check --only-binary=:all: --no-deps --dest .benchmark-wheelhouse/html-lxml-6.1.1-py314-win-amd64 lxml==6.1.1",
+  "creationCommand": "C:\\Python314\\python.exe -m venv .benchmark-envs/html-lxml-6.1.1-py314",
+  "offlineInstallationCommand": ".benchmark-envs/html-lxml-6.1.1-py314/Scripts/python.exe -I -m pip install --no-index --find-links .benchmark-wheelhouse/html-lxml-6.1.1-py314-win-amd64 --require-hashes -r benchmarks/ingestion/config/html-lxml-isolated-requirements.txt",
+  "validationCommands": [
+    "<VENV_PYTHON> -I -m pip check",
+    "<VENV_PYTHON> -I -c import lxml; print(lxml.__version__)",
+    "<VENV_PYTHON> -I -m pip list --format=json"
+  ],
+  "securityLimitations": [
+    "Benchmark-only; no production registration",
+    "Only lxml HTML parsing is authorized",
+    "XML, DTD, entity, XInclude, XSLT, resolver, and HTML-cleaner APIs are outside the adapter surface",
+    "no_network parser configuration is not an OS-level outbound-network sandbox",
+    "Input, tree, time, memory, and output limits require supervisor enforcement",
+    "Windows-only native evidence"
+  ]
+}
