@@ -515,19 +515,82 @@ Each gate requires an explicit approval before implementation and stops with evi
 2. **3B — Contracts and threat model:** JSON Schemas, state machines, ADRs, threat model, corpus/benchmark plan; no database or engines.
 3. **3C — Artifact-store prototype:** immutable staging/promote/read/verify abstraction, path safety and reconciliation tests using fixtures; no ingestion engine.
 4. **3D — Worker protocol prototype:** TS supervisor plus dependency-light Python echo/reference provider, cancellation and process-tree tests; no DB credentials/network.
-5. **3E — Engine benchmarks:** pinned Docling/Tika/Tesseract and HTML/data candidates against approved corpora; licence/SBOM/offline packaging report; no production route.
-6. **3F — Additive metadata migration:** reviewed Prisma design for sources, jobs, attempts, items, artifacts, normalized versions, warnings and audit; backup/snapshot, migrate deploy, preservation verification. No RSS cutover.
-7. **3G — Durable local job execution:** PostgreSQL leases, dispatcher, retries, cancellation, metrics and localhost-only binding; synthetic/reference jobs only.
-8. **3H — Document vertical slice:** manual upload, immutable raw evidence, chosen converter, versioned normalization, review-required UI/API; no automatic approval.
-9. **3I — Static HTML and sitemap slice:** allowlisted discovery/fetch/extraction with budgets; Playwright remains disabled unless separately approved.
-10. **3J — RSS compatibility adapter:** shadow/parity mode, legacy fingerprint/accounting tests, then controlled cutover with rollback. Existing API contracts remain.
-11. **3K — Dataset slice:** versioned CSV/JSON/XLSX/Parquet to canonical Parquet plus schema/review workflow.
-12. **3L — Rendered-page fallback:** Playwright only after security/offline benchmark and source-profile approval.
-13. **3M — Public API/open-data providers:** declarative pagination/checkpoint profiles and credential isolation where specifically approved.
-14. **3N — Provenance/evidence integration:** normalized-content evidence relationships with legacy `EventEvidence` compatibility.
-15. **3O — Operational release gate:** clean Windows/offline install, full regression, migration/runtime verification, backup/restore and runbooks.
+5. **3E — Governed engine and extraction benchmarks:** the fixed sub-gates are:
+   - **3E-D — Polars:** governed Polars benchmark.
+   - **3E-E — PyArrow:** governed PyArrow benchmark.
+   - **3E-F — DuckDB:** governed DuckDB benchmark.
+   - **3E-G — HTML extraction:** governed HTML-extraction evaluation.
+   - **3E-H — PDF and general document extraction:** governed PDF/document evaluation.
+   - **3E-I — OCR:** governed OCR evaluation.
+   - **3E-J — crawler and browser:** governed crawler/browser evaluation.
+6. **3F — Provider framework:** provider-neutral framework work begins here.
+7. **3G — Durable jobs and database persistence:** durable queue, lease, attempt, and persistence work begins here.
+8. **3H — Acquisition pipeline:** production acquisition work begins here.
+9. **3I — Extraction routing:** production extraction-routing work begins here.
+10. **3J — Normalization pipeline:** production normalization work begins here.
+11. **3K — Governance and review workflow:** governance and analyst-review workflow work begins here.
+12. **3L — API and UI:** ingestion API and user-interface work begins here.
+13. **3M — Production hardening:** production security, reliability, deployment, and operational hardening begins here.
 
-Social APIs, webhooks, and internal product signals each require later channel-specific gates; they are not bundled into 3O.
+### Phase-number protection
+
+Phase numbers and scopes must not be silently repurposed. In particular, `3E-E`
+is PyArrow and must not be used for Polars hardening. `3E-F` is DuckDB and must
+not be renamed as a final-comparison phase. PyArrow and DuckDB must not be
+skipped. HTML, PDF/general-document extraction, OCR, and crawler/browser remain
+separate gates.
+
+Provider framework work begins only at `3F`; durable jobs and database work only
+at `3G`; acquisition only at `3H`; extraction routing only at `3I`; production
+normalization only at `3J`; governance/review only at `3K`; API/UI only at `3L`;
+and production hardening only at `3M`.
+
+Technical hardening discovered during an earlier benchmark must be recorded as a
+limitation, recommendation, proposed future sub-gate, or explicitly authorized
+later work. It must not replace the next roadmap phase.
+
+### Phase-transition standard
+
+Before beginning a new phase, the implementation agent must verify and report:
+
+1. previous phase name;
+2. previous phase branch;
+3. previous phase acceptance commit;
+4. current branch and HEAD;
+5. clean working-tree state;
+6. exact next phase from this roadmap;
+7. proposed branch name;
+8. scope boundaries;
+9. protected paths;
+10. stop conditions; and
+11. whether the gate begins with audit, installation authorization, implementation, or validation.
+
+If an instruction conflicts with this authoritative roadmap, the agent must stop
+before changing files and report the conflict.
+
+### Branch naming standard
+
+Expected branches are:
+
+```text
+phase-3e-d-polars-benchmark
+phase-3e-e-pyarrow-benchmark
+phase-3e-f-duckdb-benchmark
+phase-3e-g-html-extraction
+phase-3e-h-document-extraction
+phase-3e-i-ocr
+phase-3e-j-crawler-browser
+phase-3f-provider-framework
+phase-3g-durable-jobs-database
+phase-3h-acquisition
+phase-3i-extraction-routing
+phase-3j-normalization
+phase-3k-governance-review
+phase-3l-api-ui
+phase-3m-production-hardening
+```
+
+A branch name must not combine a phase number with the wrong scope.
 
 ## 32. Recommended branch and commit sequence
 

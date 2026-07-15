@@ -26,14 +26,28 @@ or download/install an engine, model, language pack, runtime, or dependency.
 
 ## Evaluation sequence
 
+The governed dataset-engine candidate gates are fixed:
+
+1. **3E-D — Polars**
+2. **3E-E — PyArrow**
+3. **3E-F — DuckDB**
+
+Each candidate receives its own governed benchmark gate. Candidate hardening is
+recorded as a limitation, recommendation, proposed future sub-gate, or explicitly
+authorized later work; it does not replace the next candidate gate. Final
+comparative conclusions may be recorded after the governed candidate gates, but
+they do not redefine phase numbering. Extraction work begins at `3E-G`, after the
+DuckDB gate.
+
+Within each candidate gate:
+
 1. Freeze corpus, expected outputs, scoring gates, and safe size limits.
 2. Inventory the exact host without network use or installation.
-3. Run dependency-free HTML and dataset baselines twice.
-4. Review output correctness and measurement limitations.
-5. Request installation approval for one isolated candidate at a time.
-6. Pin engine/model/runtime versions and checksums before execution.
-7. Run offline, compare mandatory gates first, then weighted dimensions.
-8. Record adoption status without production integration.
+3. Review output correctness and measurement limitations.
+4. Request installation approval for one isolated candidate at a time.
+5. Pin engine/model/runtime versions and checksums before execution.
+6. Run offline, compare mandatory gates first, then weighted dimensions.
+7. Record adoption status without production integration.
 
 ## Mandatory gates
 
