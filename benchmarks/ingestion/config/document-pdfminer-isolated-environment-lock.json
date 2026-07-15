@@ -1,0 +1,29 @@
+{
+  "environmentId": "document-pdfminer-20260107-py314-win-amd64",
+  "candidate": "pdfminer.six",
+  "version": "20260107",
+  "pythonVersion": "3.14.0",
+  "platform": "Windows x64",
+  "environmentBytes": 34922969,
+  "wheelhouseBytes": 10801183,
+  "requiresPython": ">=3.10",
+  "license": "MIT",
+  "releaseDate": "2026-01-07",
+  "distributions": [
+    {"name":"pdfminer.six","version":"20260107","wheel":"pdfminer_six-20260107-py3-none-any.whl","bytes":6592252,"sha256":"366585ba97e80dffa8f00cebe303d2f381884d8637af4ce422f1df3ef38111a9","license":"MIT","native":false},
+    {"name":"charset-normalizer","version":"3.4.9","wheel":"charset_normalizer-3.4.9-cp314-cp314-win_amd64.whl","bytes":162796,"sha256":"16b65ea0f2465b6fb52aa22de5eca612aa964ddfec00a912e26f4656cbef890b","license":"MIT","native":true},
+    {"name":"cryptography","version":"49.0.0","wheel":"cryptography-49.0.0-cp311-abi3-win_amd64.whl","bytes":3810026,"sha256":"e5dfc1e64de5677cec922ffa8da89c546d0415bf6efdf081842e5d44c84e1f0e","license":"Apache-2.0 OR BSD-3-Clause","native":true},
+    {"name":"cffi","version":"2.1.0","wheel":"cffi-2.1.0-cp314-cp314-win_amd64.whl","bytes":187937,"sha256":"1b96bfe2c4bd825681b7d311ad6d9b7280a091f43e8f63da5729638083cd3bfb","license":"MIT-0","native":true},
+    {"name":"pycparser","version":"3.0","wheel":"pycparser-3.0-py3-none-any.whl","bytes":48172,"sha256":"b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992","license":"BSD-3-Clause","native":false}
+  ],
+  "optionalDependenciesExcluded": ["Pillow", "bcrypt", "typing-extensions"],
+  "sourceCompilationRequired": false,
+  "arabicGate": "FAIL - UNDECODABLE CID PLACEHOLDERS",
+  "bilingualGate": "NOT PERFORMED",
+  "candidateStatus": "REJECTED FOR GENERAL DOCUMENT TEXT EXTRACTION",
+  "productionRegistration": "NOT AUTHORIZED",
+  "offlineReconstruction": "NOT PERFORMED",
+  "offlineInstallCommand": ".benchmark-envs/document-pdfminer-20260107-py314/Scripts/python.exe -I -m pip install --no-index --find-links .benchmark-wheelhouse/document-pdfminer-20260107-py314-win-amd64 --require-hashes -r benchmarks/ingestion/config/document-pdfminer-isolated-requirements.txt",
+  "networkBehavior": "Library performs local parsing; no network client dependency is selected, but process-level network denial remains required.",
+  "creationDate": "2026-07-16"
+}

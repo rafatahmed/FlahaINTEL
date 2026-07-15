@@ -1,0 +1,17 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: pdfminer.six Isolated Fast-Gate Requirements
+# Introduction:
+# Pins the exact reviewed pdfminer.six dependency graph for offline installation.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-16
+# Last modified: 2026-07-16
+
+pdfminer.six==20260107 --hash=sha256:366585ba97e80dffa8f00cebe303d2f381884d8637af4ce422f1df3ef38111a9
+charset-normalizer==3.4.9 --hash=sha256:16b65ea0f2465b6fb52aa22de5eca612aa964ddfec00a912e26f4656cbef890b
+cryptography==49.0.0 --hash=sha256:e5dfc1e64de5677cec922ffa8da89c546d0415bf6efdf081842e5d44c84e1f0e
+cffi==2.1.0 --hash=sha256:1b96bfe2c4bd825681b7d311ad6d9b7280a091f43e8f63da5729638083cd3bfb
+pycparser==3.0 --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
