@@ -1,0 +1,13 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: PyArrow Isolated Environment Requirements
+# Introduction:
+# Pins the approved offline PyArrow benchmark distribution and verified wheel hash.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-15
+
+pyarrow==25.0.0 --hash=sha256:2e093efbecb5317372f819228fa4b4e6157eee48d3f0a7b0303705ebf81a7104

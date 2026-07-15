@@ -25,7 +25,7 @@ Last modified: 2026-07-15
 | Trafilatura | Not installed; benchmark pending | LEGAL REVIEW REQUIRED | GPL posture requires explicit legal/architecture decision |
 | pandas 2.3.3 | Benchmarked | BENCHMARK FURTHER | Correct governed values except malformed CSV recovery; current user-site install is unavailable under Phase 3D `-I` isolation |
 | Polars 1.42.1 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct behind strict validation; lazy/streaming hashes match, but full materialization, resource evidence, and native deployment need hardening |
-| PyArrow | Not installed; benchmark pending | DEFER | Pinned large wheel approval required |
+| PyArrow 25.0.0 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct eager/threaded/batch hashes behind strict validation; normalized rows remain retained and total memory is unproven |
 | DuckDB | Not installed; benchmark pending | DEFER | Pinned wheel and extension controls required |
 
 No candidate is registered with production dispatch, and no reputation-based

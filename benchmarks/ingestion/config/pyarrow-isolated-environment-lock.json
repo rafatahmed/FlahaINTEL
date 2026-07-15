@@ -1,0 +1,37 @@
+{
+  "environmentId": "pyarrow-25.0.0-py314-win-amd64",
+  "pythonVersion": "3.14.0",
+  "pythonAbi": "cp314-win_amd64",
+  "pythonCacheTag": "cpython-314",
+  "operatingSystem": "Windows 11 Pro 10.0.26200",
+  "architecture": "AMD64",
+  "createdDate": "2026-07-15",
+  "distributions": [
+    {
+      "name": "pyarrow",
+      "version": "25.0.0",
+      "wheel": "pyarrow-25.0.0-cp314-cp314-win_amd64.whl",
+      "tags": {"python": "cp314", "abi": "cp314", "platform": "win_amd64"},
+      "sha256": "2e093efbecb5317372f819228fa4b4e6157eee48d3f0a7b0303705ebf81a7104",
+      "byteSize": 28613262,
+      "license": "Apache-2.0",
+      "officialSource": "https://pypi.org/project/pyarrow/25.0.0/",
+      "requiresDist": [],
+      "nativeBinary": true
+    }
+  ],
+  "wheelhouseByteSize": 28613262,
+  "nativeExtensions": ["_acero", "_azurefs", "_compute", "_csv", "_dataset", "_dataset_orc", "_dataset_parquet", "_dataset_parquet_encryption", "_feather", "_flight", "_fs", "_gcsfs", "_hdfs", "_json", "_orc", "_parquet", "_parquet_encryption", "_pyarrow_cpp_tests", "_s3fs", "_substrait", "lib"],
+  "bundledNativeLibraries": ["arrow.dll", "arrow_acero.dll", "arrow_compute.dll", "arrow_dataset.dll", "arrow_flight.dll", "arrow_python.dll", "arrow_python_flight.dll", "arrow_python_parquet_encryption.dll", "arrow_substrait.dll", "parquet.dll"],
+  "bundledRuntimeLibraries": ["msvcp140_atomic_wait-4bec1bd7c3f445519c6c93c879884a89.dll", "msvcp140-d448dcabdad98c14abc6ff2741df95cd.dll"],
+  "compressionLibraryFinding": "No separate compression-codec DLL is present; enabled codecs are queried from the installed runtime and are presumed linked into bundled Arrow libraries until runtime evidence is recorded.",
+  "microsoftRuntimeFinding": "Two mangled MSVC C++ runtime DLLs are bundled. dumpbin/link are unavailable, so any additional Windows system-runtime imports require runtime import evidence.",
+  "cpuAssumptions": "Official x86-64 Arrow builds commonly use an SSE4.2 compile-time baseline and runtime SIMD dispatch. Installed runtime_info evidence is mandatory.",
+  "windowsValidationScope": "Windows 11 x64, build 26200, CPython 3.14.0 regular GIL build only",
+  "linuxLockRequirement": "Separate manylinux or musllinux wheels, hashes, native inventory, and validation are required.",
+  "macosLockRequirement": "Separate macOS x86-64 or arm64 wheels, hashes, native inventory, and validation are required.",
+  "creationCommand": "C:\\Python314\\python.exe -m venv .benchmark-envs/pyarrow-25.0.0-py314",
+  "offlineInstallationCommand": ".benchmark-envs/pyarrow-25.0.0-py314/Scripts/python.exe -I -m pip install --no-index --find-links .benchmark-wheelhouse/pyarrow-25.0.0-py314-win-amd64 --require-hashes -r benchmarks/ingestion/config/pyarrow-isolated-requirements.txt",
+  "validationCommands": ["<VENV_PYTHON> -I -m pip check", "<VENV_PYTHON> -I -c import pyarrow; print(pyarrow.__version__)", "<VENV_PYTHON> -I -m pip list --format=json"],
+  "limitations": ["Benchmark-only; no production registration", "Native C++ runtime", "No NumPy, pandas, cffi, fsspec, timezone, cloud, database, or optional-extra Python package is authorized", "Windows-only evidence", "Arrow memory-pool metrics are not total process memory"]
+}

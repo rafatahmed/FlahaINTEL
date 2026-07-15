@@ -41,3 +41,11 @@ runs, 10k eager/lazy/streaming took 1.11–1.29 seconds and 100k took 3.84–5.5
 Internal 100k collection took 18–25 ms while Python normalization took 1.36–1.89
 seconds. Mode hashes matched. Sampler distortion and full materialization prevent a
 valid bounded-memory or direct pandas speed claim; CPU remains unavailable.
+
+PyArrow 25.0.0 used the same inputs. One bounded resource run measured 10k
+eager/threaded/incremental at 1.148/1.163/1.041 seconds and 100k at
+4.866/5.059/4.399 seconds. Mode hashes matched. Arrow peak-pool values were
+3.9–5.5 MB and 14.5–19.6 MB respectively, but exclude Python and other process
+allocations. The process sampler again followed the venv redirector, so total
+working-set evidence is rejected. Incremental parsing avoided a full Arrow table
+but retained all normalized Python rows and is not end-to-end bounded memory.
