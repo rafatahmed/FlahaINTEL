@@ -1,0 +1,14 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: Polars Isolated Environment Requirements
+# Introduction:
+# Pins the approved offline Polars benchmark distributions and wheel hashes.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-15
+
+polars==1.42.1 --hash=sha256:3c0c65cdfa21a621650c4bdcbbccf93964d052fd766c3e70e84a55d961c259fd
+polars-runtime-32==1.42.1 --hash=sha256:e9364c26da389a8b7339e4d29e20a3d12af730247e6ed3b7804bddce2477f428

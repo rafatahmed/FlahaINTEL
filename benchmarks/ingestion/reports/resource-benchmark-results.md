@@ -35,3 +35,9 @@ returned 0 and is classified unavailable rather than treated as a valid measurem
 The separate Python/PowerShell sampling harness materially increases short-run wall
 time; unsampled runs are therefore used for throughput and the OS counter only for
 the measured working-set field. Larger sustained resource tests remain necessary.
+
+Polars 1.42.1 used the same generated hashes and Windows process sampler. Across two
+runs, 10k eager/lazy/streaming took 1.11–1.29 seconds and 100k took 3.84–5.53 seconds.
+Internal 100k collection took 18–25 ms while Python normalization took 1.36–1.89
+seconds. Mode hashes matched. Sampler distortion and full materialization prevent a
+valid bounded-memory or direct pandas speed claim; CPU remains unavailable.

@@ -24,7 +24,7 @@ Last modified: 2026-07-15
 | PaddleOCR | Not installed | DEFER | Explicit later approval and model/runtime review required |
 | Trafilatura | Not installed; benchmark pending | LEGAL REVIEW REQUIRED | GPL posture requires explicit legal/architecture decision |
 | pandas 2.3.3 | Benchmarked | BENCHMARK FURTHER | Correct governed values except malformed CSV recovery; current user-site install is unavailable under Phase 3D `-I` isolation |
-| Polars | Not installed; benchmark pending | DEFER | Pinned wheel approval required |
+| Polars 1.42.1 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct behind strict validation; lazy/streaming hashes match, but full materialization, resource evidence, and native deployment need hardening |
 | PyArrow | Not installed; benchmark pending | DEFER | Pinned large wheel approval required |
 | DuckDB | Not installed; benchmark pending | DEFER | Pinned wheel and extension controls required |
 

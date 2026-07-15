@@ -27,7 +27,7 @@ against the exact pinned release before installation or redistribution.
 | Trafilatura | Main-content extraction; Python | Not installed | GPL-3.0-or-later per approved Phase 3A; legal review required | Python dependency graph | Article-focused extraction | GPL/commercial redistribution decision; pending |
 | Python csv/json | Dataset baseline; Python | Available | Python licence | None | Deterministic streaming CSV/JSONL primitives | Limited typing/formats; benchmarked |
 | pandas | Dataset compatibility; Python/native | Benchmarked 2.3.3 with NumPy 2.3.5 | BSD-3-Clause installed metadata | Per-user binary wheels; optional format packages absent | Unicode, nulls, duplicates, chunked CSV | Malformed CSV recovery, inference, memory, and `-I` isolation risk; benchmark further |
-| Polars | Dataset transformation; Rust/Python | Not installed | MIT | Binary wheel | Performance, lazy/streaming APIs | Packaging and behavior benchmark pending |
+| Polars | Dataset transformation; Rust/Python | Benchmarked 1.42.1 in isolated environment | MIT | Native `polars-runtime-32` wheel | Correct governed eager/lazy/streaming output | Full normalization dominates; native CPU/deployment and larger-scale memory require hardening |
 | PyArrow | Columnar interchange; C++/Python | Not installed | Apache-2.0 | Large binary wheel | Parquet/Arrow interoperability | Disk/memory/security surface; pending |
 | DuckDB | Bounded data query; C++/Python | Not installed | MIT | Binary wheel; extensions must be disabled | SQL inspection and Parquet | Extension/network controls; pending |
 
