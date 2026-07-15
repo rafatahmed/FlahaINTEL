@@ -522,7 +522,7 @@ Each gate requires an explicit approval before implementation and stops with evi
    - **3E-G — HTML extraction:** governed HTML-extraction evaluation.
    - **3E-H — PDF and general document extraction:** governed PDF/document evaluation.
    - **3E-I — OCR:** omitted from the current implementation program; future optional development only.
-   - **3E-J — crawler and browser:** governed crawler/browser evaluation and the next active phase after 3E-H.
+   - **3E-J — crawler and browser:** governed crawler/browser evaluation; comparative benchmark completed with Scrapy as the primary static benchmark engine and Playwright as the dynamic fallback, without production registration.
 6. **3F — Provider framework:** provider-neutral framework work begins here.
 7. **3G — Durable jobs and database persistence:** durable queue, lease, attempt, and persistence work begins here.
 8. **3H — Acquisition pipeline:** production acquisition work begins here.

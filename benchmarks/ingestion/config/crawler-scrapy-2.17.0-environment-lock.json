@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "candidate": "Scrapy",
+  "version": "2.17.0",
+  "python": "3.14.0",
+  "platform": "win_amd64",
+  "install": "pip --no-index --find-links <wheelhouse> Scrapy==2.17.0",
+  "artifacts": [
+    {
+      "file": "attrs-26.1.0-py3-none-any.whl",
+      "bytes": 67548,
+      "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309"
+    },
+    {
+      "file": "automat-25.4.16-py3-none-any.whl",
+      "bytes": 42842,
+      "sha256": "04e9bce696a8d5671ee698005af6e5a9fa15354140a87f4870744604dcdd3ba1"
+    },
+    {
+      "file": "certifi-2026.6.17-py3-none-any.whl",
+      "bytes": 133289,
+      "sha256": "2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db"
+    },
+    {
+      "file": "cffi-2.1.0-cp314-cp314-win_amd64.whl",
+      "bytes": 187937,
+      "sha256": "1b96bfe2c4bd825681b7d311ad6d9b7280a091f43e8f63da5729638083cd3bfb"
+    },
+    {
+      "file": "charset_normalizer-3.4.9-cp314-cp314-win_amd64.whl",
+      "bytes": 162796,
+      "sha256": "16b65ea0f2465b6fb52aa22de5eca612aa964ddfec00a912e26f4656cbef890b"
+    },
+    {
+      "file": "constantly-23.10.4-py3-none-any.whl",
+      "bytes": 13547,
+      "sha256": "3fd9b4d1c3dc1ec9757f3c52aef7e53ad9323dbe39f51dfd4c43853b68dfa3f9"
+    },
+    {
+      "file": "cryptography-49.0.0-cp311-abi3-win_amd64.whl",
+      "bytes": 3810026,
+      "sha256": "e5dfc1e64de5677cec922ffa8da89c546d0415bf6efdf081842e5d44c84e1f0e"
+    },
+    {
+      "file": "cssselect-1.4.0-py3-none-any.whl",
+      "bytes": 18540,
+      "sha256": "c0ec5c0191c8ee39fcc8afc1540331d8b55b0183478c50e9c8a79d44dbceb1d8"
+    },
+    {
+      "file": "defusedxml-0.7.1-py2.py3-none-any.whl",
+      "bytes": 25604,
+      "sha256": "a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"
+    },
+    {
+      "file": "filelock-3.29.7-py3-none-any.whl",
+      "bytes": 46036,
+      "sha256": "987db6f789a3a2a59f55081801b2b3697cb97e2a736b5f1a9e99b559285fbc51"
+    },
+    {
+      "file": "hyperlink-21.0.0-py2.py3-none-any.whl",
+      "bytes": 74638,
+      "sha256": "e6b14c37ecb73e89c77d78cdb4c2cc8f3fb59a885c5b3f819ff4ed80f25af1b4"
+    },
+    {
+      "file": "idna-3.18-py3-none-any.whl",
+      "bytes": 65455,
+      "sha256": "7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2"
+    },
+    {
+      "file": "incremental-24.11.0-py3-none-any.whl",
+      "bytes": 21109,
+      "sha256": "a34450716b1c4341fe6676a0598e88a39e04189f4dce5dc96f656e040baa10b3"
+    },
+    {
+      "file": "itemadapter-0.13.1-py3-none-any.whl",
+      "bytes": 18540,
+      "sha256": "f3c6b1babb4fb6cca4aa9061ef0b0c25c783c24a571c30e3667e7bcfea41815b"
+    },
+    {
+      "file": "itemloaders-1.4.0-py3-none-any.whl",
+      "bytes": 12188,
+      "sha256": "202b6f855299b4cadfdf78bb93a6cf977899e3c40c4c54524e120a444e65b5ac"
+    },
+    {
+      "file": "jmespath-1.1.0-py3-none-any.whl",
+      "bytes": 20419,
+      "sha256": "a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64"
+    },
+    {
+      "file": "lxml-6.1.1-cp314-cp314-win_amd64.whl",
+      "bytes": 4064497,
+      "sha256": "b2d444f2e66624d68e9c6b211e28a76e22fff5fcabcfff4deac18b529b7d4137"
+    },
+    {
+      "file": "packaging-26.2-py3-none-any.whl",
+      "bytes": 100195,
+      "sha256": "5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e"
+    },
+    {
+      "file": "parsel-1.11.0-py3-none-any.whl",
+      "bytes": 14176,
+      "sha256": "bda82575df1774dd64e1c1396163f3cadb3e383e0f8080d43d45fa6705355daa"
+    },
+    {
+      "file": "protego-0.6.2-py3-none-any.whl",
+      "bytes": 10296,
+      "sha256": "714de21d82527c9be900066c3211b266985dd6a19b6e70c57e033fc1a589f3ff"
+    },
+    {
+      "file": "pycparser-3.0-py3-none-any.whl",
+      "bytes": 48172,
+      "sha256": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992"
+    },
+    {
+      "file": "PyDispatcher-2.0.7-py3-none-any.whl",
+      "bytes": 12040,
+      "sha256": "96543bea04115ffde08f851e1d45cacbfd1ee866ac42127d9b476dc5aefa7de0"
+    },
+    {
+      "file": "pyopenssl-26.3.0-py3-none-any.whl",
+      "bytes": 56008,
+      "sha256": "46367f8f66b92271e6d218da9c87607e1ef5a0bc5c8dea5bb3db82f395c385a3"
+    },
+    {
+      "file": "queuelib-1.9.0-py3-none-any.whl",
+      "bytes": 13585,
+      "sha256": "c5fd3bebf2c924446fa94fca6b72e81168f79cf4c2a9143b8b26f266a423fcf3"
+    },
+    {
+      "file": "requests_file-3.0.1-py2.py3-none-any.whl",
+      "bytes": 4514,
+      "sha256": "d0f5eb94353986d998f80ac63c7f146a307728be051d4d1cd390dbdb59c10fa2"
+    },
+    {
+      "file": "requests-2.34.2-py3-none-any.whl",
+      "bytes": 73075,
+      "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0"
+    },
+    {
+      "file": "scrapy-2.17.0-py3-none-any.whl",
+      "bytes": 350445,
+      "sha256": "a650a59e9425e7e4b4d59083f858df34ec9a5a8292b3e35671d444fb56fe5085"
+    },
+    {
+      "file": "service_identity-26.1.0-py3-none-any.whl",
+      "bytes": 11370,
+      "sha256": "68c32dadbb69135fb951077677e07cd7f6031020f3a8c8f47a28cda8a0742118"
+    },
+    {
+      "file": "tldextract-5.3.1-py3-none-any.whl",
+      "bytes": 105886,
+      "sha256": "6bfe36d518de569c572062b788e16a659ccaceffc486d243af0484e8ecf432d9"
+    },
+    {
+      "file": "twisted-26.4.0-py3-none-any.whl",
+      "bytes": 3230362,
+      "sha256": "dc25ea0ebf6511c24f03232ee9f4afa54b291c5d897990e3a39cc4d14a1ef4c0"
+    },
+    {
+      "file": "typing_extensions-4.16.0-py3-none-any.whl",
+      "bytes": 45571,
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+    },
+    {
+      "file": "urllib3-2.7.0-py3-none-any.whl",
+      "bytes": 131087,
+      "sha256": "9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897"
+    },
+    {
+      "file": "w3lib-2.4.1-py3-none-any.whl",
+      "bytes": 21695,
+      "sha256": "40930132907e68de906a5b89331ab8c8ff4f01bd35b5539ef7896017d814138d"
+    },
+    {
+      "file": "zope_interface-8.5-cp314-cp314-win_amd64.whl",
+      "bytes": 215789,
+      "sha256": "29d74febbae1afeb6834c4ccbf42e242a673c860060f09e53142825270456140"
+    }
+  ]
+}

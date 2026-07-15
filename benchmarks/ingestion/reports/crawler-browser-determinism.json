@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "runs": 2,
+  "run_ids": [
+    "phase-3e-j-comparative-1",
+    "phase-3e-j-comparative-2"
+  ],
+  "fixture_manifest": "crawler-browser-fixtures-v2",
+  "candidate_versions": {
+    "scrapy": "2.17.0",
+    "playwright": "1.61.1",
+    "chromium": "149.0.7827.55-r1228"
+  },
+  "policy_snapshot": "exact-origin-policy-v1",
+  "canonicalization_version": "crawler-browser-canonical-v2",
+  "excluded_nondeterministic_fields": [
+    "elapsed_ms",
+    "timestamps",
+    "process_count",
+    "resource_metrics",
+    "HTTP Date header"
+  ],
+  "stable_hashes": [
+    {
+      "scrapy": "247e6be28b44a1a6f2098e6ebfa942f965211090166a2a37a5a3e31ef78ccb14",
+      "playwright": "bab469c36b38b9289df10b8d798568da4463184362411274192d9e66b8226b6d"
+    },
+    {
+      "scrapy": "247e6be28b44a1a6f2098e6ebfa942f965211090166a2a37a5a3e31ef78ccb14",
+      "playwright": "bab469c36b38b9289df10b8d798568da4463184362411274192d9e66b8226b6d"
+    }
+  ],
+  "hash_mismatches": 0,
+  "classification_mismatches": 0,
+  "policy_mismatches": 0
+}

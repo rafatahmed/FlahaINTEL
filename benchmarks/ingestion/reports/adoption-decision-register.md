@@ -40,6 +40,10 @@ Last modified: 2026-07-16
 | Polars 1.42.1 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct behind strict validation; lazy/streaming hashes match, but full materialization, resource evidence, and native deployment need hardening |
 | PyArrow 25.0.0 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct eager/threaded/batch hashes behind strict validation; normalized rows remain retained and total memory is unproven |
 | DuckDB 1.5.4 | Benchmarked | REQUIRES TECHNICAL HARDENING | Exact-path and extension/remote denial passed; governed hashes match, but total-memory, timezone, and production isolation remain unproven |
+| Scrapy 2.17.0 — static acquisition/crawling | Comparative and offline-reconstruction closure passed | ADOPT AS PRIMARY | Deterministic raw bytes, governed links, robots, redirects, hashed offline rebuild and process-tree resources passed; no production registration |
+| Playwright 1.61.1 / Chromium 149.0.7827.55 — dynamic rendering | Comparative, containment and offline-reconstruction closure passed | ADOPT AS FALLBACK | Rendered DOM, network interception, download/popup containment, five-process sampling and local archive restoration passed; static-default use is not justified |
+| Production crawler provider | Comparative benchmark only | DEFER | Provider registration, wider adversarial coverage and supervisor resource enforcement are not authorized in Phase 3E-J |
+| Production browser provider | Comparative benchmark only | DEFER | Windows sandbox limitation, process-tree enforcement, resource instrumentation and production integration require technical hardening |
 
 No candidate is registered with production dispatch, and no reputation-based
 quality score or adoption recommendation is recorded.

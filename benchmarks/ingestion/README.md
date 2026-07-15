@@ -9,7 +9,7 @@ Describes the governed, offline benchmark framework for ingestion candidates.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-15
+Last modified: 2026-07-16
 -->
 
 # Reproducible ingestion engine benchmarks
@@ -37,6 +37,7 @@ node benchmarks/ingestion/scripts/run_duckdb_gate_probe.mjs gate-b
 node benchmarks/ingestion/scripts/run_duckdb_gate_probe.mjs offline-reconstruction
 python benchmarks/ingestion/scripts/run_html_benchmark.py
 python benchmarks/ingestion/scripts/run_html_resource_benchmark.py
+python benchmarks/ingestion/scripts/run_crawler_browser_benchmark.py
 ```
 
 Generated run directories are ignored. The committed reports contain only small,
@@ -46,3 +47,9 @@ The Phase 3E-G HTML benchmark accepts only already-acquired governed bytes. lxml
 selectolax run in separate ignored environments; Trafilatura remains uninstalled
 pending dependency-licence review. It does not crawl, fetch URLs, execute JavaScript,
 launch a browser, or register a production extractor.
+
+The Phase 3E-J acquisition benchmark is the sole networked exception: it starts a
+benchmark-owned server on an ephemeral `127.0.0.1` port and blocks every other
+destination. Scrapy and pinned Chromium run from separate ignored runtimes, emit
+separate raw/rendered artifacts, and do not connect to databases or production
+providers. Chromium launch can require explicit process-sandbox approval.

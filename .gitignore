@@ -21,4 +21,6 @@ __pycache__/
 .benchmark-envs/
 .benchmark-models/
 .benchmark-runtime/
+.benchmark-browsers/
+.benchmark-cache/
 benchmarks/ingestion/generated-corpus/

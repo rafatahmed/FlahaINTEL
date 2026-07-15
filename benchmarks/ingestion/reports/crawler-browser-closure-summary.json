@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "run_id": "phase-3e-j-closure-20260715T232426Z",
+  "status": "PASS",
+  "steps": [
+    {
+      "name": "fixture_corpus_verification",
+      "exit_code": 0,
+      "elapsed_ms": 349.324,
+      "stdout_tail": "bfc79ec4209b066e50afdb912\", \"status\": 200}, {\"bytes\": 85, \"route\": \"/linked\", \"sha256\": \"9a9c9f9505be29cd7c42fa571d3b80b712869b6fb238eca94f93dfedc8f3239f\", \"status\": 200}, {\"bytes\": 71, \"route\": \"/robots.txt\", \"sha256\": \"29b31bbd007e07ce61ecf21930135e2646ec9da8c9fd3ee13bf16b8e5fb7e4a4\", \"status\": 200}, {\"bytes\": 68, \"route\": \"/sitemap.xml\", \"sha256\": \"c7a4d0e9fb6783d3128ae9c07d39839f2504f5af943c87b2c2de3c346b0e1c2d\", \"status\": 200}, {\"bytes\": 151, \"route\": \"/gzip\", \"sha256\": \"aba09ed49d4793e037c742158b97df2ac8a49a88b8d98a3df631a44c082a4f44\", \"status\": 200}, {\"bytes\": 198, \"route\": \"/wrong-content-type\", \"sha256\": \"c8ae9028a01aed07ee045136b1c5d5d9959ebcabfc79ec4209b066e50afdb912\", \"status\": 200}, {\"bytes\": 9, \"route\": \"/invalid-charset\", \"sha256\": \"d1610dd763588f563c0900e730c7db2af1d058220d347e2e34864a8ac3169b75\", \"status\": 200}, {\"bytes\": 103, \"route\": \"/arabic\", \"sha256\": \"0cb15db13ee576f15debebd7a5d61812b4ff3029eb5989fee11af2222f0030ae\", \"status\": 200}, {\"bytes\": 96, \"route\": \"/bilingual\", \"sha256\": \"5eaa0bff2a52626036c9e70fb6e0b41b37eb8fe09f8809f501ae0b9415a9fd00\", \"status\": 200}, {\"bytes\": 262144, \"route\": \"/large\", \"sha256\": \"d509bff642a353f88582e8a846ecae041c333b79c57a7a24ff310fbdb7e914e9\", \"status\": 200}, {\"bytes\": 7, \"route\": \"/404\", \"sha256\": \"ffa63583dfa6706b87d284b86b0d693a161e4840aad2c5cf6b5d27c3b9621f7d\", \"status\": 404}, {\"bytes\": 5, \"route\": \"/429\", \"sha256\": \"06b29bb318814108e94270528fe7994c096308b3692923723bf1ae6f98d50b4f\", \"status\": 429}, {\"bytes\": 727, \"route\": \"/dynamic\", \"sha256\": \"5f67c8492a11d84910d1756e31da863888b1e05257d343f0dcf783acaad7ace9\", \"status\": 200}, {\"bytes\": 41, \"route\": \"/iframe\", \"sha256\": \"95efc096b619a3b87412f960d68bb3e7ff3543fd1f0db6af9580cb7fc08f1bd4\", \"status\": 200}, {\"bytes\": 54, \"route\": \"/worker.js\", \"sha256\": \"6ba2641e0f7e2d2861360fd6c575f23e29e2cb9b3eec8c5c426d4842cdbd4968\", \"status\": 200}, {\"bytes\": 20, \"route\": \"/download\", \"sha256\": \"9a7a5b409e6874dadbe5ac0d13a06d576e0bba90f97357c477b988d150bd16d1\", \"status\": 200}]}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "shared_policy_redirect_ssrf_tests",
+      "exit_code": 0,
+      "elapsed_ms": 129.919,
+      "stdout_tail": "",
+      "stderr_tail": "test_only_exact_fixture_origin_is_allowed (benchmarks.ingestion.tests.test_crawler_browser_policy.FixturePolicyTests.test_only_exact_fixture_origin_is_allowed) ... ok\ntest_rejects_arbitrary_or_authority_relative_routes (benchmarks.ingestion.tests.test_crawler_browser_policy.FixturePolicyTests.test_rejects_arbitrary_or_authority_relative_routes) ... ok\ntest_rejects_unsafe_destinations (benchmarks.ingestion.tests.test_crawler_browser_policy.FixturePolicyTests.test_rejects_unsafe_destinations) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nOK\n"
+    },
+    {
+      "name": "scrapy_offline_reconstruction",
+      "exit_code": 0,
+      "elapsed_ms": 17761.212,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "name": "playwright_offline_reconstruction",
+      "exit_code": 0,
+      "elapsed_ms": 5825.33,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "name": "comparative_runs_and_resource_evidence",
+      "exit_code": 0,
+      "elapsed_ms": 8634.475,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "name": "containment_artifact_determinism_closure_tests",
+      "exit_code": 0,
+      "elapsed_ms": 180.092,
+      "stdout_tail": "",
+      "stderr_tail": "test_browser_artifacts_and_containment (benchmarks.ingestion.tests.test_crawler_browser_closure.ClosureEvidenceTests.test_browser_artifacts_and_containment) ... ok\ntest_determinism_is_closed (benchmarks.ingestion.tests.test_crawler_browser_closure.ClosureEvidenceTests.test_determinism_is_closed) ... ok\ntest_reconstructions_pass_and_clean (benchmarks.ingestion.tests.test_crawler_browser_closure.ClosureEvidenceTests.test_reconstructions_pass_and_clean) ... ok\ntest_resource_tree_is_sampled_and_reserve_held (benchmarks.ingestion.tests.test_crawler_browser_closure.ClosureEvidenceTests.test_resource_tree_is_sampled_and_reserve_held) ... ok\ntest_scrapy_policy_and_artifacts (benchmarks.ingestion.tests.test_crawler_browser_closure.ClosureEvidenceTests.test_scrapy_policy_and_artifacts) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nOK\n"
+    }
+  ],
+  "elapsed_ms": 32881.218,
+  "fixture_server_cleaned": true,
+  "private_paths_cleaned": true,
+  "ending_free_disk_bytes": 3015880704,
+  "required_reserve_bytes": 2147483648
+}

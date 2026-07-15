@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "playwright-reconstruction-20260715T232444Z",
+  "network_mode": "shared exact-origin policy; no package or browser download",
+  "archive_filename": "playwright-chromium-headless-shell-149.0.7827.55-r1228-win64.zip",
+  "archive_bytes": 124119186,
+  "archive_sha256": "7b1530d802c2e1261e4184fc61871fa561c56880a8cfcd632f0b545be3a0d168",
+  "download_source_identity": "locally reconstructed from installed Playwright revision 1228 payload originally obtained from cdn.playwright.dev",
+  "playwright_version": "1.61.1",
+  "browser_name": "chromium-headless-shell",
+  "chromium_version": "149.0.7827.55",
+  "browser_revision": "1228",
+  "executable_relative_path": "chromium_headless_shell-1228\\chrome-headless-shell-win64\\chrome-headless-shell.exe",
+  "executable_sha256": "28016df6864d302434c9231e1f9f1a8a7ecc512cb2fe3faabb2a36130b96bcf1",
+  "installed_layout": [
+    ".links",
+    "chromium_headless_shell-1228",
+    "ffmpeg-1011",
+    "winldd-1007"
+  ],
+  "launch_exit_code": 0,
+  "governed_dynamic_sha256": "a43e88751bb193677b019537299e4ee2149790b773ea07c80b4fe8909e895fc8",
+  "policy_rejections": [
+    "http://10.0.0.1/worker-blocked",
+    "http://example.invalid/third-party"
+  ],
+  "status": "PASS",
+  "destination_removed": true,
+  "elapsed_ms": 5722.096,
+  "ending_free_disk_bytes": 3016011776
+}

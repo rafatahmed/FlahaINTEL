@@ -1,0 +1,138 @@
+{
+  "schema_version": 2,
+  "definitions": {
+    "cold_scrapy": "new Python process and crawler reactor",
+    "warm_scrapy": "subsequent governed response in the same reactor",
+    "cold_playwright": "new Node, Chromium and browser context",
+    "warm_playwright": "existing Chromium with fresh isolated context/page"
+  },
+  "scrapy": {
+    "wheelhouse_bytes": 13229277,
+    "installed_bytes": 80697923,
+    "cold_total_wall_ms": {
+      "minimum": 1611.569,
+      "median": 1654.7604999999999,
+      "maximum": 1697.952,
+      "sample_count": 2
+    },
+    "first_acquisition_ms": {
+      "minimum": 132.444,
+      "median": 133.84199999999998,
+      "maximum": 135.24,
+      "sample_count": 2
+    },
+    "subsequent_acquisition_ms": {
+      "minimum": 124.421,
+      "median": 129.92000000000002,
+      "maximum": 386.091,
+      "sample_count": 24
+    },
+    "small_governed_crawl_ms": {
+      "minimum": 1611.569,
+      "median": 1654.7604999999999,
+      "maximum": 1697.952,
+      "sample_count": 2
+    },
+    "process_tree": [
+      {
+        "total_wall_ms": 1611.569,
+        "sample_count": 55,
+        "peak_process_tree_memory_bytes": 78106624,
+        "average_process_tree_memory_bytes": 59023285.527,
+        "peak_process_count": 2,
+        "observed_process_names": [
+          "python.exe"
+        ],
+        "temporary_disk_growth_bytes": 0,
+        "starting_free_disk_bytes": 3016011776,
+        "lowest_observed_free_disk_bytes": 3016011776
+      },
+      {
+        "total_wall_ms": 1697.952,
+        "sample_count": 58,
+        "peak_process_tree_memory_bytes": 77934592,
+        "average_process_tree_memory_bytes": 59643197.793,
+        "peak_process_count": 2,
+        "observed_process_names": [
+          "python.exe"
+        ],
+        "temporary_disk_growth_bytes": 1,
+        "starting_free_disk_bytes": 3016011776,
+        "lowest_observed_free_disk_bytes": 3015979008
+      }
+    ],
+    "output_artifact_bytes": 32475
+  },
+  "playwright": {
+    "runtime_bytes": 17582425,
+    "browser_bytes": 286315753,
+    "cold_total_wall_ms": {
+      "minimum": 2371.038,
+      "median": 2375.7775,
+      "maximum": 2380.517,
+      "sample_count": 2
+    },
+    "browser_launch_ms": {
+      "minimum": 99.44,
+      "median": 101.905,
+      "maximum": 104.37,
+      "sample_count": 2
+    },
+    "rendered_page_acquisition_ms": {
+      "minimum": 584.575,
+      "median": 587.7735,
+      "maximum": 590.972,
+      "sample_count": 2
+    },
+    "warm_static_navigation_ms": {
+      "minimum": 92.076,
+      "median": 94.1485,
+      "maximum": 96.221,
+      "sample_count": 2
+    },
+    "cleanup_ms": {
+      "minimum": 8.68,
+      "median": 10.367,
+      "maximum": 12.054,
+      "sample_count": 2
+    },
+    "process_tree": [
+      {
+        "total_wall_ms": 2371.038,
+        "sample_count": 65,
+        "peak_process_tree_memory_bytes": 355049472,
+        "average_process_tree_memory_bytes": 192115507.2,
+        "peak_process_count": 5,
+        "observed_process_names": [
+          "chrome-headless-shell.exe",
+          "node.exe"
+        ],
+        "temporary_disk_growth_bytes": 46973,
+        "starting_free_disk_bytes": 3016011776,
+        "lowest_observed_free_disk_bytes": 3015913472
+      },
+      {
+        "total_wall_ms": 2380.517,
+        "sample_count": 65,
+        "peak_process_tree_memory_bytes": 354775040,
+        "average_process_tree_memory_bytes": 191589139.692,
+        "peak_process_count": 5,
+        "observed_process_names": [
+          "chrome-headless-shell.exe",
+          "node.exe"
+        ],
+        "temporary_disk_growth_bytes": 46977,
+        "starting_free_disk_bytes": 3016011776,
+        "lowest_observed_free_disk_bytes": 3015929856
+      }
+    ],
+    "output_artifact_bytes": 7915
+  },
+  "disk": {
+    "starting_free_disk_bytes": 3016011776,
+    "lowest_observed_free_disk_bytes": 3015913472,
+    "ending_free_disk_bytes": 3015880704,
+    "required_reserve_bytes": 2147483648,
+    "reserve_margin_bytes": 868397056
+  }
+}
