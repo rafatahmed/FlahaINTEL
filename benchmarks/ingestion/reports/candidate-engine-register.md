@@ -9,7 +9,7 @@ Records purpose, availability, licensing posture, prerequisites, strengths, and 
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-15
+Last modified: 2026-07-16
 -->
 
 # Candidate engine register
@@ -21,6 +21,7 @@ against the exact pinned release before installation or redistribution.
 | --- | --- | --- | --- | --- | --- | --- |
 | Docling | Document/PDF conversion; Python | Not installed | MIT, verify release | Python plus document/OCR models | Rich structure and layout | Large models/resources; benchmark pending |
 | Apache Tika | Broad document extraction; Java | Not installed; Java absent | Apache-2.0 | Pinned JRE and Tika binary/serverless CLI | Broad formats and metadata | Java surface, PDF layout quality; pending |
+| pypdf 6.14.2 | Narrow PDF inspection/metadata candidate; Python | Isolated benchmark runtime validated; candidate rejected for general text | BSD-3-Clause | Pure Python wheel; optional crypto/image extras excluded | Potential narrow inspection role requires further benchmarking | General PDF text extraction: REJECT; Arabic extraction: REJECT; production document extractor: REJECT |
 | Tesseract OCR | Offline OCR; C++ CLI | Not installed | Apache-2.0 | Executable plus pinned `eng`/`ara` trained data | Mature offline baseline | Arabic/layout quality and packaging; pending |
 | PaddleOCR | OCR candidate; Python/native | Not installed | Apache-2.0, verify models | Large framework and model downloads | Potential multilingual/layout quality | Deferred until explicit approval |
 | Python stdlib HTML | Measurement baseline; Python | Benchmarked on 31 fixtures | Python licence | None | Offline, deterministic, tiny | Governed baseline only; not production article extraction |

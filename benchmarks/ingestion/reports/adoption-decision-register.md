@@ -9,7 +9,7 @@ Tracks benchmark state separately from any future production adoption decision.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-15
+Last modified: 2026-07-16
 -->
 
 # Adoption decision register
@@ -22,6 +22,10 @@ Last modified: 2026-07-15
 | Python csv/json/jsonl | Benchmarked | ADOPT AS BENCHMARK BASELINE | Dependency-free reference, not full dataset engine |
 | Docling | Not installed; benchmark pending | DEFER | Installation/model approval required |
 | Apache Tika | Not installed; benchmark pending | DEFER | Java and pinned binary approval required |
+| pypdf 6.14.2 — general PDF text extraction | Stopped on governed Arabic correctness failure | REJECT | Logical Arabic `الزراعة` was extracted as reversed Unicode `ةعارزلا` |
+| pypdf 6.14.2 — Arabic extraction | Governed rejection evidence retained | REJECT | Arabic logical order is invalid; ground truth and output were not rewritten |
+| pypdf 6.14.2 — narrow inspection/metadata role | Partial evidence only | BENCHMARK FURTHER | Full metadata, action, and embedded-file benchmark did not complete |
+| pypdf 6.14.2 — production document extractor | Candidate gate rejected | REJECT | Production registration is not authorized |
 | Tesseract OCR | Not installed; benchmark pending | DEFER | Executable and language-data approval required |
 | PaddleOCR | Not installed | DEFER | Explicit later approval and model/runtime review required |
 | Trafilatura 2.1.0 | Resolver-audited; not installed | DEFER | `tld` dependency licence expression requires business/legal review |

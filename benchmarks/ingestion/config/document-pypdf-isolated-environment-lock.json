@@ -1,0 +1,60 @@
+{
+  "environmentId": "document-pypdf-6.14.2-py314-win-amd64",
+  "candidateStatus": "REJECTED FOR GENERAL DOCUMENT TEXT EXTRACTION",
+  "productionRegistration": "NOT AUTHORIZED",
+  "arabicLogicalOrderFailure": "confirmed",
+  "offlineReconstruction": "NOT PERFORMED",
+  "securityEvidence": "PARTIAL",
+  "package": "pypdf",
+  "version": "6.14.2",
+  "wheel": "pypdf-6.14.2-py3-none-any.whl",
+  "wheelTags": {
+    "python": "py3",
+    "abi": "none",
+    "platform": "any"
+  },
+  "byteSize": 349514,
+  "sha256": "3f07891af76dc002657e04993ab9b4de81de29f9013b9761d0b7968bff12e946",
+  "license": "BSD-3-Clause",
+  "licenseEvidence": [
+    "METADATA License-Expression: BSD-3-Clause",
+    "pypdf-6.14.2.dist-info/licenses/LICENSE"
+  ],
+  "requiresPython": ">=3.9",
+  "pythonVersion": "3.14.0",
+  "pythonImplementation": "CPython",
+  "pythonAbi": "cp314",
+  "pythonCacheTag": "cpython-314",
+  "operatingSystem": "Windows 11 x64",
+  "architecture": "AMD64",
+  "mandatoryDependencies": [],
+  "optionalDependenciesExcluded": [
+    "cryptography>3.0 (crypto/full extras)",
+    "PyCryptodome (cryptodome extra)",
+    "fonttools (fonts/full extras)",
+    "Pillow>=8.0.0 (image/full extras)",
+    "all dev and docs extras"
+  ],
+  "entryPoints": [],
+  "recordEntries": 60,
+  "nativeExtensions": [],
+  "offlineInstallationCommand": ".benchmark-envs/document-pypdf-6.14.2-py314/Scripts/python.exe -I -m pip install --no-index --find-links .benchmark-wheelhouse/document-pypdf-6.14.2-py314-win-amd64 --require-hashes -r benchmarks/ingestion/config/document-pypdf-isolated-requirements.txt",
+  "validationCommands": [
+    "<VENV_PYTHON> -I -m pip check",
+    "<VENV_PYTHON> -I -c import pypdf; print(pypdf.__version__); print(pypdf.__file__)",
+    "<VENV_PYTHON> -I -m pip list --format=json"
+  ],
+  "securityLimitations": [
+    "Candidate rejected after governed Arabic logical-order failure; full benchmark not completed",
+    "Benchmark-only; no production registration",
+    "A pure-Python package is not an operating-system sandbox",
+    "Parsing hostile PDFs requires containment, time, memory, input, and output limits",
+    "Dangerous PDF actions are inventoried but must never be executed",
+    "Encrypted files requiring credentials are classified without accepting raw passwords",
+    "Optional cryptography and image dependencies are excluded"
+  ],
+  "windowsValidationScope": "Windows 11 x64 with regular-GIL CPython 3.14.0 only",
+  "linuxValidationRequirement": "A separate Linux interpreter, filesystem-containment, process, and resource validation is required.",
+  "macosValidationRequirement": "A separate macOS interpreter, filesystem-containment, process, and resource validation is required.",
+  "creationDate": "2026-07-16"
+}

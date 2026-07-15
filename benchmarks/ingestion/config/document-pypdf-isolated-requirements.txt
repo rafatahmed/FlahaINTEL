@@ -1,0 +1,19 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: pypdf Isolated Benchmark Requirements
+# Introduction:
+# Pins the exact audited pypdf wheel for offline document benchmark reconstruction.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-16
+# Last modified: 2026-07-16
+#
+# Candidate status: REJECTED FOR GENERAL DOCUMENT TEXT EXTRACTION
+# Production registration: NOT AUTHORIZED
+# Arabic logical-order failure: confirmed
+# Offline reconstruction: NOT PERFORMED
+
+pypdf==6.14.2 \
+    --hash=sha256:3f07891af76dc002657e04993ab9b4de81de29f9013b9761d0b7968bff12e946
