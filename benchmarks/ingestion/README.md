@@ -30,6 +30,11 @@ python benchmarks/ingestion/scripts/run_pandas_benchmark.py
 <POLARS_VENV_PYTHON> -I benchmarks/ingestion/scripts/run_polars_resource_benchmark.py
 <PYARROW_VENV_PYTHON> -I benchmarks/ingestion/scripts/run_pyarrow_benchmark.py
 <PYARROW_VENV_PYTHON> -I benchmarks/ingestion/scripts/run_pyarrow_resource_benchmark.py
+<DUCKDB_VENV_PYTHON> -I benchmarks/ingestion/scripts/run_duckdb_benchmark.py
+<DUCKDB_VENV_PYTHON> -I benchmarks/ingestion/scripts/run_duckdb_resource_benchmark.py
+node benchmarks/ingestion/scripts/run_duckdb_gate_probe.mjs gate-a
+node benchmarks/ingestion/scripts/run_duckdb_gate_probe.mjs gate-b
+node benchmarks/ingestion/scripts/run_duckdb_gate_probe.mjs offline-reconstruction
 ```
 
 Generated run directories are ignored. The committed reports contain only small,

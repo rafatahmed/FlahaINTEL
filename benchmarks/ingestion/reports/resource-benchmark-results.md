@@ -49,3 +49,12 @@ eager/threaded/incremental at 1.148/1.163/1.041 seconds and 100k at
 allocations. The process sampler again followed the venv redirector, so total
 working-set evidence is rejected. Incremental parsing avoided a full Arrow table
 but retained all normalized Python rows and is not end-to-end bounded memory.
+
+DuckDB 1.5.4 used the same hash-verified inputs with a locked in-memory connection
+and explicit ordering. Post-hardening run `20260715T015608Z-duckdb-resource`
+measured 10k eager/threaded/bounded at 0.97/0.95/1.00 seconds and 100k at
+3.69/3.81/3.82 seconds. Mode hashes matched Polars and PyArrow.
+Working-set/CPU values remain unreliable because the sampler can observe the venv
+launcher. The 256 MB DuckDB buffer-manager limit excludes Python and other native
+allocations, and bounded fetching retained all normalized rows; no end-to-end memory
+bound or engine-superiority claim is made.

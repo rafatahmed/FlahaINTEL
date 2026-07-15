@@ -29,7 +29,7 @@ against the exact pinned release before installation or redistribution.
 | pandas | Dataset compatibility; Python/native | Benchmarked 2.3.3 with NumPy 2.3.5 | BSD-3-Clause installed metadata | Per-user binary wheels; optional format packages absent | Unicode, nulls, duplicates, chunked CSV | Malformed CSV recovery, inference, memory, and `-I` isolation risk; benchmark further |
 | Polars | Dataset transformation; Rust/Python | Benchmarked 1.42.1 in isolated environment | MIT | Native `polars-runtime-32` wheel | Correct governed eager/lazy/streaming output | Full normalization dominates; native CPU/deployment and larger-scale memory require hardening |
 | PyArrow | Columnar interchange; C++/Python | Benchmarked 25.0.0 in isolated environment | Apache-2.0 | Self-contained native wheel; zero Python runtime dependencies | Correct governed table/batch output and Arrow/Parquet interoperability | Python normalization retention, native deployment, memory evidence, and JSON-array limitation require hardening |
-| DuckDB | Bounded data query; C++/Python | Not installed | MIT | Binary wheel; extensions must be disabled | SQL inspection and Parquet | Extension/network controls; pending |
+| DuckDB | Governed in-process query; C++/Python | Benchmarked 1.5.4 in isolated environment | MIT | Self-contained native wheel; zero mandatory Python dependencies | Exact-path scans, fixed queries, explicit ordering | SQL surface, total-memory evidence, timezone conversion, and production isolation require hardening |
 
 All candidates must produce contract-representable provider-neutral outputs and
 run beneath the Phase 3D stdio supervisor before adoption can be considered.

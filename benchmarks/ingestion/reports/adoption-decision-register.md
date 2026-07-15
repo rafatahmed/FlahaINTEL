@@ -26,7 +26,7 @@ Last modified: 2026-07-15
 | pandas 2.3.3 | Benchmarked | BENCHMARK FURTHER | Correct governed values except malformed CSV recovery; current user-site install is unavailable under Phase 3D `-I` isolation |
 | Polars 1.42.1 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct behind strict validation; lazy/streaming hashes match, but full materialization, resource evidence, and native deployment need hardening |
 | PyArrow 25.0.0 | Benchmarked | REQUIRES TECHNICAL HARDENING | Correct eager/threaded/batch hashes behind strict validation; normalized rows remain retained and total memory is unproven |
-| DuckDB | Not installed; benchmark pending | DEFER | Pinned wheel and extension controls required |
+| DuckDB 1.5.4 | Benchmarked | REQUIRES TECHNICAL HARDENING | Exact-path and extension/remote denial passed; governed hashes match, but total-memory, timezone, and production isolation remain unproven |
 
 No candidate is registered with production dispatch, and no reputation-based
 quality score or adoption recommendation is recorded.

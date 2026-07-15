@@ -1,0 +1,13 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: DuckDB Isolated Benchmark Requirements
+# Introduction:
+# Pins the exact audited DuckDB wheel for offline benchmark reconstruction.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-15
+
+duckdb==1.5.4 --hash=sha256:6dcbb81a1276bc48deb4d562bce4f8895e4fc6348750a096e30052345c6d6552

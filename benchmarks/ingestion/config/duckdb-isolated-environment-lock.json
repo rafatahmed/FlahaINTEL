@@ -1,0 +1,48 @@
+{
+  "environmentId": "duckdb-1.5.4-py314-win-amd64",
+  "pythonVersion": "3.14.0",
+  "pythonAbi": "cp314-win_amd64",
+  "pythonCacheTag": "cpython-314",
+  "operatingSystem": "Windows 11 Pro 10.0.26200",
+  "architecture": "AMD64",
+  "createdDate": "2026-07-15",
+  "distributions": [
+    {
+      "name": "duckdb",
+      "version": "1.5.4",
+      "wheel": "duckdb-1.5.4-cp314-cp314-win_amd64.whl",
+      "tags": {"python": "cp314", "abi": "cp314", "platform": "win_amd64"},
+      "sha256": "6dcbb81a1276bc48deb4d562bce4f8895e4fc6348750a096e30052345c6d6552",
+      "byteSize": 13666989,
+      "license": "MIT",
+      "officialSource": "https://pypi.org/project/duckdb/1.5.4/",
+      "requiresDist": [],
+      "optionalRequiresDist": ["ipython", "fsspec", "numpy", "pandas", "pyarrow", "adbc-driver-manager"],
+      "nativeBinary": true
+    }
+  ],
+  "downloadedWheelInventory": {
+    "topLevelWheelCount": 1,
+    "topLevelWheelByteSize": 13666989,
+    "inspectionArtifactDirectory": ".inspection",
+    "inspectionArtifactFileCount": 54
+  },
+  "recordEntries": 54,
+  "verifiedRecordEntries": 53,
+  "nativeExtensions": ["_duckdb.cp314-win_amd64.pyd"],
+  "peArchitecture": "AMD64 (PEI x86-64)",
+  "peImports": ["python314.dll", "WS2_32.dll", "RstrtMgr.dll", "KERNEL32.dll"],
+  "bundledNativeLibraries": [],
+  "bundledExtensionBinaries": [],
+  "bundledComponentFinding": "The DuckDB engine and built-in components are compiled into the single _duckdb native module; runtime duckdb_extensions evidence is recorded separately.",
+  "microsoftRuntimeFinding": "No separately bundled Microsoft runtime DLL and no direct MSVC runtime import was found by GNU objdump; Windows system loader transitive dependencies remain outside this wheel inventory.",
+  "cpuAssumptions": "No minimum SIMD claim is made from wheel metadata. Runtime platform evidence and deterministic execution tests are required.",
+  "windowsValidationScope": "Windows 11 x64 build 26200 with regular-GIL CPython 3.14.0 only",
+  "linuxLockRequirement": "Separate manylinux wheel, hash, glibc compatibility, native inventory, and runtime validation are required.",
+  "macosLockRequirement": "Separate macOS x86-64, arm64, or universal2 wheel, hash, native inventory, and runtime validation are required.",
+  "downloadCommand": "C:\\Python314\\python.exe -m pip download --index-url https://pypi.org/simple --disable-pip-version-check --only-binary=:all: --no-deps --dest .benchmark-wheelhouse/duckdb-1.5.4-py314-win-amd64 duckdb==1.5.4",
+  "creationCommand": "C:\\Python314\\python.exe -m venv .benchmark-envs/duckdb-1.5.4-py314",
+  "offlineInstallationCommand": ".benchmark-envs/duckdb-1.5.4-py314/Scripts/python.exe -I -m pip install --no-index --find-links .benchmark-wheelhouse/duckdb-1.5.4-py314-win-amd64 --require-hashes -r benchmarks/ingestion/config/duckdb-isolated-requirements.txt",
+  "validationCommands": ["<VENV_PYTHON> -I -m pip check", "<VENV_PYTHON> -I -c import duckdb; print(duckdb.__version__)", "<VENV_PYTHON> -I -m pip list --format=json"],
+  "securityLimitations": ["Benchmark-only; no production registration", "In-process native SQL engine", "SQL is never accepted from a request", "External access, extension installation and autoload require runtime denial proof", "Memory limits do not cover every native or Python allocation", "Windows-only evidence"]
+}
