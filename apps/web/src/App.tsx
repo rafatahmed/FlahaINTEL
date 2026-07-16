@@ -2,6 +2,7 @@ import { AppBar, Box, Container, CssBaseline, Tab, Tabs, Toolbar, Typography } f
 import { useState } from "react";
 import { ArticleFeed } from "./components/ArticleFeed";
 import { EventWorkspace } from "./components/EventWorkspace";
+import { GovernanceConsole } from "./components/GovernanceConsole";
 import { OrganizationWorkspace } from "./components/OrganizationWorkspace";
 import { ProductWorkspace } from "./components/ProductWorkspace";
 import { SourceManager } from "./components/SourceManager";
@@ -14,6 +15,7 @@ const views = [
   { label: "Products", content: <ProductWorkspace /> },
   { label: "Taxonomy", content: <TaxonomyExplorer /> },
   { label: "Sources", content: <SourceManager /> },
+  { label: "Governance", content: <GovernanceConsole /> },
 ];
 
 export default function App() {

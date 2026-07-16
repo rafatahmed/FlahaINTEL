@@ -221,3 +221,107 @@ export interface SchedulerStatus {
   lastError: string | null;
   activeSourceIds: string[];
 }
+
+export type GovernanceReviewState =
+  | "PENDING_EVALUATION"
+  | "READY_FOR_REVIEW"
+  | "NEEDS_CORRECTION"
+  | "ON_HOLD"
+  | "APPROVED"
+  | "REJECTED"
+  | "PROMOTION_ELIGIBLE"
+  | "PROMOTED"
+  | "WITHDRAWN";
+
+export interface GovernanceCandidate {
+  id: string;
+  tenantId: string;
+  normalizedArtifactId: string;
+  normalizedContentHash: string;
+  sourceId: string | null;
+  contentType: string;
+  language: string;
+  normalizationProfile: string;
+  normalizationVersion: string;
+  evidenceCompleteness: "COMPLETE" | "PARTIAL" | "INSUFFICIENT" | "CONFLICTING";
+  reviewState: GovernanceReviewState;
+  promotionState: string;
+  priority: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+  assignedReviewerId: string | null;
+  candidateVersion: number;
+  currentDecisionVersion: number;
+  version: number;
+  titlePreview: string | null;
+  documentTitle: string | null;
+  warningSummary: string[] | unknown;
+  qualityIndicators: string[] | unknown;
+  createdAt: string;
+  updatedAt: string;
+  source?: { id: string; name: string; url: string; enabled: boolean } | null;
+}
+
+export interface GovernanceDecision {
+  id: string;
+  candidateId: string;
+  previousState: GovernanceReviewState | null;
+  newState: GovernanceReviewState;
+  action: string;
+  actorId: string;
+  reasonCode: string;
+  note: string | null;
+  reviewedContentHash: string;
+  candidateVersion: number;
+  decisionSequence: number;
+  correlationId: string;
+  createdAt: string;
+  actor?: { id: string; displayName: string; email: string };
+}
+
+export interface GovernanceEvidence {
+  candidateId: string;
+  lineage: {
+    acquisitionJobId: string | null;
+    extractionJobId: string | null;
+    normalizationJobId: string;
+    normalizedArtifactId: string;
+    normalizedContentHash: string;
+  };
+  artifact: {
+    artifactId: string;
+    state: string;
+    checksum: string | null;
+    finalKey: string | null;
+    byteLength: number | null;
+  } | null;
+  evidenceCompleteness: string;
+  evidenceReasons: unknown;
+  checks: unknown;
+  warnings: unknown;
+  qualityIndicators: unknown;
+  sourcePolicy: {
+    id: string;
+    sourceId: string;
+    sourceStatus: string;
+    allowedContentTypes: string[];
+    allowedLanguages: string[];
+    trustTier: string;
+    version: number;
+  } | null;
+}
+
+export interface GovernancePreview {
+  candidateId: string;
+  documentTitle: string | null;
+  language: string | null;
+  contentType: string;
+  plainTextPreview: string;
+  truncated: boolean;
+  authors: string[];
+  publicationDate: string | null;
+  contentHash: string;
+}
+
+export interface GovernanceAuthContext {
+  userId: string;
+  tenantId: string;
+}

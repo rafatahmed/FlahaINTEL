@@ -6,6 +6,11 @@ import type {
   ClassificationTerm,
   EntityFilters,
   EventFilters,
+  GovernanceAuthContext,
+  GovernanceCandidate,
+  GovernanceDecision,
+  GovernanceEvidence,
+  GovernancePreview,
   IntelligenceEvent,
   Organization,
   OrganizationProductRole,
@@ -28,9 +33,20 @@ export class ApiError extends Error {
   }
 }
 
+let governanceAuth: GovernanceAuthContext | null = null;
+
+export function setGovernanceAuth(context: GovernanceAuthContext | null) {
+  governanceAuth = context;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers);
   if (options?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (governanceAuth) {
+    headers.set("X-Flaha-User-Id", governanceAuth.userId);
+    headers.set("X-Flaha-Tenant-Id", governanceAuth.tenantId);
+    headers.set("X-Flaha-Correlation-Id", `web-${Date.now()}`);
+  }
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   const body = response.status === 204
     ? {}
@@ -171,4 +187,19 @@ export const api = {
   }),
   collectSource: (id: string) => request(`/api/sources/${id}/collect`, { method: "POST" }),
   collectAll: () => request("/api/collect", { method: "POST" }),
+
+  governanceCandidates: (filters: Record<string, string | number | undefined> = {}) =>
+    request<Page<GovernanceCandidate>>(`/api/governance/candidates${query(filters)}`),
+  governanceCandidate: (id: string) => request<GovernanceCandidate>(`/api/governance/candidates/${id}`),
+  governanceEvidence: (id: string) => request<GovernanceEvidence>(`/api/governance/candidates/${id}/evidence`),
+  governancePreview: (id: string) => request<GovernancePreview>(`/api/governance/candidates/${id}/preview`),
+  governanceDecisions: (id: string) => request<Items<GovernanceDecision>>(`/api/governance/candidates/${id}/decisions`),
+  governanceDecision: (
+    id: string,
+    action: "approve" | "reject" | "request-correction" | "hold" | "release-hold" | "withdraw-approval" | "mark-promotion-eligible" | "withdraw",
+    body: Record<string, unknown>,
+  ) => request<{ candidate: GovernanceCandidate }>(`/api/governance/candidates/${id}/${action}`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
 };

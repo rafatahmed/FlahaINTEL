@@ -150,6 +150,8 @@ model RssSource {
   updatedAt          DateTime                 @updatedAt
   articles           Article[]
   collectionRuns     CollectionRun[]
+  governanceCandidates GovernanceCandidate[]
+  sourceGovernancePolicies SourceGovernancePolicy[]
 
   @@index([enabled])
 }
@@ -396,6 +398,9 @@ model IngestionJob {
   transitions         IngestionJobTransition[]
   artifacts           IngestionArtifactLink[]
   provenance          IngestionProvenance[]
+  candidatesAsAcquisition  GovernanceCandidate[] @relation("CandidateAcquisitionJob")
+  candidatesAsExtraction   GovernanceCandidate[] @relation("CandidateExtractionJob")
+  candidatesAsNormalization GovernanceCandidate[] @relation("CandidateNormalizationJob")
 
   @@index([state, nextAttemptAt, priority, createdAt], map: "IngestionJob_claimable_idx")
   @@index([selectedProviderId])
@@ -499,4 +504,326 @@ model IngestionProvenance {
   createdAt                 DateTime         @default(now())
 
   @@index([jobId, attemptId])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3K — Governance, Review and Promotion
+// ---------------------------------------------------------------------------
+
+enum GovernanceRole {
+  VIEWER
+  ANALYST
+  REVIEWER
+  GOVERNANCE_ADMIN
+}
+
+enum GovernanceReviewState {
+  PENDING_EVALUATION
+  READY_FOR_REVIEW
+  NEEDS_CORRECTION
+  ON_HOLD
+  APPROVED
+  REJECTED
+  PROMOTION_ELIGIBLE
+  PROMOTED
+  WITHDRAWN
+}
+
+enum GovernancePromotionState {
+  NOT_EVALUATED
+  ELIGIBLE
+  INELIGIBLE
+  INVALIDATED
+  PROMOTED
+}
+
+enum EvidenceCompleteness {
+  COMPLETE
+  PARTIAL
+  INSUFFICIENT
+  CONFLICTING
+}
+
+enum GovernanceAction {
+  EVALUATE
+  ASSIGN
+  APPROVE
+  REJECT
+  REQUEST_CORRECTION
+  PLACE_ON_HOLD
+  RELEASE_HOLD
+  WITHDRAW_APPROVAL
+  MARK_PROMOTION_ELIGIBLE
+  MARK_PROMOTED
+  WITHDRAW
+  SUPERSEDE
+}
+
+enum GovernanceAssignmentState {
+  ACTIVE
+  RELEASED
+  SUPERSEDED
+}
+
+enum SourceGovernanceStatus {
+  ACTIVE
+  SUSPENDED
+  RETIRED
+  UNDER_REVIEW
+}
+
+enum TrustTier {
+  UNTRUSTED
+  LOW
+  STANDARD
+  HIGH
+  AUTHORITATIVE
+}
+
+enum CandidateRelationshipType {
+  EXACT_DUPLICATE
+  LIKELY_DUPLICATE
+  UPDATED_VERSION
+  SUPERSEDES
+  SUPERSEDED_BY
+  CORRECTION_OF
+}
+
+enum EligibilityState {
+  ELIGIBLE
+  INELIGIBLE
+  INVALIDATED
+}
+
+enum ReviewPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+model UserAccount {
+  id          String             @id @default(uuid()) @db.Uuid
+  email       String             @unique
+  displayName String
+  active      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  memberships TenantMembership[]
+  decisions   GovernanceDecision[] @relation("DecisionActor")
+  assignmentsMade GovernanceAssignment[] @relation("AssignmentAssignedBy")
+  assignmentsReceived GovernanceAssignment[] @relation("AssignmentReviewer")
+  eligibilityEvaluations PromotionEligibility[] @relation("EligibilityEvaluator")
+  sourcePoliciesOwned SourceGovernancePolicy[] @relation("SourcePolicyOwner")
+
+  @@index([active])
+}
+
+model Tenant {
+  id          String             @id @default(uuid()) @db.Uuid
+  code        String             @unique
+  name        String
+  active      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  memberships TenantMembership[]
+  candidates  GovernanceCandidate[]
+  sourcePolicies SourceGovernancePolicy[]
+  decisions   GovernanceDecision[]
+
+  @@index([active])
+}
+
+model TenantMembership {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @db.Uuid
+  tenantId  String         @db.Uuid
+  role      GovernanceRole
+  active    Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  user      UserAccount    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId, role])
+  @@index([userId, active])
+}
+
+model GovernanceCandidate {
+  id                      String                    @id @default(uuid()) @db.Uuid
+  tenantId                String                    @db.Uuid
+  tenant                  Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  normalizedArtifactId    String                    @db.Uuid
+  normalizedContentHash   String                    @db.Char(64)
+  sourceId                String?                   @db.Uuid
+  source                  RssSource?                @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  sourceAcquisitionJobId  String?                   @db.Uuid
+  sourceAcquisitionJob    IngestionJob?             @relation("CandidateAcquisitionJob", fields: [sourceAcquisitionJobId], references: [id], onDelete: SetNull)
+  sourceExtractionJobId   String?                   @db.Uuid
+  sourceExtractionJob     IngestionJob?             @relation("CandidateExtractionJob", fields: [sourceExtractionJobId], references: [id], onDelete: SetNull)
+  sourceNormalizationJobId String                   @db.Uuid
+  sourceNormalizationJob  IngestionJob              @relation("CandidateNormalizationJob", fields: [sourceNormalizationJobId], references: [id], onDelete: Restrict)
+  contentType             String
+  language                String
+  normalizationProfile    String
+  normalizationVersion    String
+  evidenceCompleteness    EvidenceCompleteness      @default(INSUFFICIENT)
+  evidenceReasons         Json                      @default("[]")
+  reviewState             GovernanceReviewState     @default(PENDING_EVALUATION)
+  promotionState          GovernancePromotionState  @default(NOT_EVALUATED)
+  priority                ReviewPriority            @default(NORMAL)
+  assignedReviewerId      String?                   @db.Uuid
+  candidateVersion        Int                       @default(1)
+  currentDecisionVersion  Int                       @default(0)
+  version                 Int                       @default(0)
+  titlePreview            String?
+  warningSummary          Json                      @default("[]")
+  qualityIndicators       Json                      @default("[]")
+  checkResults            Json                      @default("[]")
+  documentTitle           String?
+  supersededByCandidateId String?                   @db.Uuid
+  supersededByCandidate   GovernanceCandidate?      @relation("CandidateSupersession", fields: [supersededByCandidateId], references: [id], onDelete: SetNull)
+  supersedesCandidates    GovernanceCandidate[]     @relation("CandidateSupersession")
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  decisions               GovernanceDecision[]
+  assignments             GovernanceAssignment[]
+  eligibilityRecords      PromotionEligibility[]
+  relationshipsFrom       CandidateRelationship[]   @relation("RelationshipFrom")
+  relationshipsTo         CandidateRelationship[]   @relation("RelationshipTo")
+
+  @@unique([normalizedArtifactId, candidateVersion])
+  @@unique([sourceNormalizationJobId, candidateVersion])
+  @@index([tenantId, reviewState, priority])
+  @@index([tenantId, promotionState])
+  @@index([tenantId, evidenceCompleteness])
+  @@index([assignedReviewerId, reviewState])
+  @@index([sourceId])
+  @@index([language])
+  @@index([contentType])
+  @@index([normalizedContentHash])
+  @@index([createdAt])
+}
+
+model GovernanceDecision {
+  id                   String                @id @default(uuid()) @db.Uuid
+  candidateId          String                @db.Uuid
+  candidate            GovernanceCandidate   @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  previousState        GovernanceReviewState?
+  newState             GovernanceReviewState
+  action               GovernanceAction
+  actorId              String                @db.Uuid
+  actor                UserAccount           @relation("DecisionActor", fields: [actorId], references: [id], onDelete: Restrict)
+  actorTenantId        String                @db.Uuid
+  actorTenant          Tenant                @relation(fields: [actorTenantId], references: [id], onDelete: Restrict)
+  reasonCode           String
+  note                 String?               @db.VarChar(2000)
+  reviewedContentHash  String                @db.Char(64)
+  candidateVersion     Int
+  decisionSequence     Int
+  policyVersion        Int?
+  idempotencyKey       String
+  correlationId        String
+  createdAt            DateTime              @default(now())
+
+  @@unique([candidateId, decisionSequence])
+  @@unique([idempotencyKey])
+  @@index([candidateId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([actorTenantId])
+}
+
+model GovernanceAssignment {
+  id               String                     @id @default(uuid()) @db.Uuid
+  candidateId      String                     @db.Uuid
+  candidate        GovernanceCandidate        @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  reviewerId       String                     @db.Uuid
+  reviewer         UserAccount                @relation("AssignmentReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  assignedById     String                     @db.Uuid
+  assignedBy       UserAccount                @relation("AssignmentAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict)
+  assignmentState  GovernanceAssignmentState  @default(ACTIVE)
+  assignmentVersion Int
+  reasonCode       String?
+  note             String?                    @db.VarChar(2000)
+  idempotencyKey   String                     @unique
+  correlationId    String
+  createdAt        DateTime                   @default(now())
+  releasedAt       DateTime?
+
+  @@unique([candidateId, assignmentVersion])
+  @@index([candidateId, assignmentState])
+  @@index([reviewerId, assignmentState])
+}
+
+model SourceGovernancePolicy {
+  id                      String                 @id @default(uuid()) @db.Uuid
+  sourceId                String                 @db.Uuid
+  source                  RssSource              @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  tenantId                String                 @db.Uuid
+  tenant                  Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  sourceStatus            SourceGovernanceStatus @default(ACTIVE)
+  allowedAcquisitionModes String[]               @default([])
+  allowedContentTypes     String[]               @default([])
+  allowedLanguages        String[]               @default([])
+  reviewRequirement       String                 @default("ANALYST_REVIEW_REQUIRED")
+  promotionRequirement    String                 @default("APPROVED_AND_POLICY_PERMITTED")
+  retentionPolicy         String                 @default("STANDARD_GOVERNANCE_RETENTION")
+  sensitivityClassification String               @default("INTERNAL")
+  trustTier               TrustTier             @default(STANDARD)
+  ownerUserId             String?                @db.Uuid
+  owner                   UserAccount?           @relation("SourcePolicyOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  effectiveAt             DateTime               @default(now())
+  reviewDueAt             DateTime?
+  version                 Int                    @default(1)
+  reasonCode              String?
+  correlationId           String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  @@unique([tenantId, sourceId])
+  @@index([sourceId])
+  @@index([tenantId, sourceStatus])
+  @@index([trustTier])
+}
+
+model PromotionEligibility {
+  id                   String               @id @default(uuid()) @db.Uuid
+  candidateId          String               @db.Uuid
+  candidate            GovernanceCandidate  @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  eligibilityState     EligibilityState
+  evaluatedContentHash String               @db.Char(64)
+  policyVersion        Int?
+  evidenceSnapshot     Json
+  blockers             Json                 @default("[]")
+  evaluatedAt          DateTime             @default(now())
+  evaluatorId          String               @db.Uuid
+  evaluator            UserAccount          @relation("EligibilityEvaluator", fields: [evaluatorId], references: [id], onDelete: Restrict)
+  eligibilityVersion   Int
+  invalidationReason   String?
+  invalidatedAt        DateTime?
+  createdAt            DateTime             @default(now())
+
+  @@unique([candidateId, eligibilityVersion])
+  @@index([candidateId, eligibilityState])
+  @@index([evaluatedContentHash])
+}
+
+model CandidateRelationship {
+  id               String                     @id @default(uuid()) @db.Uuid
+  fromCandidateId  String                     @db.Uuid
+  fromCandidate    GovernanceCandidate        @relation("RelationshipFrom", fields: [fromCandidateId], references: [id], onDelete: Restrict)
+  toCandidateId    String                     @db.Uuid
+  toCandidate      GovernanceCandidate        @relation("RelationshipTo", fields: [toCandidateId], references: [id], onDelete: Restrict)
+  relationshipType CandidateRelationshipType
+  createdById      String                     @db.Uuid
+  reasonCode       String
+  note             String?                    @db.VarChar(2000)
+  idempotencyKey   String                     @unique
+  correlationId    String
+  createdAt        DateTime                   @default(now())
+
+  @@unique([fromCandidateId, toCandidateId, relationshipType])
+  @@index([toCandidateId, relationshipType])
+  @@index([fromCandidateId, relationshipType])
 }
