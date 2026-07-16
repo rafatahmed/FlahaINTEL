@@ -30,6 +30,10 @@ import { MAX_PREVIEW_BYTES, MAX_UPLOAD_BYTES } from "../product/submission/contr
 import { SubmissionOrchestrator } from "../product/submission/orchestrator.js";
 import { AppError } from "../errors.js";
 import { isGovernanceError } from "../contentGovernance/errors.js";
+import { getProductionConfig } from "../production/config.js";
+import { assertLoginRateLimit, assertSubmissionRateLimit } from "../production/rateLimit.js";
+import { incMetric, observeLatency, snapshotMetrics } from "../production/metrics.js";
+import { assertUrlAllowedByPolicy, loadCrawlPolicy } from "../production/crawlPolicy.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
 
@@ -62,11 +66,13 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
   const jobs = new IngestionJobService(prisma);
 
   return async (app) => {
+    const prod = getProductionConfig();
+    const uploadLimit = Math.min(MAX_UPLOAD_BYTES, prod.maxUploadBytes);
     await app.register(multipart, {
       limits: {
         files: 1,
         fields: 20,
-        fileSize: MAX_UPLOAD_BYTES,
+        fileSize: uploadLimit,
         parts: 25,
       },
     });
@@ -97,26 +103,38 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
       },
     }, async (request, reply) => {
       const body = request.body as { userId: string; tenantId: string };
-      // Establish session only after membership verification (no password IdP in 3L)
+      const correlationId = (typeof request.headers["x-flaha-correlation-id"] === "string"
+        ? request.headers["x-flaha-correlation-id"]
+        : `login-${Date.now()}`).slice(0, 200);
+      try {
+        assertLoginRateLimit(`${body.userId}:${request.ip}`, correlationId);
+      } catch (error) {
+        mapError(error);
+      }
+      // Establish session only after membership verification (controlled bootstrap; no public IdP)
       const membership = await prisma.tenantMembership.findUnique({
         where: { userId_tenantId: { userId: body.userId, tenantId: body.tenantId } },
         include: { user: true, tenant: true },
       });
       if (!membership?.active || !membership.user.active || !membership.tenant.active) {
+        incMetric("auth.login.failed");
         throw new AppError(403, "FORBIDDEN_TENANT", "Active membership is required.");
       }
-      const token = setSessionCookie(reply, body.userId, body.tenantId);
+      const session = setSessionCookie(reply, body.userId, body.tenantId);
+      incMetric("auth.login.success");
       return {
-        token,
+        token: session.token,
+        csrf: session.csrf,
         user: { id: membership.userId, email: membership.user.email, displayName: membership.user.displayName },
         tenant: { id: membership.tenantId, code: membership.tenant.code, name: membership.tenant.name },
         role: membership.role,
-        mode: "INTERNAL_SESSION",
+        mode: getProductionConfig().isProduction ? "PRODUCTION_SESSION" : "INTERNAL_SESSION",
       };
     });
 
-    app.post("/auth/logout", async (_request, reply) => {
-      clearSessionCookie(reply);
+    app.post("/auth/logout", async (request, reply) => {
+      await clearSessionCookie(reply, request);
+      incMetric("auth.logout");
       return { ok: true };
     });
 
@@ -238,8 +256,20 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
       },
     }, async (request, reply) => {
       const actor = await actorOf(request);
+      const started = Date.now();
       try {
+        assertSubmissionRateLimit(actor.userId, actor.tenantId, actor.correlationId);
+        const body = request.body as { url: string };
+        const policy = await loadCrawlPolicy();
+        const enforcePolicy =
+          getProductionConfig().isProduction
+          || process.env.CRAWL_POLICY_ENFORCE === "true";
+        if (enforcePolicy) {
+          assertUrlAllowedByPolicy(body.url, policy);
+        }
         const submission = await orchestrator.createWebsiteSubmission(actor, request.body as never);
+        incMetric("submissions.website");
+        observeLatency("submissions.website", Date.now() - started);
         return reply.code(201).send(submission);
       } catch (error) {
         mapError(error);
@@ -248,21 +278,23 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
 
     app.post("/submissions/document", async (request, reply) => {
       const actor = await actorOf(request);
+      const started = Date.now();
       try {
         assertPermission(actor, "submit");
+        assertSubmissionRateLimit(actor.userId, actor.tenantId, actor.correlationId);
         const file = await request.file();
         if (!file) throw new ProductError("EMPTY_UPLOAD", "Multipart file part is required.", 400, "INPUT");
         const chunks: Buffer[] = [];
         let total = 0;
         for await (const chunk of file.file) {
           total += chunk.length;
-          if (total > MAX_UPLOAD_BYTES) {
-            throw new ProductError("FILE_TOO_LARGE", `Upload exceeds ${MAX_UPLOAD_BYTES} bytes.`, 413, "INPUT");
+          if (total > uploadLimit) {
+            throw new ProductError("FILE_TOO_LARGE", `Upload exceeds ${uploadLimit} bytes.`, 413, "INPUT");
           }
           chunks.push(chunk);
         }
         if (file.file.truncated) {
-          throw new ProductError("FILE_TOO_LARGE", `Upload exceeds ${MAX_UPLOAD_BYTES} bytes.`, 413, "INPUT");
+          throw new ProductError("FILE_TOO_LARGE", `Upload exceeds ${uploadLimit} bytes.`, 413, "INPUT");
         }
         const bytes = Buffer.concat(chunks);
         const fields = file.fields as Record<string, { value?: string } | undefined>;
@@ -278,6 +310,8 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
           idempotencyKey: field("idempotencyKey") || `upload-${Date.now()}`,
           correlationId: field("correlationId") || actor.correlationId,
         });
+        incMetric("submissions.document");
+        observeLatency("submissions.document", Date.now() - started);
         return reply.code(201).send(submission);
       } catch (error) {
         mapError(error);
@@ -320,7 +354,7 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
       assertPermission(actor, "inspect");
       const q = request.query as Record<string, string | undefined>;
       const page = Math.max(1, Number(q.page || 1));
-      const limit = Math.min(100, Math.max(1, Number(q.limit || 20)));
+      const limit = Math.min(getProductionConfig().maxPageSize, Math.max(1, Number(q.limit || 20)));
       const where = {
         ...(q.state ? { state: q.state as never } : {}),
         ...(q.jobType ? { jobType: q.jobType as never } : {}),
@@ -447,7 +481,7 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
       assertPermission(actor, "inspect");
       const q = request.query as Record<string, string | undefined>;
       const page = Math.max(1, Number(q.page || 1));
-      const limit = Math.min(100, Math.max(1, Number(q.limit || 20)));
+      const limit = Math.min(getProductionConfig().maxPageSize, Math.max(1, Number(q.limit || 20)));
       const where = {
         tenantId: actor.tenantId,
         ...(q.reviewState ? { reviewState: q.reviewState as never } : {}),
@@ -489,7 +523,7 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
       assertPermission(actor, "inspect");
       const q = request.query as { jobId?: string; page?: string; limit?: string };
       const page = Math.max(1, Number(q.page || 1));
-      const limit = Math.min(100, Math.max(1, Number(q.limit || 20)));
+      const limit = Math.min(getProductionConfig().maxPageSize, Math.max(1, Number(q.limit || 20)));
       const where = q.jobId ? { jobId: q.jobId } : {};
       const [total, items] = await Promise.all([
         prisma.ingestionArtifactLink.count({ where }),
@@ -600,6 +634,12 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
     app.get("/system/readiness", async (request) => {
       await actorOf(request);
       return collectSystemReadiness(prisma, store);
+    });
+
+    app.get("/system/metrics", async (request) => {
+      const actor = await actorOf(request);
+      assertPermission(actor, "settings");
+      return snapshotMetrics();
     });
   };
 }

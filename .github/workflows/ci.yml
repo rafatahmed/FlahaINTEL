@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Typecheck / API build
+        run: npm run build --workspace=@flaha-intel/api
+      - name: Web build
+        run: npm run build --workspace=@flaha-intel/web
+      - name: Package builds
+        run: |
+          npm run build --workspace=@flaha-intel/artifact-store
+          npm run build --workspace=@flaha-intel/worker-supervisor
+          npm run build --workspace=@flaha-intel/ingestion-provider-core
+      - name: Prisma validate
+        run: npm run prisma:validate --workspace=@flaha-intel/api
+      - name: Migration folders present
+        run: test -d apps/api/prisma/migrations && test -f apps/api/prisma/migrations/migration_lock.toml
+      - name: Lockfile integrity
+        run: npm ci --ignore-scripts --dry-run
+      - name: Unit / integration tests (API)
+        run: npm test --workspace=@flaha-intel/api
+        env:
+          # Non-production auth so header-based tests continue to work
+          AUTH_MODE: development
+          NODE_ENV: test
+      - name: Secret scan (basic)
+        run: |
+          if grep -RInE '(FLAHA_SESSION_SECRET|DATABASE_URL)=["'\'']?(?!postgresql://postgres:<PASSWORD>)(?!REPLACE)[A-Za-z0-9+/=]{20,}' ops apps --include='*.md' --include='*.example' --include='*.env' 2>/dev/null; then
+            echo "Possible secret material detected"
+            exit 1
+          fi
+          echo "Basic secret scan passed"
+      - name: Package deployment artifact list
+        run: |
+          mkdir -p dist-ci
+          echo "release-placeholder" > dist-ci/MANIFEST.txt
+          tar -czf dist-ci/flahaintel-ci-bundle.tgz package.json package-lock.json apps packages ops docs || true
+
+  # Deployment credentials must never be available to untrusted PRs.
+  # Production deploy is manual with explicit approval only.

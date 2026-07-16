@@ -2,7 +2,10 @@ import { buildApp } from "./app.js";
 import { CollectionCoordinator } from "./collectors/coordinator.js";
 import { config } from "./config.js";
 import { prisma } from "./db.js";
+import { assertSafeToStart, getProductionConfig } from "./production/config.js";
 import { RssScheduler } from "./scheduler.js";
+
+assertSafeToStart(getProductionConfig());
 
 const coordinator = new CollectionCoordinator();
 const scheduler = new RssScheduler(prisma, coordinator, config);

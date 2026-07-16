@@ -529,8 +529,8 @@ Each gate requires an explicit approval before implementation and stops with evi
 9. **3I — Extraction routing:** complete; durable offline routing from canonical acquisition artifacts to extraction artifacts is accepted.
 10. **3J — Normalization pipeline:** complete; provider-neutral content normalization from verified extraction artifacts.
 11. **3K — Governance and review workflow:** complete; governed candidates, deterministic checks, analyst decisions, and promotion eligibility.
-12. **3L — API and UI:** active; operational FlahaINTEL product shell over the durable pipeline (3M not started).
-13. **3M — Production hardening:** production security, reliability, deployment, and operational hardening begins here.
+12. **3L — API and UI:** complete; operational FlahaINTEL product shell over the durable pipeline.
+13. **3M — Production hardening:** active; production security, reliability, deployment, and operational hardening.
 
 ### Phase-number protection
 

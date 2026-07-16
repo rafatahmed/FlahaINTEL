@@ -4,19 +4,21 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: System Readiness Checks
- * Introduction: Bounded readiness probes for operational runtimes used by Phase 3L.
+ * Introduction: Bounded readiness probes for production runtimes, workers, disk, and migrations.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
  * Last modified: 2026-07-16
  */
 
-import { access, constants, readdir, statfs } from "node:fs/promises";
+import { access, constants, readdir, stat, statfs } from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { PrismaClient } from "@prisma/client";
 import type { FilesystemArtifactStore } from "@flaha-intel/artifact-store";
+import { getProductionConfig } from "../production/config.js";
+import { readWorkerHeartbeats } from "../production/workerHeartbeats.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -50,12 +52,12 @@ export async function collectSystemReadiness(
   db: PrismaClient,
   store: FilesystemArtifactStore,
 ): Promise<{ overall: HealthState; components: ComponentHealth[]; checkedAt: string }> {
+  const cfg = getProductionConfig();
+  const timeout = cfg.healthTimeoutMs;
   const components: ComponentHealth[] = [];
 
-  // API
   components.push({ component: "API", state: "READY", detail: "Process responding." });
 
-  // PostgreSQL
   try {
     await db.$queryRaw`SELECT 1`;
     components.push({ component: "PostgreSQL", state: "READY", detail: "Query succeeded." });
@@ -63,7 +65,6 @@ export async function collectSystemReadiness(
     components.push({ component: "PostgreSQL", state: "UNAVAILABLE", detail: "Database query failed." });
   }
 
-  // ArtifactStore
   try {
     const root = store.governedRootPath();
     await access(root, constants.R_OK | constants.W_OK);
@@ -72,7 +73,6 @@ export async function collectSystemReadiness(
     components.push({ component: "ArtifactStore", state: "UNAVAILABLE", detail: "Artifact root is not usable." });
   }
 
-  // Migration status (count applied vs filesystem)
   try {
     const applied = await db.$queryRawUnsafe<Array<{ count: bigint }>>(
       `SELECT COUNT(*)::bigint AS count FROM "_prisma_migrations" WHERE finished_at IS NOT NULL`,
@@ -88,28 +88,29 @@ export async function collectSystemReadiness(
     const count = Number(applied[0]?.count ?? 0);
     components.push({
       component: "Migrations",
-      state: count >= onDisk ? "READY" : "DEGRADED",
+      state: count >= onDisk && onDisk > 0 ? "READY" : count === onDisk ? "READY" : "DEGRADED",
       detail: `${count} applied / ${onDisk} on disk.`,
     });
   } catch {
     components.push({ component: "Migrations", state: "DEGRADED", detail: "Could not inspect migration table." });
   }
 
-  // Job queue
   try {
     const pending = await db.ingestionJob.count({
       where: { state: { in: ["READY", "PENDING", "RETRY_WAIT"] } },
     });
+    const stale = await db.ingestionAttempt.count({
+      where: { state: { in: ["LEASED", "RUNNING"] }, leaseExpiresAt: { lt: new Date() } },
+    });
     components.push({
       component: "JobQueue",
-      state: "READY",
-      detail: `${pending} claimable/waiting jobs.`,
+      state: stale > 50 ? "DEGRADED" : "READY",
+      detail: `${pending} claimable/waiting; ${stale} expired leases.`,
     });
   } catch {
     components.push({ component: "JobQueue", state: "UNAVAILABLE", detail: "Could not read job queue." });
   }
 
-  // Disk capacity
   try {
     const root = store.governedRootPath();
     const fsStat = await statfs(root).catch(() => null);
@@ -117,10 +118,12 @@ export async function collectSystemReadiness(
       const free = Number(fsStat.bfree) * Number(fsStat.bsize);
       const total = Number(fsStat.blocks) * Number(fsStat.bsize);
       const ratio = total > 0 ? free / total : 1;
+      const state: HealthState =
+        ratio < cfg.diskBlockFreeRatio ? "UNAVAILABLE" : ratio < cfg.diskWarnFreeRatio ? "DEGRADED" : "READY";
       components.push({
         component: "DiskCapacity",
-        state: ratio < 0.05 ? "DEGRADED" : "READY",
-        detail: `${Math.round(free / 1_000_000)} MB free.`,
+        state,
+        detail: `${Math.round(free / 1_000_000)} MB free (${Math.round(ratio * 100)}%).`,
       });
     } else {
       components.push({ component: "DiskCapacity", state: "NOT_CONFIGURED", detail: "statfs unavailable on this platform." });
@@ -129,63 +132,134 @@ export async function collectSystemReadiness(
     components.push({ component: "DiskCapacity", state: "NOT_CONFIGURED", detail: "Disk probe failed." });
   }
 
-  // Staging reconciliation (list open staging states if repository supports list via store root)
-  components.push({
-    component: "StagingReconciliation",
-    state: "READY",
-    detail: "Operational reconciliation available via artifact store APIs.",
-  });
-
-  // Runtimes — existence alone is NOT enough; try bounded --version / functional check
-  const scrapy = process.env.SCRAPY_BIN || "scrapy";
-  components.push({
-    component: "Scrapy",
-    state: (await tryExec(scrapy, ["version"])) ? "READY" : "NOT_CONFIGURED",
-    detail: (await tryExec(scrapy, ["version"])) ? "scrapy version responded." : "Scrapy not executable in PATH.",
-  });
-
-  const playwrightOk = await tryExec(process.execPath, ["-e", "require('playwright'); console.log('ok')"], 4000).catch(() => false);
-  // Playwright may be in ingest-worker only
-  const playwrightCli = process.env.PLAYWRIGHT_CLI || "npx";
-  const pw = await tryExec(playwrightCli, ["playwright", "--version"], 5000);
-  components.push({
-    component: "Playwright",
-    state: pw || playwrightOk ? "READY" : "NOT_CONFIGURED",
-    detail: pw || playwrightOk ? "Playwright CLI responded." : "Playwright not configured for API host.",
-  });
-
-  const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH || process.env.CHROMIUM_PATH;
-  if (chromiumPath && (await exists(chromiumPath))) {
-    components.push({ component: "Chromium", state: "READY", detail: "Configured Chromium path exists." });
-  } else {
-    components.push({ component: "Chromium", state: "NOT_CONFIGURED", detail: "Chromium path not configured on API host." });
+  // Staging reconciliation — detect non-empty staging dirs if present
+  try {
+    const root = store.governedRootPath();
+    const staging = path.join(root, "staging");
+    if (await exists(staging)) {
+      const entries = await readdir(staging).catch(() => []);
+      components.push({
+        component: "StagingReconciliation",
+        state: entries.length > 100 ? "DEGRADED" : "READY",
+        detail: `${entries.length} staging entries observed.`,
+      });
+    } else {
+      components.push({
+        component: "StagingReconciliation",
+        state: "READY",
+        detail: "No open staging directory pressure.",
+      });
+    }
+  } catch {
+    components.push({
+      component: "StagingReconciliation",
+      state: "DEGRADED",
+      detail: "Could not inspect staging.",
+    });
   }
 
-  // Docling / Java / Tika — typically worker-side
-  const python = process.env.PYTHON_BIN || "python";
-  const docling = await tryExec(python, ["-c", "import docling; print('ok')"], 4000);
+  // Worker loops (file heartbeats)
+  try {
+    const hearts = await readWorkerHeartbeats(120_000);
+    const families = new Set(hearts.live.map(w => w.family));
+    const expected = ["acquisition", "extraction", "normalization"];
+    const missing = expected.filter(f => !families.has(f));
+    components.push({
+      component: "WorkerLoops",
+      state: hearts.live.length === 0
+        ? "NOT_CONFIGURED"
+        : missing.length
+          ? "DEGRADED"
+          : "READY",
+      detail: hearts.live.length
+        ? `${hearts.live.length} live workers; missing families: ${missing.join(",") || "none"}.`
+        : "No worker heartbeats (workers may be stopped).",
+    });
+  } catch {
+    components.push({ component: "WorkerLoops", state: "NOT_CONFIGURED", detail: "Heartbeat registry unavailable." });
+  }
+
+  // Backup recency
+  try {
+    const backupPath = cfg.backupStatePath;
+    if (await exists(backupPath)) {
+      const st = await stat(backupPath);
+      const ageHours = (Date.now() - st.mtimeMs) / 3_600_000;
+      components.push({
+        component: "BackupRecency",
+        state: ageHours <= 24 ? "READY" : ageHours <= 48 ? "DEGRADED" : "UNAVAILABLE",
+        detail: `Last backup marker age ${Math.round(ageHours)}h (RPO target 24h).`,
+      });
+    } else {
+      components.push({
+        component: "BackupRecency",
+        state: cfg.isProduction ? "DEGRADED" : "NOT_CONFIGURED",
+        detail: "No backup marker found.",
+      });
+    }
+  } catch {
+    components.push({ component: "BackupRecency", state: "NOT_CONFIGURED", detail: "Backup marker unreadable." });
+  }
+
+  // Runtimes — must actually respond, not only exist
+  const scrapy = cfg.scrapyBin || process.env.SCRAPY_BIN || "scrapy";
+  const scrapyOk = await tryExec(scrapy, ["version"], timeout);
+  components.push({
+    component: "Scrapy",
+    state: scrapyOk ? "READY" : "NOT_CONFIGURED",
+    detail: scrapyOk ? "scrapy version responded." : "Scrapy not executable.",
+  });
+
+  const playwrightCli = process.env.PLAYWRIGHT_CLI || "npx";
+  const pw = await tryExec(playwrightCli, ["playwright", "--version"], Math.max(timeout, 5000));
+  components.push({
+    component: "Playwright",
+    state: pw ? "READY" : "NOT_CONFIGURED",
+    detail: pw ? "Playwright CLI responded." : "Playwright not configured on API host.",
+  });
+
+  const chromiumPath = cfg.playwrightChromiumPath || process.env.PLAYWRIGHT_CHROMIUM_PATH || process.env.CHROMIUM_PATH;
+  if (chromiumPath && (await exists(chromiumPath))) {
+    // Existence alone is insufficient for READY in production — try --version when binary supports it
+    const chromiumRuns = await tryExec(chromiumPath, ["--version"], timeout);
+    components.push({
+      component: "Chromium",
+      state: chromiumRuns ? "READY" : "DEGRADED",
+      detail: chromiumRuns ? "Chromium --version responded." : "Chromium path exists but did not respond to --version.",
+    });
+  } else {
+    components.push({ component: "Chromium", state: "NOT_CONFIGURED", detail: "Chromium path not configured." });
+  }
+
+  const python = cfg.pythonBin || process.env.PYTHON_BIN || "python";
+  const docling = await tryExec(python, ["-c", "import docling; print('ok')"], Math.max(timeout, 4000));
   components.push({
     component: "Docling",
     state: docling ? "READY" : "NOT_CONFIGURED",
-    detail: docling ? "Python docling import succeeded." : "Docling not importable on API host (may run in worker).",
+    detail: docling ? "Python docling import succeeded." : "Docling not importable on API host.",
   });
 
-  const java = process.env.JAVA_BIN || "java";
-  const javaOk = await tryExec(java, ["-version"], 3000);
+  const java = cfg.javaBin || process.env.JAVA_BIN || "java";
+  const javaOk = await tryExec(java, ["-version"], timeout);
   components.push({
     component: "Java",
     state: javaOk ? "READY" : "NOT_CONFIGURED",
-    detail: javaOk ? "java -version responded." : "Java not configured on API host.",
+    detail: javaOk ? "java -version responded." : "Java not configured.",
   });
 
-  const tikaJar = process.env.TIKA_JAR;
+  const tikaJar = cfg.tikaJar || process.env.TIKA_JAR;
   if (tikaJar && (await exists(tikaJar)) && javaOk) {
-    components.push({ component: "ApacheTika", state: "READY", detail: "Tika jar present with Java." });
+    const tikaRuns = await tryExec(java, ["-jar", tikaJar, "--help"], Math.max(timeout, 5000));
+    components.push({
+      component: "ApacheTika",
+      state: tikaRuns ? "READY" : "DEGRADED",
+      detail: tikaRuns ? "Tika JAR responded with Java." : "Tika JAR present but did not respond.",
+    });
   } else {
     components.push({
       component: "ApacheTika",
       state: "NOT_CONFIGURED",
-      detail: "Tika jar not configured on API host (worker path).",
+      detail: "Tika jar not configured on API host.",
     });
   }
 
@@ -194,7 +268,6 @@ export async function collectSystemReadiness(
   for (const c of components) {
     if (rank[c.state] > rank[overall]) overall = c.state;
   }
-  // API+DB+store unavailable should dominate
   if (components.some(c => ["PostgreSQL", "ArtifactStore", "API"].includes(c.component) && c.state === "UNAVAILABLE")) {
     overall = "UNAVAILABLE";
   } else if (overall === "NOT_CONFIGURED") {

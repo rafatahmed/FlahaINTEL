@@ -1,0 +1,85 @@
+{
+  "version": "3m.1",
+  "rpoHours": 24,
+  "rtoHours": 4,
+  "rules": [
+    {
+      "id": "api-unavailable",
+      "severity": "critical",
+      "condition": "GET /health fails for 2 minutes",
+      "action": "Page on-call; check Caddy and API service"
+    },
+    {
+      "id": "postgres-unavailable",
+      "severity": "critical",
+      "condition": "GET /ready returns 503 or readiness PostgreSQL=UNAVAILABLE",
+      "action": "Check PostgreSQL process, disk, connections"
+    },
+    {
+      "id": "migration-mismatch",
+      "severity": "high",
+      "condition": "readiness Migrations state is DEGRADED",
+      "action": "Run prisma migrate status; plan migrate deploy"
+    },
+    {
+      "id": "disk-low",
+      "severity": "critical",
+      "condition": "DiskCapacity UNAVAILABLE or free ratio below block threshold",
+      "action": "Free space; pause submissions; expand volume"
+    },
+    {
+      "id": "artifact-reconciliation-failure",
+      "severity": "high",
+      "condition": "StagingReconciliation DEGRADED or integrity scan fails",
+      "action": "Run reconciliation; quarantine orphans"
+    },
+    {
+      "id": "worker-unavailable",
+      "severity": "high",
+      "condition": "WorkerLoops NOT_CONFIGURED/DEGRADED for >10 minutes during business hours",
+      "action": "Restart worker units; inspect logs"
+    },
+    {
+      "id": "provider-crash-loop",
+      "severity": "high",
+      "condition": "worker.*.errors metric increases >20 in 15 minutes",
+      "action": "Inspect provider child failures; freeze family if needed"
+    },
+    {
+      "id": "stale-job-accumulation",
+      "severity": "medium",
+      "condition": "expired leases >50 or JobQueue DEGRADED",
+      "action": "Run stale-recovery worker; inspect stuck leases"
+    },
+    {
+      "id": "submission-backlog",
+      "severity": "medium",
+      "condition": "RUNNING submissions older than 1 hour exceed threshold",
+      "action": "Check advance loop and downstream workers"
+    },
+    {
+      "id": "backup-failure",
+      "severity": "critical",
+      "condition": "BackupRecency age >24h or backup script non-zero",
+      "action": "Run backup; verify off-host copy"
+    },
+    {
+      "id": "tls-expiry",
+      "severity": "high",
+      "condition": "certificate expires in <14 days",
+      "action": "Renew cert / Caddy ACME"
+    },
+    {
+      "id": "auth-failures",
+      "severity": "medium",
+      "condition": "http.auth.failures spike",
+      "action": "Investigate credential stuffing or misconfig"
+    },
+    {
+      "id": "unusual-upload-crawl-volume",
+      "severity": "medium",
+      "condition": "submissions.* rate exceeds 3x baseline",
+      "action": "Verify allowlists and rate limits; contact operators"
+    }
+  ]
+}

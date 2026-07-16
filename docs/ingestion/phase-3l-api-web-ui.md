@@ -89,4 +89,4 @@ Safe messages with optional failed stage and correlation ID. No stack traces, se
 
 ## Relationship to Phase 3M
 
-Phase 3M covers production hardening, deployment, and operational security beyond this internal application. 3M is not started by 3L.
+Phase 3M covers production hardening, deployment, and operational security beyond this internal application. See `docs/ingestion/phase-3m-production-hardening.md`.

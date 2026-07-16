@@ -1,0 +1,35 @@
+{
+  "version": "3m.1",
+  "userAgent": "FlahaINTEL/3M (+https://flaha.local; controlled-crawl; contact-ops)",
+  "respectRobots": true,
+  "maxPages": 10,
+  "maxDepth": 1,
+  "maxRedirects": 3,
+  "maxAttachments": 5,
+  "maxAttachmentBytes": 10000000,
+  "maxTotalCrawlBytes": 50000000,
+  "rateLimitPerHostPerMinute": 30,
+  "allowedHosts": [
+    "example.com",
+    "www.example.com",
+    "example.org",
+    "www.example.org"
+  ],
+  "allowedPathPrefixes": {
+    "example.com": ["/", "/index.html"],
+    "www.example.com": ["/", "/index.html"],
+    "example.org": ["/", "/index.html"],
+    "www.example.org": ["/", "/index.html"]
+  },
+  "allowedAttachmentTypes": [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/rtf",
+    "text/rtf",
+    "text/plain",
+    "text/html"
+  ],
+  "schedule": {
+    "mode": "manual"
+  }
+}

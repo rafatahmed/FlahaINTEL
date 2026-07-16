@@ -7,6 +7,8 @@ import { CollectionCoordinator } from "./collectors/coordinator.js";
 import { config } from "./config.js";
 import { prisma as defaultPrisma } from "./db.js";
 import { apiErrorHandler, errorResponse } from "./errors.js";
+import { getProductionConfig } from "./production/config.js";
+import { incMetric, observeLatency } from "./production/metrics.js";
 import { articleRoutes } from "./routes/articles.js";
 import { articleClassificationRoutes } from "./routes/articleClassifications.js";
 import { entityRelationshipRoutes } from "./routes/entityRelationships.js";
@@ -30,9 +32,7 @@ export interface AppDependencies {
 }
 
 function defaultArtifactStore(): FilesystemArtifactStore {
-  const root = process.env.ARTIFACT_STORE_ROOT
-    ? path.resolve(process.env.ARTIFACT_STORE_ROOT)
-    : path.resolve(process.cwd(), ".artifacts");
+  const root = getProductionConfig().artifactRoot;
   const repository = new FilesystemArtifactRepository(root);
   const store = new FilesystemArtifactStore(root, repository);
   return store;
@@ -43,13 +43,27 @@ export function buildApp(dependencies: AppDependencies = {}) {
   const coordinator = dependencies.coordinator ?? new CollectionCoordinator();
   const scheduler = dependencies.scheduler ?? new RssScheduler(prisma, coordinator, config);
   const artifactStore = dependencies.artifactStore ?? defaultArtifactStore();
+  const prod = getProductionConfig();
   const app = Fastify({
-    logger: true,
+    logger: { level: prod.logLevel },
     ajv: { customOptions: { removeAdditional: false } },
   });
   app.register(cors, {
-    origin: config.webOrigin,
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (prod.corsOrigins.includes(origin) || origin === config.webOrigin) return cb(null, true);
+      return cb(null, false);
+    },
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
+  });
+  app.addHook("onResponse", async (request, reply) => {
+    incMetric("http.requests");
+    if (reply.statusCode >= 500) incMetric("http.errors.5xx");
+    else if (reply.statusCode >= 400) incMetric("http.errors.4xx");
+    observeLatency("http.request", reply.elapsedTime || 0);
+    if (reply.statusCode === 401 || reply.statusCode === 403) incMetric("http.auth.failures");
+    void request;
   });
   app.register(healthRoutes(prisma));
   app.register(articleRoutes(prisma), { prefix: "/api" });

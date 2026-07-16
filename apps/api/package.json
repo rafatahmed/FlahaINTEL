@@ -28,7 +28,12 @@
     "ingest:create-normalization": "node --env-file=../../.env --import tsx src/normalization/cli.ts create",
     "ingest:normalization-worker:once": "node --env-file=../../.env --import tsx src/normalization/cli.ts worker-once",
     "ingest:normalization-job": "node --env-file=../../.env --import tsx src/normalization/cli.ts job",
-    "ingest:normalization-artifact": "node --env-file=../../.env --import tsx src/normalization/cli.ts artifact"
+    "ingest:normalization-artifact": "node --env-file=../../.env --import tsx src/normalization/cli.ts artifact",
+    "worker:acquisition": "node --env-file=../../.env --import tsx src/production/workers/cli.ts acquisition",
+    "worker:extraction": "node --env-file=../../.env --import tsx src/production/workers/cli.ts extraction",
+    "worker:normalization": "node --env-file=../../.env --import tsx src/production/workers/cli.ts normalization",
+    "worker:submission-advance": "node --env-file=../../.env --import tsx src/production/workers/cli.ts submission-advance",
+    "worker:stale-recovery": "node --env-file=../../.env --import tsx src/production/workers/cli.ts stale-recovery"
   },
   "dependencies": {
     "@fastify/cors": "latest",

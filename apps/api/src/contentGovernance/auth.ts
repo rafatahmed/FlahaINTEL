@@ -4,7 +4,7 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Content Governance Authentication
- * Introduction: Resolves authenticated governance actors from request headers against tenant membership.
+ * Introduction: Resolves authenticated governance actors via product auth (production-hardened).
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
@@ -13,84 +13,38 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { FastifyRequest } from "fastify";
-import { verifySession } from "../product/auth.js";
+import { resolveProductActor } from "../product/auth.js";
 import type { GovernanceActorContext } from "./contracts.js";
 import { GovernanceError } from "./errors.js";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function readCookie(request: FastifyRequest, name: string): string | undefined {
-  const raw = request.headers.cookie;
-  if (!raw) return undefined;
-  for (const part of raw.split(";")) {
-    const [k, ...rest] = part.trim().split("=");
-    if (k === name) return decodeURIComponent(rest.join("="));
-  }
-  return undefined;
-}
+import { isProductError } from "../product/errors.js";
 
 export async function resolveGovernanceActor(
   db: PrismaClient,
   request: FastifyRequest,
 ): Promise<GovernanceActorContext> {
-  let userId = header(request, "x-flaha-user-id");
-  let tenantId = header(request, "x-flaha-tenant-id");
-  const correlationId = header(request, "x-flaha-correlation-id") ?? `corr-${Date.now()}`;
-
-  const cookie = readCookie(request, "flaha_session");
-  if (cookie) {
-    const session = verifySession(cookie);
-    if (session) {
-      userId = session.userId;
-      tenantId = session.tenantId;
+  try {
+    const actor = await resolveProductActor(db, request);
+    return {
+      userId: actor.userId,
+      tenantId: actor.tenantId,
+      role: actor.role,
+      email: actor.email,
+      displayName: actor.displayName,
+      correlationId: actor.correlationId,
+    };
+  } catch (error) {
+    if (isProductError(error)) {
+      throw new GovernanceError(error.code, error.message, error.statusCode);
     }
+    throw error;
   }
-  const auth = header(request, "authorization");
-  if (auth?.toLowerCase().startsWith("bearer ")) {
-    const session = verifySession(auth.slice(7).trim());
-    if (session) {
-      userId = session.userId;
-      tenantId = session.tenantId;
-    }
-  }
-
-  if (!userId || !tenantId) {
-    throw new GovernanceError("UNAUTHENTICATED", "Governance routes require authenticated user and tenant headers.", 401);
-  }
-  if (!UUID.test(userId) || !UUID.test(tenantId)) {
-    throw new GovernanceError("UNAUTHENTICATED", "Actor identity headers are malformed.", 401);
-  }
-
-  const membership = await db.tenantMembership.findUnique({
-    where: { userId_tenantId: { userId, tenantId } },
-    include: { user: true, tenant: true },
-  });
-  if (!membership || !membership.active || !membership.user.active || !membership.tenant.active) {
-    throw new GovernanceError("FORBIDDEN_TENANT", "Active membership is required for this tenant.", 403);
-  }
-
-  return {
-    userId: membership.userId,
-    tenantId: membership.tenantId,
-    role: membership.role,
-    email: membership.user.email,
-    displayName: membership.user.displayName,
-    correlationId: correlationId.slice(0, 200),
-  };
-}
-
-function header(request: FastifyRequest, name: string): string | undefined {
-  const value = request.headers[name];
-  if (typeof value === "string") return value.trim() || undefined;
-  if (Array.isArray(value) && typeof value[0] === "string") return value[0].trim() || undefined;
-  return undefined;
 }
 
 /** Reject any attempt to supply actor identity in a request body. */
 export function assertNoForgedActor(body: unknown): void {
   if (!body || typeof body !== "object") return;
   const record = body as Record<string, unknown>;
-  for (const key of ["actorId", "userId", "actorUserId", "assignedById", "evaluatorId"]) {
+  for (const key of ["actorId", "userId", "actorUserId", "assignedById", "evaluatorId", "tenantId"]) {
     if (key in record) {
       throw new GovernanceError("FORGED_ACTOR_ID", "Actor identity must come from authenticated context only.", 400);
     }
