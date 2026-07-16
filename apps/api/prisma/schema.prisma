@@ -67,6 +67,67 @@ enum OrganizationProductRole {
   IMPORTER
 }
 
+enum IngestionJobType {
+  DATASET_VALIDATION
+  HTML_EXTRACTION
+  DOCUMENT_PROCESSING
+  STATIC_ACQUISITION
+  BROWSER_ACQUISITION
+}
+
+enum IngestionJobState {
+  PENDING
+  READY
+  LEASED
+  RUNNING
+  RETRY_WAIT
+  SUCCEEDED
+  FAILED
+  CANCEL_REQUESTED
+  CANCELLED
+  DEAD_LETTER
+}
+
+enum IngestionAttemptState {
+  CREATED
+  LEASED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  TIMED_OUT
+  CANCELLED
+  LEASE_EXPIRED
+  CONTRACT_REJECTED
+}
+
+enum IngestionActorType {
+  SYSTEM
+  API
+  SCHEDULER
+  WORKER
+  ADMIN
+  RECOVERY
+}
+
+enum IngestionPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum IngestionArtifactRelationship {
+  INPUT
+  RAW_RESPONSE
+  RENDERED_HTML
+  EXTRACTED_TEXT
+  METADATA
+  TABLE
+  STRUCTURE
+  DIAGNOSTIC
+  RESULT
+}
+
 model RssSource {
   id                 String                   @id @default(uuid()) @db.Uuid
   name               String
@@ -300,4 +361,142 @@ model OrganizationProduct {
   @@id([organizationId, productId, role])
   @@index([productId])
   @@index([role])
+}
+
+model IngestionJob {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  jobType             IngestionJobType
+  state               IngestionJobState        @default(PENDING)
+  priority            IngestionPriority        @default(NORMAL)
+  idempotencyKey      String                   @unique
+  requestFingerprint  String                   @db.Char(64)
+  requestedCapability String
+  providerFamily      String
+  requestedProviderId String?
+  selectedProviderId  String?
+  selectionDecision   Json
+  requestEnvelope     Json
+  policySnapshot      Json
+  executionLimits     Json
+  inputArtifactId     String?                  @db.Uuid
+  sourceLocator       Json?
+  languageHints       String[]                 @default([])
+  mediaType           String
+  attemptCount        Int                      @default(0)
+  maxAttempts         Int                      @default(3)
+  nextAttemptAt       DateTime?
+  cancelRequestedAt   DateTime?
+  cancelledAt         DateTime?
+  completedAt         DateTime?
+  failedAt            DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  version             Int                      @default(0)
+  attempts            IngestionAttempt[]
+  transitions         IngestionJobTransition[]
+  artifacts           IngestionArtifactLink[]
+  provenance          IngestionProvenance[]
+
+  @@index([state, nextAttemptAt, priority, createdAt], map: "IngestionJob_claimable_idx")
+  @@index([selectedProviderId])
+  @@index([requestedCapability])
+}
+
+model IngestionAttempt {
+  id               String                   @id @default(uuid()) @db.Uuid
+  jobId            String                   @db.Uuid
+  job              IngestionJob             @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  attemptNumber    Int
+  state            IngestionAttemptState    @default(CREATED)
+  providerId       String
+  providerVersion  String
+  capability       String
+  selectionReason  String
+  fallbackReason   String?
+  leaseOwner       String?
+  leaseTokenHash   String?                  @db.Char(64)
+  leasedAt         DateTime?
+  leaseExpiresAt   DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  failedAt         DateTime?
+  heartbeatAt      DateTime?
+  requestEnvelope  Json
+  resultEnvelope   Json?
+  errorCode        String?
+  errorDetails     Json?
+  retryable        Boolean?
+  fallbackEligible Boolean?
+  securityRelevant Boolean?
+  metrics          Json?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  transitions      IngestionJobTransition[]
+  artifacts        IngestionArtifactLink[]
+  provenance       IngestionProvenance?
+
+  @@unique([jobId, attemptNumber])
+  @@index([jobId, state])
+  @@index([state, leaseExpiresAt], map: "IngestionAttempt_expired_lease_idx")
+}
+
+model IngestionJobTransition {
+  id            String             @id @default(uuid()) @db.Uuid
+  jobId         String             @db.Uuid
+  job           IngestionJob       @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  attemptId     String?            @db.Uuid
+  attempt       IngestionAttempt?  @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  fromState     IngestionJobState?
+  toState       IngestionJobState
+  reasonCode    String
+  reasonDetail  String?
+  actorType     IngestionActorType
+  actorId       String
+  correlationId String
+  createdAt     DateTime           @default(now())
+
+  @@index([jobId, createdAt])
+  @@index([attemptId])
+}
+
+model IngestionArtifactLink {
+  id           String                        @id @default(uuid()) @db.Uuid
+  jobId        String                        @db.Uuid
+  job          IngestionJob                  @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  attemptId    String?                       @db.Uuid
+  attempt      IngestionAttempt?             @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  artifactId   String                        @db.Uuid
+  relationship IngestionArtifactRelationship
+  mediaType    String
+  sha256       String                        @db.Char(64)
+  byteSize     BigInt
+  createdAt    DateTime                      @default(now())
+
+  @@unique([jobId, attemptId, artifactId, relationship])
+  @@index([jobId, attemptId])
+  @@index([artifactId])
+}
+
+model IngestionProvenance {
+  id                        String           @id @default(uuid()) @db.Uuid
+  jobId                     String           @db.Uuid
+  job                       IngestionJob     @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  attemptId                 String           @unique @db.Uuid
+  attempt                   IngestionAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  providerId                String
+  providerVersion           String
+  contractVersion           String
+  capability                String
+  policyVersion             String
+  selectionSnapshot         Json
+  fallbackHistory           Json
+  runtimeEvidence           Json
+  inputHashes               String[]         @default([])
+  outputHashes              String[]         @default([])
+  determinismClassification String
+  startedAt                 DateTime
+  completedAt               DateTime
+  createdAt                 DateTime         @default(now())
+
+  @@index([jobId, attemptId])
 }
