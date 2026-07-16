@@ -27,4 +27,6 @@ export const BUILTIN_PROVIDER_CATALOGUE:readonly ProviderDescriptor[]=Object.fre
  descriptor("html.selectolax","HTML_EXTRACTION","selectolax","0.4.10","PYTHON","BENCHMARKED",[...htmlCaps,"HTML_STRUCTURAL_EXTRACTION"].map(c=>evidence("HTML_EXTRACTION","PYTHON",c as ProviderCapability,"PARTIALLY_SUPPORTED","FALLBACK",["ar","en"]))),
  descriptor("html.stdlib-htmlparser","HTML_EXTRACTION","Python stdlib HTMLParser","3.14","PYTHON","HARDENED",htmlCaps.map(c=>evidence("HTML_EXTRACTION","PYTHON",c,"SUPPORTED","PRIMARY",["ar","en"]))),
  descriptor("html.trafilatura","HTML_EXTRACTION","Trafilatura","2.1.0","PYTHON","DEFERRED",[evidence("HTML_EXTRACTION","PYTHON","HTML_TEXT_EXTRACTION","DEFERRED","NONE")],false),
+ descriptor("normalization.html.flaha-v1","HTML_EXTRACTION","Flaha HTML content normalizer","3J.1.0","IN_PROCESS","HARDENED",[evidence("HTML_EXTRACTION","IN_PROCESS","HTML_CONTENT_NORMALIZATION","SUPPORTED","PRIMARY",["en"],["text/html","application/xhtml+xml"])]),
+ descriptor("normalization.document.flaha-v1","DOCUMENT_PROCESSING","Flaha document content normalizer","3J.1.0","IN_PROCESS","HARDENED",[evidence("DOCUMENT_PROCESSING","IN_PROCESS","DOCUMENT_CONTENT_NORMALIZATION","SUPPORTED","PRIMARY",["en"],["application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/rtf","text/rtf","text/plain"])]),
 ]);

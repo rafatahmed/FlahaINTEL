@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/normalization-result.schema.json",
+  "title": "NormalizationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "outcome",
+    "profileId",
+    "profileVersion",
+    "profileHash",
+    "inputHash",
+    "rawNormalizedTextHash",
+    "structuralContentHash",
+    "qualityIndicators",
+    "warnings",
+    "outputArtifactRoles"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "3J.1.0" },
+    "outcome": { "enum": ["SUCCESS", "REQUIRES_ANALYST_REVIEW", "UNSUPPORTED", "FAILED"] },
+    "profileId": {
+      "enum": ["HTML_ARTICLE_V1", "HTML_GENERIC_PAGE_V1", "PDF_DOCUMENT_V1", "OFFICE_DOCUMENT_V1", "PLAIN_TEXT_V1"]
+    },
+    "profileVersion": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "profileHash": { "$ref": "common.schema.json#/$defs/sha256" },
+    "inputHash": { "$ref": "common.schema.json#/$defs/sha256" },
+    "rawNormalizedTextHash": { "$ref": "common.schema.json#/$defs/sha256" },
+    "structuralContentHash": { "$ref": "common.schema.json#/$defs/sha256" },
+    "qualityIndicators": { "type": "array", "maxItems": 32, "items": { "type": "string", "maxLength": 64 } },
+    "warnings": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 512 } },
+    "outputArtifactRoles": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "enum": [
+          "NORMALIZED_CONTENT",
+          "NORMALIZED_TEXT",
+          "NORMALIZED_STRUCTURE",
+          "NORMALIZED_METADATA",
+          "NORMALIZATION_RESULT",
+          "DIAGNOSTIC"
+        ]
+      }
+    },
+    "sourceExtractionJobId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "sourceAcquisitionJobId": { "anyOf": [{ "$ref": "common.schema.json#/$defs/uuid" }, { "type": "null" }] }
+  }
+}

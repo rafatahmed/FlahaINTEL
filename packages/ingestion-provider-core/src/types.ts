@@ -14,9 +14,18 @@
 export type ProviderFamily = "DATASET_VALIDATION" | "HTML_EXTRACTION" | "DOCUMENT_PROCESSING" | "STATIC_ACQUISITION" | "BROWSER_ACQUISITION";
 export type ProviderCapability =
   | "DATASET_SCHEMA_INSPECTION" | "DATASET_ROW_VALIDATION" | "DATASET_TYPE_VALIDATION" | "DATASET_TABULAR_FALLBACK"
-  | "HTML_TEXT_EXTRACTION" | "HTML_LINK_EXTRACTION" | "HTML_METADATA_EXTRACTION" | "HTML_ENCODING_DETECTION" | "HTML_STRUCTURAL_EXTRACTION"
-  | "DOCUMENT_INSPECTION" | "DOCUMENT_TEXT_EXTRACTION" | "DOCUMENT_METADATA_EXTRACTION" | "DOCUMENT_LAYOUT_EXTRACTION" | "DOCUMENT_SECTION_EXTRACTION" | "DOCUMENT_TABLE_EXTRACTION" | "DOCUMENT_ANNOTATION_INVENTORY" | "DOCUMENT_EMBEDDED_ARTIFACT_INVENTORY" | "DOCUMENT_DIGITAL_TEXT_ASSESSMENT" | "DOCUMENT_BROAD_FORMAT_FALLBACK"
+  | "HTML_TEXT_EXTRACTION" | "HTML_LINK_EXTRACTION" | "HTML_METADATA_EXTRACTION" | "HTML_ENCODING_DETECTION" | "HTML_STRUCTURAL_EXTRACTION" | "HTML_CONTENT_NORMALIZATION"
+  | "DOCUMENT_INSPECTION" | "DOCUMENT_TEXT_EXTRACTION" | "DOCUMENT_METADATA_EXTRACTION" | "DOCUMENT_LAYOUT_EXTRACTION" | "DOCUMENT_SECTION_EXTRACTION" | "DOCUMENT_TABLE_EXTRACTION" | "DOCUMENT_ANNOTATION_INVENTORY" | "DOCUMENT_EMBEDDED_ARTIFACT_INVENTORY" | "DOCUMENT_DIGITAL_TEXT_ASSESSMENT" | "DOCUMENT_BROAD_FORMAT_FALLBACK" | "DOCUMENT_CONTENT_NORMALIZATION"
   | "STATIC_HTTP_ACQUISITION" | "CONTROLLED_CRAWLING" | "LINK_DISCOVERY" | "ROBOTS_POLICY" | "REDIRECT_HANDLING" | "RETRY_HANDLING" | "RATE_LIMITING" | "RAW_RESPONSE_CAPTURE" | "JAVASCRIPT_RENDERING" | "RENDERED_DOM_CAPTURE" | "BROWSER_NETWORK_INTERCEPTION" | "DOWNLOAD_DETECTION" | "POPUP_CONTAINMENT";
+export type NormalizationProfileId = "HTML_ARTICLE_V1" | "HTML_GENERIC_PAGE_V1" | "PDF_DOCUMENT_V1" | "OFFICE_DOCUMENT_V1" | "PLAIN_TEXT_V1";
+export interface NormalizationRequestPayload {
+  profileId: NormalizationProfileId;
+  profileVersion: string;
+  extractionJobId: string;
+  sourceArtifactIds: readonly { artifactId: string; role: "EXTRACTED_TEXT" | "STRUCTURE" | "METADATA" | "TABLE" | "RESULT" }[];
+  sourceAcquisitionJobId: string | null;
+  contentType: string;
+}
 export type RuntimeKind = "NODE" | "PYTHON" | "JAVA" | "BROWSER" | "IN_PROCESS";
 export type LifecycleStatus = "DISCOVERED" | "CATALOGUED" | "BENCHMARKED" | "HARDENED" | "DISABLED" | "REJECTED" | "DEFERRED";
 export type ProductionAuthorization = "AUTHORIZED" | "NOT_AUTHORIZED";
@@ -62,8 +71,8 @@ export interface BaseProviderRequest {
   inputArtifact?: ArtifactReference; mediaType: string; languageHints: readonly string[]; mode: ExecutionMode; policySnapshot: ProviderPolicySnapshot; executionLimits: ExecutionLimits; provenanceContext: ProvenanceContext;
 }
 export interface DatasetProviderRequest extends BaseProviderRequest { providerFamily: "DATASET_VALIDATION"; payload: { delimiter: "," | "\t" | ";"; hasHeader: boolean; expectedColumns: readonly string[] } }
-export interface HtmlProviderRequest extends BaseProviderRequest { providerFamily: "HTML_EXTRACTION"; payload: { extractText: boolean; extractLinks: boolean; extractMetadata: boolean; structuralMode: "BASELINE" | "DOM" } }
-export interface DocumentProviderRequest extends BaseProviderRequest { providerFamily: "DOCUMENT_PROCESSING"; payload: { inspectionOnly: boolean; extractLayout: boolean; extractSections: boolean; extractTables: boolean; pageRange: { first: number; last: number } | null } }
+export interface HtmlProviderRequest extends BaseProviderRequest { providerFamily: "HTML_EXTRACTION"; payload: { extractText: boolean; extractLinks: boolean; extractMetadata: boolean; structuralMode: "BASELINE" | "DOM"; normalization?: NormalizationRequestPayload } }
+export interface DocumentProviderRequest extends BaseProviderRequest { providerFamily: "DOCUMENT_PROCESSING"; payload: { inspectionOnly: boolean; extractLayout: boolean; extractSections: boolean; extractTables: boolean; pageRange: { first: number; last: number } | null; normalization?: NormalizationRequestPayload } }
 export interface StaticAcquisitionProviderRequest extends BaseProviderRequest { providerFamily: "STATIC_ACQUISITION"; governedSource: { scheme: "http" | "https"; host: string; port: number; relativeRoute: string }; payload: { obeyRobots: boolean; discoverLinks: boolean } }
 export interface BrowserAcquisitionProviderRequest extends BaseProviderRequest { providerFamily: "BROWSER_ACQUISITION"; governedSource: { scheme: "http" | "https"; host: string; port: number; relativeRoute: string }; payload: { waitUntil: "LOAD" | "DOM_CONTENT_LOADED" | "NETWORK_IDLE"; allowDownloads: boolean; allowPopups: false } }
 export type ProviderRequest = DatasetProviderRequest | HtmlProviderRequest | DocumentProviderRequest | StaticAcquisitionProviderRequest | BrowserAcquisitionProviderRequest;
