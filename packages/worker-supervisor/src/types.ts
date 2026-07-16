@@ -9,20 +9,22 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-07-15
+ * Last modified: 2026-07-16
  */
 
 export interface WorkerRequest {
   contractVersion: string; correlationId: string; causationId: string | null;
   jobId: string; attemptId: string; messageType: "WORKER_REQUEST"; sentAt: string;
-  operation: "DOCUMENT_CONVERSION" | "CONTENT_EXTRACTION" | "DATASET_TRANSFORM";
+  operation: "DOCUMENT_CONVERSION" | "CONTENT_EXTRACTION" | "DATASET_TRANSFORM" | "STATIC_ACQUISITION" | "BROWSER_ACQUISITION";
   provider: { providerId: string; providerVersion: string; adapterVersion: string };
   policySnapshot: { stagingPrefix: string; [key: string]: unknown };
-  payload: { operation: string; outputStagingPrefix: string; providerOptions: Record<string, unknown>; [key: string]: unknown };
+  payload: { operation: string; outputStagingPrefix: string; providerOptions?: Record<string, unknown>; [key: string]: unknown };
 }
 export interface WorkerMessage { messageType: string; sequence: number; contractVersion: string; correlationId: string; jobId: string; attemptId: string; [key: string]: unknown }
 export interface SupervisorOptions {
   pythonExecutable: string; workerEntryPoint: string; workingDirectory: string;
+  runtime?: "PYTHON" | "NODE";
+  temporaryDirectory?: string;
   timeoutMs: number; cancellationGraceMs: number; maximumLineBytes: number;
   maximumMessages: number; maximumProgress: number; maximumStderrBytes: number;
   environment?: { FLAHA_WORKER_TEST_MARKER?: string };

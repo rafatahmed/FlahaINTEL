@@ -17,9 +17,15 @@
     "taxonomy:validate": "tsx src/taxonomy/validateTaxonomies.ts",
     "governance:seed": "node --env-file=../../.env --import tsx src/governance/seedGovernedData.ts",
     "governance:backfill-sources": "node --env-file=../../.env --import tsx src/governance/backfillSourceMetadata.ts"
+    ,"ingest:create-acquisition": "node --env-file=../../.env --import tsx src/acquisition/cli.ts create"
+    ,"ingest:worker:once": "node --env-file=../../.env --import tsx src/acquisition/cli.ts worker-once"
+    ,"ingest:job": "node --env-file=../../.env --import tsx src/acquisition/cli.ts job"
+    ,"ingest:artifact": "node --env-file=../../.env --import tsx src/acquisition/cli.ts artifact"
   },
   "dependencies": {
+    "@flaha-intel/artifact-store": "0.1.0",
     "@flaha-intel/ingestion-provider-core": "0.1.0",
+    "@flaha-intel/worker-supervisor": "0.1.0",
     "@fastify/cors": "latest",
     "@prisma/client": "6.19.0",
     "fastify": "latest",

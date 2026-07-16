@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/acquisition-result.schema.json",
+  "title": "AcquisitionWorkerResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "executionId", "providerId", "providerVersion", "capability", "status", "finalUrl", "redirectChain", "headers", "discoveredLinks", "networkInventory", "downloads", "popups", "robotsDecision", "artifacts"],
+  "properties": {
+    "operation": { "enum": ["STATIC_ACQUISITION", "BROWSER_ACQUISITION"] },
+    "executionId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "providerId": { "enum": ["acquisition.scrapy", "acquisition.playwright"] },
+    "providerVersion": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "capability": { "enum": ["STATIC_HTTP_ACQUISITION", "CONTROLLED_CRAWLING", "LINK_DISCOVERY", "JAVASCRIPT_RENDERING", "RENDERED_DOM_CAPTURE"] },
+    "status": { "type": "integer", "minimum": 0, "maximum": 599 },
+    "finalUrl": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "redirectChain": { "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 4096 } },
+    "headers": { "type": "object", "maxProperties": 256, "additionalProperties": { "type": "string", "maxLength": 8192 } },
+    "discoveredLinks": { "type": "array", "maxItems": 1000, "items": { "type": "string", "maxLength": 4096 } },
+    "networkInventory": { "type": "array", "maxItems": 5000, "items": { "type": "object" } },
+    "downloads": { "type": "array", "maxItems": 100, "items": { "type": "object" } },
+    "popups": { "type": "array", "maxItems": 100, "items": { "type": "object" } },
+    "robotsDecision": { "enum": ["ALLOW", "DENY", "NOT_APPLICABLE"] },
+    "artifacts": { "type": "array", "minItems": 3, "maxItems": 5, "items": { "type": "object", "additionalProperties": false, "required": ["artifactId", "role", "mediaType", "stagingKey", "byteLength", "checksum", "writeComplete"], "properties": { "artifactId": { "$ref": "common.schema.json#/$defs/uuid" }, "role": { "enum": ["RAW_RESPONSE", "RENDERED_HTML", "METADATA", "RESULT", "DIAGNOSTIC"] }, "mediaType": { "$ref": "common.schema.json#/$defs/mediaType" }, "stagingKey": { "type": "string", "pattern": "^staging/[A-Za-z0-9._/-]+$", "maxLength": 512 }, "byteLength": { "$ref": "common.schema.json#/$defs/safeInteger" }, "checksum": { "$ref": "common.schema.json#/$defs/sha256" }, "writeComplete": { "const": true } } } }
+  }
+}

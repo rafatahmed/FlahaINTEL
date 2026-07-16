@@ -24,10 +24,10 @@ const tokenHash = (token: string): string => createHash("sha256").update(token).
 const PRIORITY = Object.freeze({ CRITICAL: 4, HIGH: 3, NORMAL: 2, LOW: 1 } as const);
 type JobType = "DATASET_VALIDATION" | "HTML_EXTRACTION" | "DOCUMENT_PROCESSING" | "STATIC_ACQUISITION" | "BROWSER_ACQUISITION";
 type Priority = keyof typeof PRIORITY;
-export type SourceLocator = { kind: "GOVERNED_URL"; origin: string; path: string } | { kind: "ARTIFACT_ONLY"; artifactId: string };
+export type SourceLocator = { kind: "GOVERNED_URL"; origin: string; path: string } | { kind: "GOVERNED_ACQUISITION"; scheme: "http" | "https"; host: string; port: number; relativeRoute: string; fixture: boolean } | { kind: "ARTIFACT_ONLY"; artifactId: string };
 export interface CreateJobCommand { jobType: JobType; idempotencyKey: string; priority?: Priority; maxAttempts?: number; request: ProviderRequest; sourceLocator?: SourceLocator; actor: Actor; }
 export interface Claim { job: IngestionJob; attempt: IngestionAttempt; leaseToken: string; }
-const artifactRelationship = (role: string) => ({ INPUT: "INPUT", OUTPUT: "RESULT", MARKDOWN: "EXTRACTED_TEXT", STRUCTURED: "STRUCTURE", TABLE: "TABLE", LOG: "DIAGNOSTIC", IMAGE: "RESULT", PARQUET: "RESULT", MANIFEST: "METADATA" } as const)[role as "INPUT"] ?? "RESULT";
+const artifactRelationship = (artifact: { role: string; key: string }) => artifact.key.startsWith("raw/") ? "RAW_RESPONSE" : artifact.key.startsWith("rendered/") ? "RENDERED_HTML" : artifact.key.startsWith("metadata/") ? "METADATA" : artifact.key.startsWith("diagnostic/") ? "DIAGNOSTIC" : ({ INPUT: "INPUT", OUTPUT: "RESULT", MARKDOWN: "EXTRACTED_TEXT", STRUCTURED: "STRUCTURE", TABLE: "TABLE", LOG: "DIAGNOSTIC", IMAGE: "RESULT", PARQUET: "RESULT", MANIFEST: "METADATA" } as const)[artifact.role as "INPUT"] ?? "RESULT";
 function boundedTake(take: number): number {
   if (!Number.isInteger(take) || take < 1 || take > 100) throw new IngestionJobError("INVALID_PAGE_SIZE", "Page size must be between 1 and 100.");
   return take;
@@ -38,6 +38,10 @@ function validateSource(locator: SourceLocator | undefined, request: ProviderReq
   if (!locator) return;
   if (locator.kind === "ARTIFACT_ONLY") {
     if (!/^[0-9a-f-]{36}$/i.test(locator.artifactId)) throw new IngestionJobError("INVALID_SOURCE_LOCATOR", "Artifact locator is invalid.");
+    return;
+  }
+  if (locator.kind === "GOVERNED_ACQUISITION") {
+    if (!/^[A-Za-z0-9.-]+$/.test(locator.host) || !Number.isInteger(locator.port) || locator.port < 1 || locator.port > 65535 || !locator.relativeRoute.startsWith("/") || locator.relativeRoute.startsWith("//")) throw new IngestionJobError("INVALID_SOURCE_LOCATOR", "Acquisition locator is invalid.");
     return;
   }
   const url = new URL(locator.origin);
@@ -150,7 +154,7 @@ export class IngestionJobService {
     if (result.outcome !== "SUCCESS") throw new IngestionJobError("RESULT_NOT_SUCCESS", "Failure result must use failAttempt."); assertTransition(current.job.state, "SUCCEEDED");
     return this.db.$transaction(async tx => { const now = new Date();
       const previousAttempts = await tx.ingestionAttempt.findMany({ where: { jobId, attemptNumber: { lt: current.attemptNumber } }, orderBy: { attemptNumber: "asc" }, select: { providerId: true, fallbackReason: true, errorCode: true } });
-      for (const artifact of result.artifacts) await tx.ingestionArtifactLink.create({ data: { jobId, attemptId, artifactId: artifact.artifactId, relationship: artifactRelationship(artifact.role), mediaType: artifact.mediaType, sha256: artifact.checksum, byteSize: BigInt(artifact.byteLength) } });
+      for (const artifact of result.artifacts) await tx.ingestionArtifactLink.create({ data: { jobId, attemptId, artifactId: artifact.artifactId, relationship: artifactRelationship(artifact), mediaType: artifact.mediaType, sha256: artifact.checksum, byteSize: BigInt(artifact.byteLength) } });
       await tx.ingestionProvenance.create({ data: { jobId, attemptId, providerId: result.providerId, providerVersion: result.providerVersion, contractVersion: result.contractVersion, capability: result.capability,
         policyVersion: result.policyVersion, selectionSnapshot: json(current.job.selectionDecision), fallbackHistory: json(previousAttempts.map(attempt => ({ providerId: attempt.providerId, reason: attempt.fallbackReason ?? attempt.errorCode ?? "PRIMARY_PROVIDER_TECHNICAL_FAILURE" }))), runtimeEvidence: json({ executionId: result.executionId }), inputHashes: request.inputArtifact ? [request.inputArtifact.checksum] : [], outputHashes: result.artifacts.map(a => a.checksum), determinismClassification: descriptor.determinismLevel, startedAt: new Date(result.startedAt), completedAt: new Date(result.completedAt) } });
       await tx.ingestionAttempt.update({ where: { id: attemptId }, data: { state: "SUCCEEDED", completedAt: now, resultEnvelope: json(result), metrics: json(result.metrics), leaseOwner: null, leaseTokenHash: null, leaseExpiresAt: null } });

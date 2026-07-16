@@ -19,7 +19,7 @@
     "providerDescriptor": { "$ref": "provider-descriptor.schema.json" },
     "warnings": { "type": "array", "maxItems": 1000, "items": { "$ref": "ingestion-warning.schema.json" } },
     "metrics": { "$ref": "common.schema.json#/$defs/resourceMetrics" },
-    "result": { "oneOf": [{ "$ref": "document-conversion-result.schema.json" }, { "$ref": "extraction-result.schema.json" }, { "$ref": "dataset-transform-result.schema.json" }, { "type": "null" }] },
+    "result": { "oneOf": [{ "$ref": "document-conversion-result.schema.json" }, { "$ref": "extraction-result.schema.json" }, { "$ref": "dataset-transform-result.schema.json" }, { "$ref": "acquisition-result.schema.json" }, { "type": "null" }] },
     "error": {
       "oneOf": [
         { "type": "null" },

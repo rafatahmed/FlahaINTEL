@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-07-15
+ * Last modified: 2026-07-16
  */
 
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
@@ -44,6 +44,9 @@ export class WorkerSupervisor {
       const timeout = setTimeout(() => { failure = new WorkerTimeoutError("Worker exceeded its wall-clock timeout."); forcedTermination = true; void terminateProcessTree(child!); }, this.options.timeoutMs);
       child.stderr.on("data", chunk => {
         const text = Buffer.from(chunk).toString("utf8");
+        if (Buffer.byteLength(stderr) + Buffer.byteLength(text) > this.options.maximumStderrBytes) {
+          failure = new WorkerProtocolError("Worker exceeded the stderr limit."); forcedTermination = true; void terminateProcessTree(child!); return;
+        }
         if (stderr.length < this.options.maximumStderrBytes) {
           const bounded = text.slice(0, this.options.maximumStderrBytes - stderr.length);
           stderr += bounded;
@@ -56,6 +59,7 @@ export class WorkerSupervisor {
           for (const value of decoder.push(Buffer.from(chunk))) {
             if (++messageCount > this.options.maximumMessages) throw new WorkerProtocolError("Worker exceeded the message limit.");
             const message = this.validator.validateShape(value); this.validator.validateOwnership(message, request);
+            if (messageCount === 1 && request.operation.endsWith("_ACQUISITION") && (message.messageType !== "WORKER_PROGRESS" || message.sequence !== 0 || message.stage !== "PROBE" || message.status !== "STARTED")) throw new WorkerProtocolError("Acquisition worker did not complete the protocol handshake.");
             if (terminal) throw new WorkerProtocolError("Worker emitted a message after its terminal result.");
             if (message.sequence <= lastSequence) throw new WorkerProtocolError("Worker sequence did not strictly increase.");
             lastSequence = message.sequence;

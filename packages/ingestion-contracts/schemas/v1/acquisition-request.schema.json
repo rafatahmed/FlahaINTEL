@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.flahaintel.local/ingestion/v1/acquisition-request.schema.json",
+  "title": "AcquisitionWorkerPayload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "outputStagingPrefix", "executionId", "capability", "governedLocator", "networkPolicy", "executionLimits", "artifactAllocations", "deadline"],
+  "properties": {
+    "operation": { "enum": ["STATIC_ACQUISITION", "BROWSER_ACQUISITION"] },
+    "outputStagingPrefix": { "type": "string", "pattern": "^staging/[A-Za-z0-9._/-]+$", "maxLength": 512 },
+    "executionId": { "$ref": "common.schema.json#/$defs/uuid" },
+    "capability": { "enum": ["STATIC_HTTP_ACQUISITION", "CONTROLLED_CRAWLING", "LINK_DISCOVERY", "JAVASCRIPT_RENDERING", "RENDERED_DOM_CAPTURE"] },
+    "governedLocator": {
+      "type": "object", "additionalProperties": false, "required": ["scheme", "host", "port", "relativeRoute"],
+      "properties": { "scheme": { "enum": ["http", "https"] }, "host": { "type": "string", "minLength": 1, "maxLength": 253 }, "port": { "type": "integer", "minimum": 1, "maximum": 65535 }, "relativeRoute": { "type": "string", "pattern": "^/[^/].*|^/$", "maxLength": 4096 } }
+    },
+    "networkPolicy": { "type": "object", "additionalProperties": false, "required": ["mode", "allowedOrigin"], "properties": { "mode": { "const": "EXACT_ORIGIN" }, "allowedOrigin": { "type": "string", "pattern": "^https?://[^/]+$", "maxLength": 512 } } },
+    "executionLimits": { "type": "object", "additionalProperties": false, "required": ["maxDepth", "maxUrls", "maxRedirects", "maxNetworkRequests", "maxDownloads", "maxPopups", "maxResponseBytes", "wallTimeoutMs"], "properties": { "maxDepth": { "type": "integer", "minimum": 0, "maximum": 16 }, "maxUrls": { "type": "integer", "minimum": 0, "maximum": 1000 }, "maxRedirects": { "type": "integer", "minimum": 0, "maximum": 16 }, "maxNetworkRequests": { "type": "integer", "minimum": 0, "maximum": 5000 }, "maxDownloads": { "type": "integer", "minimum": 0, "maximum": 100 }, "maxPopups": { "type": "integer", "minimum": 0, "maximum": 100 }, "maxResponseBytes": { "type": "integer", "minimum": 0, "maximum": 100000000 }, "wallTimeoutMs": { "type": "integer", "minimum": 1000, "maximum": 300000 } } },
+    "artifactAllocations": { "type": "array", "minItems": 3, "maxItems": 5, "uniqueItems": true, "items": { "type": "object", "additionalProperties": false, "required": ["artifactId", "role", "mediaType", "stagingKey", "maximumBytes"], "properties": { "artifactId": { "$ref": "common.schema.json#/$defs/uuid" }, "role": { "enum": ["RAW_RESPONSE", "RENDERED_HTML", "METADATA", "RESULT", "DIAGNOSTIC"] }, "mediaType": { "$ref": "common.schema.json#/$defs/mediaType" }, "stagingKey": { "type": "string", "pattern": "^staging/[A-Za-z0-9._/-]+$", "maxLength": 512 }, "maximumBytes": { "$ref": "common.schema.json#/$defs/safeInteger" } } } },
+    "deadline": { "$ref": "common.schema.json#/$defs/utcTimestamp" }
+  }
+}

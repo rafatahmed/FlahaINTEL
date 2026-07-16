@@ -23,4 +23,5 @@ __pycache__/
 .benchmark-runtime/
 .benchmark-browsers/
 .benchmark-cache/
+.flaha-artifacts/
 benchmarks/ingestion/generated-corpus/

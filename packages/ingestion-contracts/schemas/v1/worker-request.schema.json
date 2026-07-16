@@ -13,20 +13,22 @@
     "attemptId": { "$ref": "common.schema.json#/$defs/uuid" },
     "messageType": { "const": "WORKER_REQUEST" },
     "sentAt": { "$ref": "common.schema.json#/$defs/utcTimestamp" },
-    "operation": { "enum": ["DOCUMENT_CONVERSION", "CONTENT_EXTRACTION", "DATASET_TRANSFORM"] },
+    "operation": { "enum": ["DOCUMENT_CONVERSION", "CONTENT_EXTRACTION", "DATASET_TRANSFORM", "STATIC_ACQUISITION", "BROWSER_ACQUISITION"] },
     "provider": { "$ref": "common.schema.json#/$defs/providerIdentity" },
     "policySnapshot": { "$ref": "policy-snapshot.schema.json" },
     "payload": {
       "oneOf": [
         { "$ref": "document-conversion-request.schema.json" },
         { "$ref": "extraction-request.schema.json" },
-        { "$ref": "dataset-transform-request.schema.json" }
+        { "$ref": "dataset-transform-request.schema.json" },
+        { "$ref": "acquisition-request.schema.json" }
       ]
     }
   },
   "allOf": [
     { "if": { "properties": { "operation": { "const": "DOCUMENT_CONVERSION" } }, "required": ["operation"] }, "then": { "properties": { "policySnapshot": { "properties": { "operation": { "const": "DOCUMENT_CONVERSION" } } }, "payload": { "$ref": "document-conversion-request.schema.json" } } } },
     { "if": { "properties": { "operation": { "const": "CONTENT_EXTRACTION" } }, "required": ["operation"] }, "then": { "properties": { "policySnapshot": { "properties": { "operation": { "const": "CONTENT_EXTRACTION" } } }, "payload": { "$ref": "extraction-request.schema.json" } } } },
-    { "if": { "properties": { "operation": { "const": "DATASET_TRANSFORM" } }, "required": ["operation"] }, "then": { "properties": { "policySnapshot": { "properties": { "operation": { "const": "DATASET_TRANSFORM" } } }, "payload": { "$ref": "dataset-transform-request.schema.json" } } } }
+    { "if": { "properties": { "operation": { "const": "DATASET_TRANSFORM" } }, "required": ["operation"] }, "then": { "properties": { "policySnapshot": { "properties": { "operation": { "const": "DATASET_TRANSFORM" } } }, "payload": { "$ref": "dataset-transform-request.schema.json" } } } },
+    { "if": { "properties": { "operation": { "enum": ["STATIC_ACQUISITION", "BROWSER_ACQUISITION"] } }, "required": ["operation"] }, "then": { "properties": { "payload": { "$ref": "acquisition-request.schema.json" } } } }
   ]
 }

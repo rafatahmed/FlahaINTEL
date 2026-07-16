@@ -70,6 +70,38 @@ export class FilesystemArtifactStore {
     return this.allocate({ ...owner, artifactId: randomUUID(), maximumBytes });
   }
 
+  governedRootPath(): string { this.ensureInitialized(); return this.root; }
+
+  async beginExternalWrite(artifactId: string, owner: ArtifactOwner): Promise<ArtifactMetadata> {
+    this.ensureInitialized();
+    const allocated = await this.repository.get(artifactId);
+    if (!allocated) throw new ArtifactNotFoundError("Artifact allocation was not found.");
+    this.assertOwner(allocated, owner);
+    const writing = await this.repository.compareAndSet(artifactId, ["ALLOCATED"], current => ({ ...current, state: "WRITING", updatedAt: now() }));
+    const absolute = resolveLogicalKey(this.root, writing.stagingKey);
+    await this.prepareParent(absolute);
+    const handle = await open(absolute, "wx", 0o600); await handle.close();
+    return writing;
+  }
+
+  async sealExternalWrite(artifactId: string, owner: ArtifactOwner, reportedByteLength: number, reportedChecksum: string): Promise<ArtifactMetadata> {
+    this.ensureInitialized();
+    const metadata = await this.repository.get(artifactId);
+    if (!metadata) throw new ArtifactNotFoundError("Artifact allocation was not found.");
+    this.assertOwner(metadata, owner);
+    if (metadata.state !== "WRITING") throw new ArtifactStateError("Only an active external write can be sealed.");
+    const absolute = resolveLogicalKey(this.root, metadata.stagingKey);
+    try {
+      await assertNoLinkedComponents(this.root, absolute);
+      const links = await lstat(absolute); if (!links.isFile() || links.isSymbolicLink()) throw new ArtifactIntegrityError("External artifact is not a regular governed file.");
+      const actual = await hashFile(absolute);
+      if (actual.byteLength > metadata.maximumBytes) throw new ArtifactLimitError("External artifact exceeded its allocation.");
+      if (actual.byteLength !== reportedByteLength || actual.checksum !== reportedChecksum) throw new ArtifactIntegrityError("External artifact report does not match staged bytes.");
+      await chmod(absolute, 0o444);
+      return this.repository.compareAndSet(artifactId, ["WRITING"], current => ({ ...current, state: "SEALED", byteLength: actual.byteLength, checksum: actual.checksum, updatedAt: now(), diagnostic: null }));
+    } catch (error) { await this.quarantine(artifactId, owner, boundedDiagnostic(error)).catch(() => undefined); throw error; }
+  }
+
   async write(artifactId: string, owner: ArtifactOwner, source: ByteSource): Promise<ArtifactMetadata> {
     this.ensureInitialized();
     const allocated = await this.repository.get(artifactId);
@@ -208,7 +240,7 @@ export class FilesystemArtifactStore {
     const metadata = await this.repository.get(artifactId);
     if (!metadata) throw new ArtifactNotFoundError("Artifact allocation was not found.");
     this.assertOwner(metadata, owner);
-    if (!["SEALED", "VERIFIED"].includes(metadata.state)) throw new ArtifactStateError("Only sealed or verified artifacts can be quarantined.");
+    if (!["ALLOCATED", "WRITING", "SEALED", "VERIFIED"].includes(metadata.state)) throw new ArtifactStateError("Only unpromoted artifacts can be quarantined.");
     const quarantineKey = validateLogicalKey(`quarantine/${metadata.jobId}/${metadata.attemptId}/${metadata.artifactId}/payload`);
     const source = resolveLogicalKey(this.root, metadata.stagingKey);
     const target = resolveLogicalKey(this.root, quarantineKey);

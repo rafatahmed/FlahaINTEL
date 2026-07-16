@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-07-15
+ * Last modified: 2026-07-16
  */
 
 import { readFile } from "node:fs/promises";
@@ -42,6 +42,19 @@ export class ProtocolValidator {
     if (message.messageType === "WORKER_RESULT") {
       const result = message.result as Record<string, unknown> | null;
       if (message.outcome === "SUCCEEDED" && (!result || result.operation !== request.operation)) throw new WorkerProtocolError("Worker result operation does not match the request.");
+      if (message.providerDescriptor && (message.providerDescriptor as Record<string, unknown>).providerId !== request.provider.providerId) throw new WorkerProtocolError("Worker provider identity does not match the request.");
+      if (result && request.operation.endsWith("_ACQUISITION")) {
+        if (result.executionId !== request.payload.executionId) throw new WorkerProtocolError("Worker execution identity does not match the request.");
+        if (result.providerId !== request.provider.providerId || result.providerVersion !== request.provider.providerVersion) throw new WorkerProtocolError("Worker acquisition provider does not match the request.");
+        if (result.capability !== request.payload.capability) throw new WorkerProtocolError("Worker acquisition capability does not match the request.");
+        const allocations = new Map(((request.payload.artifactAllocations as Array<Record<string, unknown>>) ?? []).map(value => [value.artifactId, value]));
+        const artifacts = (result.artifacts as Array<Record<string, unknown>>) ?? []; const seen = new Set<unknown>();
+        for (const artifact of artifacts) {
+          const allocation = allocations.get(artifact.artifactId); if (!allocation || seen.has(artifact.artifactId)) throw new WorkerProtocolError("Worker returned an unknown or duplicate artifact allocation.");
+          if (artifact.role !== allocation.role || artifact.mediaType !== allocation.mediaType || artifact.stagingKey !== allocation.stagingKey) throw new WorkerProtocolError("Worker artifact authority does not match its allocation.");
+          seen.add(artifact.artifactId);
+        }
+      }
       this.validateStagingReferences(result, request.policySnapshot.stagingPrefix);
     }
   }

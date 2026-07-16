@@ -524,7 +524,8 @@ Each gate requires an explicit approval before implementation and stops with evi
    - **3E-I — OCR:** omitted from the current implementation program; future optional development only.
    - **3E-J — crawler and browser:** governed crawler/browser evaluation; comparative benchmark completed with Scrapy as the primary static benchmark engine and Playwright as the dynamic fallback, without production registration.
 6. **3F — Provider framework:** complete; provider-neutral catalogue, contracts, registry, selection, fallback, validation and production-authorization gates are implemented without production registration.
-7. **3G — Durable jobs and database persistence:** active; durable queue, lease, attempt, retry, cancellation and provenance persistence are implemented and under acceptance validation.
+7. **3G — Durable jobs and database persistence:** complete; durable queue, lease, attempt, retry, cancellation and provenance persistence are accepted.
+8. **3H — Acquisition workflow:** active; controlled durable Scrapy and Playwright acquisition connects governed jobs to immutable acquisition artifacts.
 8. **3H — Acquisition pipeline:** production acquisition work begins here.
 9. **3I — Extraction routing:** production extraction-routing work begins here.
 10. **3J — Normalization pipeline:** production normalization work begins here.
