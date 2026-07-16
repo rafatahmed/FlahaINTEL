@@ -176,8 +176,8 @@ export const GOVERNANCE_TRANSITIONS: readonly TransitionRule[] = Object.freeze([
 
 export const ROLE_PERMISSIONS = Object.freeze({
   VIEWER: Object.freeze(["inspect"] as const),
-  ANALYST: Object.freeze(["inspect", "note", "request_correction"] as const),
-  REVIEWER: Object.freeze(["inspect", "note", "assign", "approve", "reject", "hold", "release_hold", "request_correction", "withdraw", "relationship"] as const),
+  ANALYST: Object.freeze(["inspect", "note", "request_correction", "create_candidate"] as const),
+  REVIEWER: Object.freeze(["inspect", "note", "assign", "approve", "reject", "hold", "release_hold", "request_correction", "withdraw", "relationship", "create_candidate"] as const),
   GOVERNANCE_ADMIN: Object.freeze([
     "inspect", "note", "assign", "approve", "reject", "hold", "release_hold", "request_correction",
     "withdraw", "withdraw_approval", "mark_eligible", "mark_promoted", "relationship", "source_policy", "create_candidate",

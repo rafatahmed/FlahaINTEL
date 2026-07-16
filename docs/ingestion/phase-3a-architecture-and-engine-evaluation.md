@@ -528,8 +528,8 @@ Each gate requires an explicit approval before implementation and stops with evi
 8. **3H — Acquisition workflow:** complete; controlled durable Scrapy and Playwright acquisition connects governed jobs to immutable acquisition artifacts.
 9. **3I — Extraction routing:** complete; durable offline routing from canonical acquisition artifacts to extraction artifacts is accepted.
 10. **3J — Normalization pipeline:** complete; provider-neutral content normalization from verified extraction artifacts.
-11. **3K — Governance and review workflow:** active; governed candidates, deterministic checks, analyst decisions, and promotion eligibility.
-12. **3L — API and UI:** ingestion API and user-interface work begins here (not started).
+11. **3K — Governance and review workflow:** complete; governed candidates, deterministic checks, analyst decisions, and promotion eligibility.
+12. **3L — API and UI:** active; operational FlahaINTEL product shell over the durable pipeline (3M not started).
 13. **3M — Production hardening:** production security, reliability, deployment, and operational hardening begins here.
 
 ### Phase-number protection

@@ -69,8 +69,8 @@ export function resolveTransitionTarget(
 export function assertRolePermission(role: GovernanceRole, permission: string): void {
   const map: Record<GovernanceRole, readonly string[]> = {
     VIEWER: ["inspect"],
-    ANALYST: ["inspect", "note", "request_correction"],
-    REVIEWER: ["inspect", "note", "assign", "approve", "reject", "hold", "release_hold", "request_correction", "withdraw", "relationship"],
+    ANALYST: ["inspect", "note", "request_correction", "create_candidate"],
+    REVIEWER: ["inspect", "note", "assign", "approve", "reject", "hold", "release_hold", "request_correction", "withdraw", "relationship", "create_candidate"],
     GOVERNANCE_ADMIN: [
       "inspect", "note", "assign", "approve", "reject", "hold", "release_hold", "request_correction",
       "withdraw", "withdraw_approval", "mark_eligible", "mark_promoted", "relationship", "source_policy", "create_candidate",

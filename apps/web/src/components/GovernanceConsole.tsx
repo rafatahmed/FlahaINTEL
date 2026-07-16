@@ -28,6 +28,7 @@ import {
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, setGovernanceAuth } from "../api";
+import { useAuth } from "../auth";
 import type {
   GovernanceCandidate,
   GovernanceDecision,
@@ -68,12 +69,13 @@ function asStringList(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
-export function GovernanceConsole() {
-  const [userId, setUserId] = useState(localStorage.getItem("flaha.governance.userId") ?? "");
-  const [tenantId, setTenantId] = useState(localStorage.getItem("flaha.governance.tenantId") ?? "");
+export function GovernanceConsole(props: { initialCandidateId?: string | null; hideAuthForm?: boolean } = {}) {
+  const { auth } = useAuth();
+  const [userId, setUserId] = useState(auth?.userId ?? localStorage.getItem("flaha.governance.userId") ?? "");
+  const [tenantId, setTenantId] = useState(auth?.tenantId ?? localStorage.getItem("flaha.governance.tenantId") ?? "");
   const [stateFilter, setStateFilter] = useState<string>("");
   const [candidates, setCandidates] = useState<GovernanceCandidate[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(props.initialCandidateId ?? null);
   const [detail, setDetail] = useState<GovernanceCandidate | null>(null);
   const [evidence, setEvidence] = useState<GovernanceEvidence | null>(null);
   const [preview, setPreview] = useState<GovernancePreview | null>(null);
@@ -84,17 +86,30 @@ export function GovernanceConsole() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const authed = Boolean(userId && tenantId);
+  useEffect(() => {
+    if (auth?.userId && auth.tenantId) {
+      setUserId(auth.userId);
+      setTenantId(auth.tenantId);
+    }
+  }, [auth]);
+
+  useEffect(() => {
+    if (props.initialCandidateId) setSelectedId(props.initialCandidateId);
+  }, [props.initialCandidateId]);
+
+  const authed = Boolean((auth?.userId && auth.tenantId) || (userId && tenantId));
 
   useEffect(() => {
     if (authed) {
-      setGovernanceAuth({ userId, tenantId });
-      localStorage.setItem("flaha.governance.userId", userId);
-      localStorage.setItem("flaha.governance.tenantId", tenantId);
+      const u = auth?.userId || userId;
+      const t = auth?.tenantId || tenantId;
+      setGovernanceAuth({ userId: u, tenantId: t });
+      localStorage.setItem("flaha.governance.userId", u);
+      localStorage.setItem("flaha.governance.tenantId", t);
     } else {
       setGovernanceAuth(null);
     }
-  }, [authed, userId, tenantId]);
+  }, [authed, userId, tenantId, auth]);
 
   const loadQueue = useCallback(async () => {
     if (!authed) return;
@@ -171,12 +186,15 @@ export function GovernanceConsole() {
   }
 
   if (!authed) {
+    if (props.hideAuthForm) {
+      return <Alert severity="warning">Sign in to the FlahaINTEL shell to use governance review.</Alert>;
+    }
     return (
       <Box sx={{ maxWidth: 640 }}>
         <Stack spacing={2}>
           <Typography variant="h5">Governance review (internal)</Typography>
           <Typography variant="body2" color="text.secondary">
-            Authenticate with your tenant membership headers. Actor identity is never taken from decision payloads.
+            Authenticate with your tenant membership. Actor identity is never taken from decision payloads.
           </Typography>
           <TextField label="User ID" value={userId} onChange={(e) => setUserId(e.target.value)} fullWidth />
           <TextField label="Tenant ID" value={tenantId} onChange={(e) => setTenantId(e.target.value)} fullWidth />

@@ -152,6 +152,7 @@ model RssSource {
   collectionRuns     CollectionRun[]
   governanceCandidates GovernanceCandidate[]
   sourceGovernancePolicies SourceGovernancePolicy[]
+  productSubmissions ProductSubmission[]
 
   @@index([enabled])
 }
@@ -615,6 +616,7 @@ model UserAccount {
   assignmentsReceived GovernanceAssignment[] @relation("AssignmentReviewer")
   eligibilityEvaluations PromotionEligibility[] @relation("EligibilityEvaluator")
   sourcePoliciesOwned SourceGovernancePolicy[] @relation("SourcePolicyOwner")
+  submissions ProductSubmission[] @relation("SubmissionCreator")
 
   @@index([active])
 }
@@ -630,6 +632,7 @@ model Tenant {
   candidates  GovernanceCandidate[]
   sourcePolicies SourceGovernancePolicy[]
   decisions   GovernanceDecision[]
+  submissions ProductSubmission[]
 
   @@index([active])
 }
@@ -826,4 +829,113 @@ model CandidateRelationship {
   @@unique([fromCandidateId, toCandidateId, relationshipType])
   @@index([toCandidateId, relationshipType])
   @@index([fromCandidateId, relationshipType])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3L — Product submissions and stage tracking
+// ---------------------------------------------------------------------------
+
+enum ProductSubmissionType {
+  WEBSITE_URL
+  DOCUMENT_UPLOAD
+  RSS_SOURCE
+}
+
+enum ProductSubmissionStatus {
+  ACCEPTED
+  RUNNING
+  WAITING_MANUAL
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REJECTED
+}
+
+enum ProductSubmissionStageKind {
+  INPUT
+  ACQUISITION
+  EXTRACTION
+  NORMALIZATION
+  GOVERNANCE
+}
+
+enum ProductSubmissionStageStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  CANCELLED
+  REJECTED
+}
+
+enum ProductChainMode {
+  AUTO_CHAIN
+  MANUAL_STAGE
+}
+
+model ProductSubmission {
+  id                     String                   @id @default(uuid()) @db.Uuid
+  tenantId               String                   @db.Uuid
+  tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  submissionType         ProductSubmissionType
+  overallStatus          ProductSubmissionStatus  @default(ACCEPTED)
+  currentStage           ProductSubmissionStageKind @default(INPUT)
+  chainMode              ProductChainMode         @default(AUTO_CHAIN)
+  sourceId               String?                  @db.Uuid
+  source                 RssSource?               @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  sourceLocator          Json?
+  inputArtifactId        String?                  @db.Uuid
+  inputArtifactSha256    String?                  @db.Char(64)
+  inputMediaType         String?
+  inputByteSize          BigInt?
+  languageHint           String                   @default("en")
+  acquisitionMode        String?
+  acquisitionJobId       String?                  @db.Uuid
+  extractionJobId        String?                  @db.Uuid
+  normalizationJobId     String?                  @db.Uuid
+  governanceCandidateId  String?                  @db.Uuid
+  createdById            String                   @db.Uuid
+  createdBy              UserAccount              @relation("SubmissionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  correlationId          String
+  idempotencyKey         String                   @unique
+  lastErrorCode          String?
+  lastErrorMessage       String?                  @db.VarChar(2000)
+  titlePreview           String?
+  version                Int                      @default(0)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  stages                 ProductSubmissionStage[]
+
+  @@index([tenantId, overallStatus, createdAt])
+  @@index([tenantId, currentStage])
+  @@index([correlationId])
+  @@index([acquisitionJobId])
+  @@index([extractionJobId])
+  @@index([normalizationJobId])
+  @@index([governanceCandidateId])
+  @@index([createdById])
+}
+
+model ProductSubmissionStage {
+  id              String                       @id @default(uuid()) @db.Uuid
+  submissionId    String                       @db.Uuid
+  submission      ProductSubmission            @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  stageKind       ProductSubmissionStageKind
+  status          ProductSubmissionStageStatus @default(PENDING)
+  sequence        Int
+  jobId           String?                      @db.Uuid
+  artifactId      String?                      @db.Uuid
+  candidateId     String?                      @db.Uuid
+  errorCode       String?
+  errorMessage    String?                      @db.VarChar(2000)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  @@unique([submissionId, stageKind])
+  @@unique([submissionId, sequence])
+  @@index([jobId])
+  @@index([status])
 }

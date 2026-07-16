@@ -14,7 +14,8 @@ import { eventRoutes } from "./routes/events.js";
 import { governanceRoutes } from "./routes/governance.js";
 import { healthRoutes } from "./routes/health.js";
 import { organizationRoutes } from "./routes/organizations.js";
-import { productRoutes } from "./routes/products.js";
+import { productRoutes as productEntityRoutes } from "./routes/products.js";
+import { productRoutes as productAppRoutes } from "./routes/product.js";
 import { schedulerRoutes } from "./routes/scheduler.js";
 import { sourceRoutes } from "./routes/sources.js";
 import { taxonomyRoutes } from "./routes/taxonomy.js";
@@ -55,12 +56,13 @@ export function buildApp(dependencies: AppDependencies = {}) {
   app.register(articleClassificationRoutes(prisma), { prefix: "/api" });
   app.register(taxonomyRoutes(prisma), { prefix: "/api" });
   app.register(organizationRoutes(prisma), { prefix: "/api" });
-  app.register(productRoutes(prisma), { prefix: "/api" });
+  app.register(productEntityRoutes(prisma), { prefix: "/api" });
   app.register(entityRelationshipRoutes(prisma), { prefix: "/api" });
   app.register(eventRoutes(prisma), { prefix: "/api" });
   app.register(sourceRoutes({ prisma, coordinator, validateSourceUrl: dependencies.validateSourceUrl }), { prefix: "/api" });
   app.register(schedulerRoutes(scheduler), { prefix: "/api" });
   app.register(governanceRoutes({ prisma, store: artifactStore }), { prefix: "/api" });
+  app.register(productAppRoutes({ prisma, store: artifactStore }), { prefix: "/api" });
   app.addHook("onReady", async () => {
     await artifactStore.initialize().catch(() => undefined);
   });

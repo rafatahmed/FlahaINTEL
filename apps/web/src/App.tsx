@@ -1,47 +1,67 @@
-import { AppBar, Box, Container, CssBaseline, Tab, Tabs, Toolbar, Typography } from "@mui/material";
-import { useState } from "react";
-import { ArticleFeed } from "./components/ArticleFeed";
-import { EventWorkspace } from "./components/EventWorkspace";
+/**
+ * Flaha Agri Tech
+ * Precision Agriculture Division
+ * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+ *
+ * Title: FlahaINTEL Application Root
+ * Introduction: Phase 3L product shell wiring navigation, auth, and operational pages.
+ *
+ * Created by: Rafat Al Khashan
+ * Created date: 2026-07-16
+ * Last modified: 2026-07-16
+ */
+import { CssBaseline } from "@mui/material";
+import { useEffect, useState } from "react";
+import { api } from "./api";
+import { AuthProvider, useAuth } from "./auth";
 import { GovernanceConsole } from "./components/GovernanceConsole";
-import { OrganizationWorkspace } from "./components/OrganizationWorkspace";
-import { ProductWorkspace } from "./components/ProductWorkspace";
 import { SourceManager } from "./components/SourceManager";
-import { TaxonomyExplorer } from "./components/TaxonomyExplorer";
+import { AppShell, type NavKey } from "./layout/AppShell";
+import { ArtifactsPage } from "./pages/ArtifactsPage";
+import { ContentPage } from "./pages/ContentPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { JobsPage } from "./pages/JobsPage";
+import { LoginPage } from "./pages/LoginPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { SubmitPage } from "./pages/SubmitPage";
 
-const views = [
-  { label: "Articles", content: <ArticleFeed /> },
-  { label: "Events", content: <EventWorkspace /> },
-  { label: "Organizations", content: <OrganizationWorkspace /> },
-  { label: "Products", content: <ProductWorkspace /> },
-  { label: "Taxonomy", content: <TaxonomyExplorer /> },
-  { label: "Sources", content: <SourceManager /> },
-  { label: "Governance", content: <GovernanceConsole /> },
-];
+function Shell() {
+  const { auth, ready } = useAuth();
+  const [nav, setNav] = useState<NavKey>("dashboard");
+  const [readiness, setReadiness] = useState<string>("");
+  const [governanceFocus, setGovernanceFocus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!auth) return;
+    void api.systemReadiness().then((r) => setReadiness(r.overall)).catch(() => setReadiness("UNKNOWN"));
+  }, [auth]);
+
+  if (!ready) return null;
+  if (!auth) return <LoginPage />;
+
+  return (
+    <AppShell
+      active={nav}
+      onNavigate={(key) => { setNav(key); if (key !== "governance") setGovernanceFocus(null); }}
+      readiness={readiness}
+    >
+      {nav === "dashboard" && <DashboardPage />}
+      {nav === "sources" && <SourceManager />}
+      {nav === "submit" && <SubmitPage />}
+      {nav === "jobs" && <JobsPage />}
+      {nav === "content" && <ContentPage onOpenGovernance={(id) => { setGovernanceFocus(id); setNav("governance"); }} />}
+      {nav === "governance" && <GovernanceConsole initialCandidateId={governanceFocus} hideAuthForm />}
+      {nav === "artifacts" && <ArtifactsPage />}
+      {nav === "settings" && <SettingsPage />}
+    </AppShell>
+  );
+}
 
 export default function App() {
-  const [tab, setTab] = useState(0);
-  return <>
-    <CssBaseline />
-    <AppBar position="static">
-      <Toolbar sx={{ minHeight: { xs: 58, sm: 68 } }}>
-        <Box
-          component="img"
-          src="/brand/flahaintel/flahaintel-logo-reverse.png"
-          alt="FlahaINTEL — Intelligence for a Resilient World"
-          sx={{ display: "block", width: "auto", height: { xs: 42, sm: 52 }, maxWidth: "100%" }}
-        />
-      </Toolbar>
-    </AppBar>
-    <Container maxWidth="xl">
-      <Box component="section" aria-labelledby="flahaintel-introduction" sx={{ py: { xs: 2, sm: 2.5 } }}>
-        <Typography id="flahaintel-introduction" variant="h5">FlahaINTEL</Typography>
-        <Typography color="primary.main" sx={{ fontWeight: 600, letterSpacing: "0.04em" }}>Intelligence for a Resilient World</Typography>
-        <Typography variant="body2" color="text.secondary">Verified sources. Governed taxonomy. Contextual and agricultural intelligence.</Typography>
-      </Box>
-      <Tabs value={tab} onChange={(_, value: number) => setTab(value)} variant="scrollable" scrollButtons="auto" aria-label="FlahaINTEL workspaces" sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}>
-        {views.map((view) => <Tab key={view.label} label={view.label} />)}
-      </Tabs>
-      <Box sx={{ pb: 5 }}>{views[tab].content}</Box>
-    </Container>
-  </>;
+  return (
+    <AuthProvider>
+      <CssBaseline />
+      <Shell />
+    </AuthProvider>
+  );
 }

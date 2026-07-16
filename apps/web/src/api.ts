@@ -34,20 +34,30 @@ export class ApiError extends Error {
 }
 
 let governanceAuth: GovernanceAuthContext | null = null;
+let productAuth: { userId: string; tenantId: string; token?: string } | null = null;
 
 export function setGovernanceAuth(context: GovernanceAuthContext | null) {
   governanceAuth = context;
 }
 
+export function setProductAuth(context: { userId: string; tenantId: string; token?: string } | null) {
+  productAuth = context;
+  if (context) governanceAuth = { userId: context.userId, tenantId: context.tenantId };
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers);
-  if (options?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  if (governanceAuth) {
-    headers.set("X-Flaha-User-Id", governanceAuth.userId);
-    headers.set("X-Flaha-Tenant-Id", governanceAuth.tenantId);
+  if (options?.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const identity = productAuth || governanceAuth;
+  if (identity) {
+    headers.set("X-Flaha-User-Id", identity.userId);
+    headers.set("X-Flaha-Tenant-Id", identity.tenantId);
     headers.set("X-Flaha-Correlation-Id", `web-${Date.now()}`);
   }
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  if (productAuth?.token) headers.set("Authorization", `Bearer ${productAuth.token}`);
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
   const body = response.status === 204
     ? {}
     : await response.json().catch(() => ({})) as ApiErrorBody;
@@ -202,4 +212,35 @@ export const api = {
     method: "POST",
     body: JSON.stringify(body),
   }),
+
+  createSession: (userId: string, tenantId: string) =>
+    request<{ token: string; user: { id: string; email: string; displayName: string }; tenant: { id: string; code: string; name: string }; role: string }>(
+      "/api/auth/session",
+      { method: "POST", body: JSON.stringify({ userId, tenantId }) },
+    ),
+  me: () => request<{ userId: string; tenantId: string; email: string; displayName: string; role: string }>("/api/auth/me"),
+  dashboard: () => request<Record<string, unknown>>("/api/dashboard"),
+  systemReadiness: () => request<{ overall: string; components: Array<{ component: string; state: string; detail: string }>; checkedAt: string }>("/api/system/readiness"),
+  submissions: (page = 1) => request<Page<Record<string, unknown>>>(`/api/submissions${query({ page, limit: 20 })}`),
+  submission: (id: string) => request<Record<string, unknown>>(`/api/submissions/${id}`),
+  submitWebsite: (body: Record<string, unknown>) =>
+    request<Record<string, unknown>>("/api/submissions/website", { method: "POST", body: JSON.stringify(body) }),
+  submitDocument: (form: FormData) =>
+    request<Record<string, unknown>>("/api/submissions/document", { method: "POST", body: form }),
+  advanceSubmission: (id: string) =>
+    request<Record<string, unknown>>(`/api/submissions/${id}/advance`, { method: "POST", body: JSON.stringify({}) }),
+  cancelSubmission: (id: string, reason?: string) =>
+    request<Record<string, unknown>>(`/api/submissions/${id}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }),
+  jobs: (filters: Record<string, string | number | undefined> = {}) =>
+    request<Page<Record<string, unknown>>>(`/api/jobs${query(filters)}`),
+  job: (id: string) => request<Record<string, unknown>>(`/api/jobs/${id}`),
+  cancelJob: (id: string, reason?: string) =>
+    request(`/api/jobs/${id}/cancel`, { method: "POST", body: JSON.stringify({ reason }) }),
+  contentList: (filters: Record<string, string | number | undefined> = {}) =>
+    request<Page<GovernanceCandidate>>(`/api/content${query(filters)}`),
+  contentItem: (id: string) => request<GovernanceCandidate>(`/api/content/${id}`),
+  artifacts: (filters: Record<string, string | number | undefined> = {}) =>
+    request<Page<Record<string, unknown>>>(`/api/artifacts${query(filters)}`),
+  artifact: (id: string) => request<Record<string, unknown>>(`/api/artifacts/${id}`),
+  artifactPreview: (id: string) => request<{ preview: string; truncated: boolean; rendering: string }>(`/api/artifacts/${id}/preview`),
 };

@@ -13,18 +13,46 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { FastifyRequest } from "fastify";
+import { verifySession } from "../product/auth.js";
 import type { GovernanceActorContext } from "./contracts.js";
 import { GovernanceError } from "./errors.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function readCookie(request: FastifyRequest, name: string): string | undefined {
+  const raw = request.headers.cookie;
+  if (!raw) return undefined;
+  for (const part of raw.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) return decodeURIComponent(rest.join("="));
+  }
+  return undefined;
+}
+
 export async function resolveGovernanceActor(
   db: PrismaClient,
   request: FastifyRequest,
 ): Promise<GovernanceActorContext> {
-  const userId = header(request, "x-flaha-user-id");
-  const tenantId = header(request, "x-flaha-tenant-id");
+  let userId = header(request, "x-flaha-user-id");
+  let tenantId = header(request, "x-flaha-tenant-id");
   const correlationId = header(request, "x-flaha-correlation-id") ?? `corr-${Date.now()}`;
+
+  const cookie = readCookie(request, "flaha_session");
+  if (cookie) {
+    const session = verifySession(cookie);
+    if (session) {
+      userId = session.userId;
+      tenantId = session.tenantId;
+    }
+  }
+  const auth = header(request, "authorization");
+  if (auth?.toLowerCase().startsWith("bearer ")) {
+    const session = verifySession(auth.slice(7).trim());
+    if (session) {
+      userId = session.userId;
+      tenantId = session.tenantId;
+    }
+  }
 
   if (!userId || !tenantId) {
     throw new GovernanceError("UNAUTHENTICATED", "Governance routes require authenticated user and tenant headers.", 401);
