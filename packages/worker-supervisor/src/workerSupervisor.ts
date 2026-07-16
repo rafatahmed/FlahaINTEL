@@ -59,7 +59,8 @@ export class WorkerSupervisor {
           for (const value of decoder.push(Buffer.from(chunk))) {
             if (++messageCount > this.options.maximumMessages) throw new WorkerProtocolError("Worker exceeded the message limit.");
             const message = this.validator.validateShape(value); this.validator.validateOwnership(message, request);
-            if (messageCount === 1 && request.operation.endsWith("_ACQUISITION") && (message.messageType !== "WORKER_PROGRESS" || message.sequence !== 0 || message.stage !== "PROBE" || message.status !== "STARTED")) throw new WorkerProtocolError("Acquisition worker did not complete the protocol handshake.");
+              if (messageCount === 1 && request.operation.endsWith("_ACQUISITION") && (message.messageType !== "WORKER_PROGRESS" || message.sequence !== 0 || message.stage !== "PROBE" || message.status !== "STARTED")) throw new WorkerProtocolError("Acquisition worker did not complete the protocol handshake.");
+              if (messageCount === 1 && request.operation.includes("EXTRACTION") && (message.messageType !== "WORKER_PROGRESS" || message.sequence !== 0 || message.stage !== "EXTRACT" || message.status !== "STARTED")) throw new WorkerProtocolError("Extraction worker did not complete the protocol handshake.");
             if (terminal) throw new WorkerProtocolError("Worker emitted a message after its terminal result.");
             if (message.sequence <= lastSequence) throw new WorkerProtocolError("Worker sequence did not strictly increase.");
             lastSequence = message.sequence;

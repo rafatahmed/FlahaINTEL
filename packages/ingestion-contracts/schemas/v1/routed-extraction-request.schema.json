@@ -1,0 +1,9 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://schemas.flahaintel.local/ingestion/v1/routed-extraction-request.schema.json","title":"RoutedExtractionRequest","type":"object","additionalProperties":false,
+  "required":["operation","outputStagingPrefix","executionId","capability","inputArtifact","outputAllocations","policyVersion","executionLimits","deadline","languageHints"],
+  "properties":{
+    "operation":{"enum":["HTML_EXTRACTION","DOCUMENT_EXTRACTION","DOCUMENT_INSPECTION"]},"outputStagingPrefix":{"type":"string","pattern":"^staging/[A-Za-z0-9._/-]+$","maxLength":512},"executionId":{"$ref":"common.schema.json#/$defs/uuid"},"capability":{"type":"string","pattern":"^(HTML|DOCUMENT)_[A-Z_]+$","maxLength":64},
+    "inputArtifact":{"$ref":"artifact-reference.schema.json"},"outputAllocations":{"type":"array","minItems":2,"maxItems":6,"items":{"type":"object","additionalProperties":false,"required":["artifactId","role","mediaType","stagingKey","maximumBytes"],"properties":{"artifactId":{"$ref":"common.schema.json#/$defs/uuid"},"role":{"enum":["EXTRACTED_TEXT","METADATA","STRUCTURE","TABLE","RESULT","DIAGNOSTIC"]},"mediaType":{"$ref":"common.schema.json#/$defs/mediaType"},"stagingKey":{"type":"string","pattern":"^staging/[A-Za-z0-9._/-]+$","maxLength":512},"maximumBytes":{"$ref":"common.schema.json#/$defs/safeInteger"}}}},
+    "policyVersion":{"type":"string","minLength":1,"maxLength":64},"executionLimits":{"type":"object"},"deadline":{"$ref":"common.schema.json#/$defs/utcTimestamp"},"languageHints":{"type":"array","maxItems":32,"uniqueItems":true,"items":{"$ref":"common.schema.json#/$defs/languageTag"}}
+  }
+}

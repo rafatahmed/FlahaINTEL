@@ -15,7 +15,7 @@
 export interface WorkerRequest {
   contractVersion: string; correlationId: string; causationId: string | null;
   jobId: string; attemptId: string; messageType: "WORKER_REQUEST"; sentAt: string;
-  operation: "DOCUMENT_CONVERSION" | "CONTENT_EXTRACTION" | "DATASET_TRANSFORM" | "STATIC_ACQUISITION" | "BROWSER_ACQUISITION";
+  operation: "DOCUMENT_CONVERSION" | "CONTENT_EXTRACTION" | "DATASET_TRANSFORM" | "STATIC_ACQUISITION" | "BROWSER_ACQUISITION" | "HTML_EXTRACTION" | "DOCUMENT_EXTRACTION" | "DOCUMENT_INSPECTION";
   provider: { providerId: string; providerVersion: string; adapterVersion: string };
   policySnapshot: { stagingPrefix: string; [key: string]: unknown };
   payload: { operation: string; outputStagingPrefix: string; providerOptions?: Record<string, unknown>; [key: string]: unknown };

@@ -21,6 +21,10 @@
     ,"ingest:worker:once": "node --env-file=../../.env --import tsx src/acquisition/cli.ts worker-once"
     ,"ingest:job": "node --env-file=../../.env --import tsx src/acquisition/cli.ts job"
     ,"ingest:artifact": "node --env-file=../../.env --import tsx src/acquisition/cli.ts artifact"
+    ,"ingest:create-extraction": "node --env-file=../../.env --import tsx src/extraction/cli.ts create"
+    ,"ingest:extraction-worker:once": "node --env-file=../../.env --import tsx src/extraction/cli.ts worker-once"
+    ,"ingest:extraction-job": "node --env-file=../../.env --import tsx src/extraction/cli.ts job"
+    ,"ingest:extraction-artifact": "node --env-file=../../.env --import tsx src/extraction/cli.ts artifact"
   },
   "dependencies": {
     "@flaha-intel/artifact-store": "0.1.0",

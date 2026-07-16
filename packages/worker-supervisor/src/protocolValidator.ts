@@ -55,6 +55,11 @@ export class ProtocolValidator {
           seen.add(artifact.artifactId);
         }
       }
+      if (result && ["HTML_EXTRACTION","DOCUMENT_EXTRACTION","DOCUMENT_INSPECTION"].includes(request.operation)) {
+        if (result.executionId !== request.payload.executionId || result.providerId !== request.provider.providerId || result.providerVersion !== request.provider.providerVersion || result.capability !== request.payload.capability || result.policyVersion !== request.payload.policyVersion) throw new WorkerProtocolError("Worker extraction authority does not match the request.");
+        const allocations=new Map(((request.payload.outputAllocations as Array<Record<string,unknown>>)??[]).map(value=>[value.artifactId,value]));const seen=new Set<unknown>();
+        for(const artifact of ((result.artifacts as Array<Record<string,unknown>>)??[])){const allocation=allocations.get(artifact.artifactId);if(!allocation||seen.has(artifact.artifactId)||artifact.role!==allocation.role||artifact.mediaType!==allocation.mediaType||artifact.stagingKey!==allocation.stagingKey)throw new WorkerProtocolError("Worker extraction artifact violates its allocation.");seen.add(artifact.artifactId)}
+      }
       this.validateStagingReferences(result, request.policySnapshot.stagingPrefix);
     }
   }

@@ -235,6 +235,15 @@ export class FilesystemArtifactStore {
     return metadata;
   }
 
+  async verifyPromotedPath(artifactId: string, expectedByteLength: number, expectedChecksum: string): Promise<string> {
+    this.ensureInitialized(); const metadata = await this.repository.get(artifactId);
+    if (!metadata || metadata.state !== "PROMOTED" || !metadata.finalKey) throw new ArtifactNotFoundError("Canonical promoted artifact was not found.");
+    if (metadata.byteLength !== expectedByteLength || metadata.checksum !== expectedChecksum) throw new ArtifactIntegrityError("Canonical artifact metadata does not match its reference.");
+    const absolute = resolveLogicalKey(this.root, metadata.finalKey); await assertNoLinkedComponents(this.root, absolute); const links = await lstat(absolute);
+    if (!links.isFile() || links.isSymbolicLink()) throw new ArtifactIntegrityError("Canonical artifact is not a regular governed file."); const actual = await hashFile(absolute);
+    if (actual.byteLength !== expectedByteLength || actual.checksum !== expectedChecksum) throw new ArtifactIntegrityError("Canonical artifact bytes do not match their reference."); return absolute;
+  }
+
   async quarantine(artifactId: string, owner: ArtifactOwner, diagnostic: string): Promise<ArtifactMetadata> {
     this.ensureInitialized();
     const metadata = await this.repository.get(artifactId);
