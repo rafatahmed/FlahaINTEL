@@ -617,6 +617,9 @@ model UserAccount {
   eligibilityEvaluations PromotionEligibility[] @relation("EligibilityEvaluator")
   sourcePoliciesOwned SourceGovernancePolicy[] @relation("SourcePolicyOwner")
   submissions ProductSubmission[] @relation("SubmissionCreator")
+  marketPricesCreated MarketPriceObservation[] @relation("MarketPriceCreator")
+  marketPricesReviewed MarketPriceObservation[] @relation("MarketPriceReviewer")
+  knowledgePacksOwned KnowledgePack[] @relation("KnowledgePackOwner")
 
   @@index([active])
 }
@@ -633,6 +636,8 @@ model Tenant {
   sourcePolicies SourceGovernancePolicy[]
   decisions   GovernanceDecision[]
   submissions ProductSubmission[]
+  marketPriceObservations MarketPriceObservation[]
+  knowledgePacks KnowledgePack[]
 
   @@index([active])
 }
@@ -938,4 +943,146 @@ model ProductSubmissionStage {
   @@unique([submissionId, sequence])
   @@index([jobId])
   @@index([status])
+}
+
+// --- Phase 4M / 4S: global market prices + knowledge packs (final product eyes/muscles) ---
+
+enum MarketChannelVerificationStatus {
+  PENDING
+  ACCEPTED
+  DEGRADED
+  REJECTED
+}
+
+enum MarketPriceReviewState {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum KnowledgePackTheme {
+  SOIL
+  IRRIGATION
+  NUTRITION
+  DIGITAL_PLATFORM
+  MARKET_CONTEXT
+  OTHER
+}
+
+enum KnowledgePackReviewState {
+  DRAFT
+  READY_FOR_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+/// Global market channel (country-agnostic product; country is a field).
+model MarketChannel {
+  id                 String                         @id @default(uuid()) @db.Uuid
+  code               String                         @unique
+  countryCode        String
+  marketCode         String
+  name               String
+  publisher          String
+  authorityType      SourceAuthorityType?
+  officialUrl        String
+  homepageUrl        String?
+  evidenceUrl        String?
+  ownershipVerified  Boolean                        @default(false)
+  verificationStatus MarketChannelVerificationStatus @default(PENDING)
+  enabled            Boolean                        @default(true)
+  language           String                         @default("en")
+  currencyDefault    String                         @default("QAR")
+  notes              String?
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+  prices             MarketPriceObservation[]
+
+  @@unique([countryCode, marketCode])
+  @@index([countryCode, enabled])
+  @@index([verificationStatus])
+}
+
+/// One price row for a commodity on a bulletin date (tenant-scoped for multi-tenant product).
+model MarketPriceObservation {
+  id               String                @id @default(uuid()) @db.Uuid
+  tenantId         String                @db.Uuid
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  channelId        String                @db.Uuid
+  channel          MarketChannel         @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  observedOn       DateTime              @db.Date
+  commodityCode    String
+  commodityName    String
+  originLabel      String?
+  unit             String
+  packDescription  String                @default("")
+  packPrice        Decimal?              @db.Decimal(18, 4)
+  unitPrice        Decimal?              @db.Decimal(18, 4)
+  currency         String
+  evidenceUrl      String?
+  evidenceArtifactId String?             @db.Uuid
+  sourceBatchId    String
+  contentFingerprint String              @unique
+  reviewState      MarketPriceReviewState @default(PENDING_REVIEW)
+  reviewedById     String?               @db.Uuid
+  reviewedBy       UserAccount?          @relation("MarketPriceReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt       DateTime?
+  reviewNote       String?
+  createdById      String                @db.Uuid
+  createdBy        UserAccount           @relation("MarketPriceCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  correlationId    String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@unique([channelId, observedOn, commodityCode, unit, currency, packDescription])
+  @@index([tenantId, channelId, observedOn])
+  @@index([tenantId, commodityCode, observedOn])
+  @@index([tenantId, reviewState])
+  @@index([sourceBatchId])
+}
+
+/// Universal PA knowledge pack (soil/irrigation/…); place is tags only.
+model KnowledgePack {
+  id          String                  @id @default(uuid()) @db.Uuid
+  tenantId    String                  @db.Uuid
+  tenant      Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  code        String
+  theme       KnowledgePackTheme
+  title       String
+  summary     String?
+  cropTags    String[]                @default([])
+  regionTags  String[]                @default([])
+  climateTags String[]                @default([])
+  language    String                  @default("en")
+  reviewState KnowledgePackReviewState @default(DRAFT)
+  version     Int                     @default(1)
+  ownerUserId String                  @db.Uuid
+  owner       UserAccount             @relation("KnowledgePackOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  items       KnowledgePackItem[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, theme, reviewState])
+  @@index([ownerUserId])
+}
+
+model KnowledgePackItem {
+  id                    String        @id @default(uuid()) @db.Uuid
+  packId                String        @db.Uuid
+  pack                  KnowledgePack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  sequence              Int
+  title                 String
+  extractKind           String
+  bodyText              String?
+  structured            Json          @default("{}")
+  sourceUrl             String?
+  evidenceArtifactId    String?       @db.Uuid
+  governanceCandidateId String?       @db.Uuid
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([packId, sequence])
+  @@index([packId])
 }

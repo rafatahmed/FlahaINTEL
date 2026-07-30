@@ -195,6 +195,8 @@ npm run ops:smoke
 | `npm run governance:backfill-sources` | Source metadata backfill |
 | `npm run ops:provision-verify` | Probe pinned runtimes |
 | `npm run ops:residual-acceptance` | Windows/prod residual suite |
+| `npm run markets:seed-channels` | Seed market channels (Qatar MoCI first) |
+| `npm run bootstrap:source-policies` | ACTIVE policies for accepted RSS |
 
 ## Further reading
 

@@ -16,7 +16,7 @@ Last modified: 2026-07-30
 
 ## Status
 
-**CHARTER — awaiting product owner approval to implement**
+**APPROVED** by product owner (2026-07-30) · **IMPLEMENTED** (schema + API + pack documentation)
 
 ## Purpose
 
@@ -43,10 +43,10 @@ Define the **knowledge pack** shape for soil analysis and irrigation/water-savin
 
 ## Acceptance (when implemented)
 
-- [ ] Pack schema documented  
-- [ ] At least one sample pack created from governed documents  
-- [ ] Comparison note path toward FlahaSOIL documented (manual)  
-- [ ] Works with multi-country tags (not Qatar-only)  
+- [x] Pack schema documented (`docs/knowledge/knowledge-pack-schema.md` + Prisma models)  
+- [ ] At least one sample pack created from governed documents (API ready; operator can POST sample)  
+- [x] Comparison note path toward FlahaSOIL documented (manual; packs never auto-change SOIL)  
+- [x] Works with multi-country tags (regionTags e.g. QA, JO, CA)
 
 ## Depends on
 

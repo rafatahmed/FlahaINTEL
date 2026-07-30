@@ -16,7 +16,7 @@ Last modified: 2026-07-30
 
 ## Status
 
-**CHARTER — awaiting product owner approval to implement**
+**APPROVED** by product owner (2026-07-30) · **IMPLEMENTED** (schema + validation + API; harvest later)
 
 ## Purpose
 
@@ -44,10 +44,10 @@ Country is a field, not a separate product. First implementations: Qatar, then J
 
 ## Acceptance (when implemented)
 
-- [ ] Schema/migration or approved JSON contract documented  
-- [ ] Works for two different countries without code forks  
-- [ ] Evidence link required for each price batch  
-- [ ] Tests for uniqueness and currency/unit validation  
+- [x] Schema/migration or approved JSON contract documented (`MarketChannel`, `MarketPriceObservation`)  
+- [x] Works for two different countries without code forks (countryCode field + multi-country tests)  
+- [x] Evidence link required for each price batch  
+- [x] Tests for uniqueness and currency/unit validation (`market/validation.test.ts`)
 
 ## Depends on
 

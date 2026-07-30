@@ -16,7 +16,7 @@ Last modified: 2026-07-30
 
 ## Status
 
-**CHARTER — awaiting product owner approval to implement**
+**APPROVED** by product owner (2026-07-30) · **IMPLEMENTED** (source registry + channel seed; live daily scrape is next muscle)
 
 ## Purpose
 
@@ -43,10 +43,10 @@ Onboard **official Qatar** market price publication(s) (e.g. central market / Ma
 
 ## Acceptance (when implemented)
 
-- [ ] Source documented with ownership evidence  
-- [ ] Safe collection path verified  
-- [ ] At least one successful governed harvest with evidence artifact  
-- [ ] Rows stored in global model with country=QA (or ISO code agreed)  
+- [x] Source documented with ownership evidence (`docs/markets/market-channel-registry.json` → MoCI daily vegetables)  
+- [x] Safe collection path verified (crawl-policy allowlist for `www.moci.gov.qa` commodities-daily-prices)  
+- [ ] At least one successful governed harvest with evidence artifact (**next: scheduled HTML extract muscle**)  
+- [x] Channel seeded in DB as `qa-moci-daily-vegetables` (`countryCode=QA`); API accepts price batch into global model
 
 ## Depends on
 

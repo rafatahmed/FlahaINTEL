@@ -20,6 +20,7 @@
     "bootstrap:local": "node --env-file=../../.env --import tsx src/governance/bootstrapLocal.ts",
     "bootstrap:rss-accepted": "node --env-file=../../.env --import tsx src/governance/bootstrapAcceptedRssSources.ts",
     "bootstrap:source-policies": "node --env-file=../../.env --import tsx src/governance/bootstrapSourcePolicies.ts",
+    "markets:seed-channels": "node --env-file=../../.env --import tsx src/market/seedChannelsFromRegistry.ts",
     "ingest:create-acquisition": "node --env-file=../../.env --import tsx src/acquisition/cli.ts create",
     "ingest:worker:once": "node --env-file=../../.env --import tsx src/acquisition/cli.ts worker-once",
     "ingest:job": "node --env-file=../../.env --import tsx src/acquisition/cli.ts job",

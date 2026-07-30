@@ -1,0 +1,48 @@
+{
+  "registryVersion": 1,
+  "principle": "Worldwide market channels; country is metadata. Start with Qatar then Jordan.",
+  "channels": [
+    {
+      "code": "qa-moci-daily-vegetables",
+      "countryCode": "QA",
+      "marketCode": "moci-daily-vegetables",
+      "name": "Qatar MoCI daily vegetable prices",
+      "publisher": "Ministry of Commerce and Industry (Qatar)",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "officialUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/%E2%80%8B%E2%80%8Bdaily-vegetable-prices/",
+      "homepageUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/",
+      "evidenceUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/%E2%80%8B%E2%80%8Bdaily-vegetable-prices/",
+      "ownershipVerified": true,
+      "verificationStatus": "ACCEPTED",
+      "enabled": true,
+      "language": "en",
+      "currencyDefault": "QAR",
+      "notes": "Official daily vegetable price bulletin (Gate 4M-A first channel). Related MoCI lists: imported vegetables, fruits, fish. Al-Sailiya Central Market enforces MoCI bulletins. Live HTML harvest is a later muscle; registry documents the governed source.",
+      "relatedUrls": [
+        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-vegetable-prices/",
+        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-fruits-prices/",
+        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/daily-fish-prices/"
+      ],
+      "gate": "4M-A"
+    },
+    {
+      "code": "jo-central-market-daily",
+      "countryCode": "JO",
+      "marketCode": "central-market-daily",
+      "name": "Jordan central market daily prices (placeholder)",
+      "publisher": "To be confirmed — Jordan central wholesale market authority",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "officialUrl": "https://example.invalid/jordan-central-market-prices-pending-onboarding",
+      "homepageUrl": null,
+      "evidenceUrl": null,
+      "ownershipVerified": false,
+      "verificationStatus": "PENDING",
+      "enabled": false,
+      "language": "ar",
+      "currencyDefault": "JOD",
+      "notes": "Gate 4M-B placeholder. Do not harvest until official URL and ownership evidence are recorded (same pattern as Qatar).",
+      "relatedUrls": [],
+      "gate": "4M-B"
+    }
+  ]
+}

@@ -27,10 +27,10 @@ Last modified: 2026-07-30
 | E1-T4 | Free-space check + alert | **DONE** | `check-free-space.ps1`; alert-rules updated |
 | E2-T1 | Pin npm deps (no `latest`) | **DONE** | `apps/api/package.json` pinned to lock-known majors |
 | E3-T1 | Source policies for ACCEPTED RSS | **DONE** (tooling) | `bootstrap:source-policies`; run after bootstrap:local |
-| 4M-0 | Global market model charter | **CHARTER READY** | Awaiting owner approval to implement |
-| 4M-A | Qatar market first country charter | **CHARTER READY** | Awaiting owner approval |
-| 4S-A | Soil/irrigation pack charter | **CHARTER READY** | Awaiting owner approval |
-| 4M-B | Jordan second | CHARTER later | After 4M-A |
+| 4M-0 | Global market model | **IMPLEMENTED** | Migration + validation + `/api/markets/*` |
+| 4M-A | Qatar MoCI vegetables channel | **IMPLEMENTED** (source) | Seeded `qa-moci-daily-vegetables`; daily scrape muscle next |
+| 4S-A | Soil/irrigation pack schema | **IMPLEMENTED** | `/api/knowledge-packs` + schema doc |
+| 4M-B | Jordan second | PLACEHOLDER in registry | Official URL pending ownership evidence |
 
 ## Operator one-time on this host
 
@@ -43,12 +43,12 @@ npm run bootstrap:source-policies
 # npm run ops:register-backup-task
 ```
 
-## Next (after owner approves charters)
+## Next
 
-1. Implement **4M-0** global market model  
-2. Implement **4M-A** Qatar source onboarding  
-3. Then **4M-B** Jordan  
-4. Parallel track **4S-A** pack schema when approved  
+1. **4M-C / muscle:** parse MoCI daily HTML/PDF into `MarketPriceObservation` rows (with evidence)  
+2. **4M-B:** confirm Jordan official URL + enable channel  
+3. Sample knowledge pack via API for soil thresholds  
+4. Host: free disk + register backup task  
 
 ## Exit criteria for Sprint 1
 
@@ -56,6 +56,7 @@ npm run bootstrap:source-policies
 - [x] Deps pinned  
 - [x] Policy bootstrap available  
 - [x] Market/soil gate charters written  
-- [ ] Host: free space ≥15% sustained (**currently ~1.7% on C: — critical operator action**)  
-- [ ] Host: Task Scheduler registered (operator runs `npm run ops:register-backup-task`)  
-- [ ] Owner: approve 4M-0 / 4M-A / 4S-A to open implementation gates  
+- [x] Owner approved 4M-0 / 4M-A / 4S-A  
+- [x] 4M-0 / 4M-A / 4S-A implemented (foundation)  
+- [ ] Host: free space ≥15% sustained  
+- [ ] Host: Task Scheduler registered (`npm run ops:register-backup-task`)

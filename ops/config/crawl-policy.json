@@ -13,13 +13,17 @@
     "example.com",
     "www.example.com",
     "example.org",
-    "www.example.org"
+    "www.example.org",
+    "www.moci.gov.qa",
+    "moci.gov.qa"
   ],
   "allowedPathPrefixes": {
     "example.com": ["/", "/index.html"],
     "www.example.com": ["/", "/index.html"],
     "example.org": ["/", "/index.html"],
-    "www.example.org": ["/", "/index.html"]
+    "www.example.org": ["/", "/index.html"],
+    "www.moci.gov.qa": ["/en/our-services/consumer/commodities-daily-prices/"],
+    "moci.gov.qa": ["/en/our-services/consumer/commodities-daily-prices/"]
   },
   "allowedAttachmentTypes": [
     "application/pdf",

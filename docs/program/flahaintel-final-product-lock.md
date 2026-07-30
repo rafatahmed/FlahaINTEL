@@ -211,8 +211,8 @@ These are **rejected as the destination** (even if someone builds a demo):
 | Backbone | Strong | **BUILT** |
 | Eyes — news RSS | Working | **BUILT** |
 | Eyes — controlled web/docs | Working (limited) | **PARTIAL** |
-| Eyes — multi-country market prices (start QA + JO) | Not productized | **PLANNED** (global design, first two countries) |
-| Eyes — science depth packs | Not productized | **PLANNED** |
+| Eyes — multi-country market prices (start QA + JO) | Global model + QA channel seeded; JO pending; daily harvest muscle next | **IN PROGRESS** |
+| Eyes — science depth packs | Pack schema + API (4S-A); content packs next | **IN PROGRESS** |
 | Eyes — YouTube / social | Not built | **LATER** |
 | Muscles — daily price harvest + trends | Not built | **PLANNED** |
 | Muscles — soil threshold artifacts vs FlahaSOIL | Not built | **PLANNED** |

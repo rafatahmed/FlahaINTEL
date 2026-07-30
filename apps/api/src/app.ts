@@ -21,6 +21,8 @@ import { productRoutes as productAppRoutes } from "./routes/product.js";
 import { schedulerRoutes } from "./routes/scheduler.js";
 import { sourceRoutes } from "./routes/sources.js";
 import { taxonomyRoutes } from "./routes/taxonomy.js";
+import { marketRoutes } from "./routes/markets.js";
+import { knowledgePackRoutes } from "./routes/knowledgePacks.js";
 import { RssScheduler } from "./scheduler.js";
 
 export interface AppDependencies {
@@ -77,6 +79,8 @@ export function buildApp(dependencies: AppDependencies = {}) {
   app.register(schedulerRoutes(scheduler), { prefix: "/api" });
   app.register(governanceRoutes({ prisma, store: artifactStore }), { prefix: "/api" });
   app.register(productAppRoutes({ prisma, store: artifactStore }), { prefix: "/api" });
+  app.register(marketRoutes(prisma), { prefix: "/api" });
+  app.register(knowledgePackRoutes(prisma), { prefix: "/api" });
   app.addHook("onReady", async () => {
     await artifactStore.initialize().catch(() => undefined);
   });

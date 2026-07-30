@@ -1,0 +1,80 @@
+/**
+ * Flaha Agri Tech
+ * Precision Agriculture Division
+ * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+ *
+ * Title: Market Validation Tests
+ * Introduction: Gate 4M-0 uniqueness, currency, evidence, and multi-country code rules.
+ *
+ * Created by: Rafat Al Khashan
+ * Created date: 2026-07-30
+ * Last modified: 2026-07-30
+ */
+import { describe, expect, it } from "vitest";
+import {
+  channelCode,
+  MarketValidationError,
+  normalizeCommodityCode,
+  normalizeCountryCode,
+  normalizeCurrency,
+  priceContentFingerprint,
+  requireEvidence,
+  requirePrice,
+} from "./validation.js";
+
+describe("market validation (4M-0)", () => {
+  it("accepts ISO country and currency for any country", () => {
+    expect(normalizeCountryCode("qa")).toBe("QA");
+    expect(normalizeCountryCode("JO")).toBe("JO");
+    expect(normalizeCountryCode("ca")).toBe("CA");
+    expect(normalizeCurrency("qar")).toBe("QAR");
+    expect(normalizeCurrency("JOD")).toBe("JOD");
+    expect(normalizeCurrency("cad")).toBe("CAD");
+  });
+
+  it("rejects invalid country/currency", () => {
+    expect(() => normalizeCountryCode("QAT")).toThrow(MarketValidationError);
+    expect(() => normalizeCurrency("QR")).toThrow(MarketValidationError);
+  });
+
+  it("builds stable multi-country channel codes without forks", () => {
+    expect(channelCode("QA", "moci-daily-vegetables")).toBe("qa-moci-daily-vegetables");
+    expect(channelCode("JO", "central-market-daily")).toBe("jo-central-market-daily");
+    expect(channelCode("CA", "ontario-wholesale")).toBe("ca-ontario-wholesale");
+  });
+
+  it("requires evidence for price rows", () => {
+    expect(() => requireEvidence({})).toThrow(/EVIDENCE_REQUIRED|evidence/);
+    expect(() => requireEvidence({ evidenceUrl: "https://www.moci.gov.qa/en/example" })).not.toThrow();
+    expect(() => requireEvidence({ evidenceArtifactId: "00000000-0000-4000-8000-000000000001" })).not.toThrow();
+  });
+
+  it("requires a non-negative price", () => {
+    expect(() => requirePrice(null, null)).toThrow(MarketValidationError);
+    expect(() => requirePrice(-1, null)).toThrow(MarketValidationError);
+    expect(() => requirePrice(10, 2.5)).not.toThrow();
+  });
+
+  it("fingerprints differ when price changes; same for identical rows", () => {
+    const base = {
+      channelCode: "qa-moci-daily-vegetables",
+      observedOn: "2026-07-30",
+      commodityCode: "tomato",
+      unit: "kg",
+      currency: "QAR",
+      packDescription: "box-medium",
+      packPrice: "10.00",
+      unitPrice: "2.50",
+    };
+    const a = priceContentFingerprint(base);
+    const b = priceContentFingerprint(base);
+    const c = priceContentFingerprint({ ...base, unitPrice: "2.60" });
+    expect(a).toBe(b);
+    expect(a).not.toBe(c);
+    expect(a).toHaveLength(64);
+  });
+
+  it("normalizes commodity names to slugs", () => {
+    expect(normalizeCommodityCode("Cherry Tomato")).toBe("cherry-tomato");
+  });
+});
