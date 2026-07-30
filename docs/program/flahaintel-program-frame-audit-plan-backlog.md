@@ -16,11 +16,35 @@ Last modified: 2026-07-30
 # FlahaINTEL — Program Frame, Audit, Plan & Backlog
 
 **Baseline release:** `v0.5.0-phase-3n-windows-production-like` (`016ed47` on `main`)  
-**Program state:** Phase 1–3N closed; next work requires **explicit gate approval**  
+**Program state:** Platform (backbone) complete through 3N; **final product locked** — next work must follow the lock  
 **Owner:** Flaha Agri Tech · Precision Agriculture Division  
+
+**Final product constitution (LOCKED):**  
+[`docs/program/flahaintel-final-product-lock.md`](flahaintel-final-product-lock.md)
 
 This document is the **operating charter** after Phase 3N. It does not expand product
 scope by itself. Implementation still requires a numbered gate, branch, and evidence.
+Any gate that conflicts with the final product lock is **direction drift** and must stop.
+
+---
+
+## 0. Direction lock (read first)
+
+| Label | Meaning |
+|-------|---------|
+| **Platform complete** | Backbone built (Phases 1–3N). Trust, evidence, human review, ops. |
+| **Product complete** | Eyes + muscles + product brain for PA outcomes (markets, soil, irrigation packs, sister-product handoff). **Not done yet.** |
+
+Metaphor (owner-aligned):
+
+```text
+Backbone = trust / audit / safe collect / human gate     → STRONG today
+Eyes     = markets, science, news, web, later video/X    → PARTIAL today
+Muscles  = daily jobs, extract, trends, knowledge packs  → EARLY today
+Brain    = admin + human control + product handoff rules → REVIEW yes; HANDOFF no
+```
+
+Do not treat “Phase 3N ACCEPT” as “FlahaINTEL finished.” Treat it as **spine ready to grow eyes and muscles in the locked direction**.
 
 ---
 
@@ -28,21 +52,30 @@ scope by itself. Implementation still requires a numbered gate, branch, and evid
 
 ### 1.1 Mission
 
-Build and operate a **local-first, governed OSINT and news intelligence workstation**
-for agricultural and institutional context — trustworthy evidence in, human decisions
-on the record, controlled collection only.
+Build and operate Flaha’s **private Precision Agriculture intelligence system**:
+watch trusted external sources, structure knowledge for markets and agronomy,
+keep a full evidence trail, keep humans in charge, and feed governed context into
+**FlahaSOIL, FlahaCALC, FlahaFAST**, farm advice, and internal research — not a public news site.
 
-### 1.2 Product definition (v1 after Phase 3N)
+### 1.2 Product definition
+
+#### Final product (LOCKED) — see final-product-lock.md
+
+Outcomes O1–O5: markets & world context · PA knowledge packs · product improvement trails · safe governed sources · human/admin control.  
+Channels: news, official market lists (Qatar/Jordan first), science docs/web, later video/social.  
+Muscles: schedules, price extract, science extract, trends, packs, handoff to sister products.
+
+#### Platform delivered (Phase 3N) — not the full final product
 
 | Dimension | Definition |
 |-----------|------------|
-| **Name** | FlahaINTEL |
+| **Name** | FlahaINTEL (platform layer) |
 | **Form** | Single-host (Windows production-like proven) internal application |
 | **Users** | Analysts / reviewers / governance admins (tenant-scoped roles) |
-| **Inputs** | Authoritative RSS; allowlisted websites; PDF/DOCX/RTF/TXT uploads |
-| **Pipeline** | Acquire → extract → normalize → governance candidate → human decision → **promotion eligibility** |
+| **Inputs today** | Authoritative RSS; allowlisted websites; PDF/DOCX/RTF/TXT uploads |
+| **Pipeline today** | Acquire → extract → normalize → governance candidate → human decision → **promotion eligibility** |
 | **Evidence** | Immutable ArtifactStore + PostgreSQL jobs, provenance, decisions |
-| **Not** | Public SaaS, open crawl, auto-publish, AI classification, OCR, embeddings |
+| **Platform non-goals** | Public SaaS, open crawl, auto-publish, AI auto-approve |
 
 ### 1.3 Architecture invariants (non-negotiable)
 
@@ -178,29 +211,37 @@ NEXT (2–6 weeks)    Operator experience + source governance depth
 LATER (approval)    Optional Phase 4+ product gates only if chartered
 ```
 
-### 3.3 Recommended program tracks
+### 3.3 Recommended program tracks (aligned to final product lock)
 
-| Track | Purpose | Default priority |
-|-------|---------|------------------|
-| **T-OPS** | Backup schedule, disk, residual cadence, Windows services | **P0** |
-| **T-SEC** | Dependency pins, secret rotation drill, egress notes | **P1** |
-| **T-GOV** | Source policies for operational RSS/web; eligibility path | **P1** |
-| **T-PROD** | Analyst UX polish, smoke pack, readiness polish | **P2** |
-| **T-DATA** | Registry coverage (MENA/Arabic feeds) without transport regressions | **P2** |
-| **T-FUT** | OCR / AI assist / publish / multi-host — **not started** without charter | Hold |
+| Track | Metaphor | Purpose | Default priority |
+|-------|----------|---------|------------------|
+| **T-BB / T-OPS** | Backbone | Backup, disk, residual cadence, keep spine healthy | **P0** |
+| **T-SEC** | Backbone | Dependency pins, secret rotation, bind checklist | **P1** |
+| **T-GOV** | Brain | Source policies; admin control depth | **P1** |
+| **T-MKT** | Eyes + Muscles | Qatar/Jordan market prices → history → trends | **P1 product** |
+| **T-SCI** | Eyes + Muscles | Soil/irrigation knowledge packs → FlahaSOIL/CALC/FAST path | **P1 product** |
+| **T-RES** | Muscles | Research index for scientific writing | **P2** |
+| **T-UX** | Brain UX | Analyst polish, smoke pack | **P2** |
+| **T-VID / T-SOC** | Eyes later | YouTube / X allowlists | **P3 Hold** until MKT+SCI prove model |
+| **T-FUT** | — | OCR / AI assist / publish / multi-host | Hold without charter |
 
 ### 3.4 Proposed next gates (names reserved; require approval)
 
-Do **not** implement until approved. Suggested numbering after 3N:
+Do **not** implement until approved. Must map to final-product-lock stages.
 
-| Proposed gate | Scope | Entry criteria |
-|---------------|--------|----------------|
-| **3O** Ops automation | Task Scheduler backup, residual nightly, free-space alerts | 3N ACCEPT |
-| **3P** Dependency & supply-chain hygiene | Pin Fastify/rss-parser/etc.; SBOM note | 3N ACCEPT |
-| **3Q** Source governance operationalization | Policies for accepted RSS + residual sources; eligibility green path | 3K/3N |
-| **4A** Intelligence workflow (manual-first) | Governed assignment of taxonomy to approved content only | Explicit product approval |
-| **4B** OCR (former 3E-I) | Offline OCR benchmark + optional path | Explicit approval |
-| **4C** AI-assisted review (no auto-approve) | Draft notes for analysts | Explicit approval + threat model delta |
+| Proposed gate | Metaphor | Scope | Entry |
+|---------------|----------|--------|-------|
+| **3O** | Backbone | Task Scheduler backup, residual cadence, free-space alerts | 3N ACCEPT |
+| **3P** | Backbone | Pin dependencies | 3N ACCEPT |
+| **3Q** | Brain | Source policies for accepted RSS | 3K/3N |
+| **4M-A…E** | Eyes+Muscles | Market price intelligence (Qatar then Jordan) | Product owner |
+| **4S-A…D** | Eyes+Muscles | Soil knowledge + FlahaSOIL comparison path | Product owner |
+| **4I-A…B** | Muscles | Irrigation packs + CALC/FAST handoff rules | After/with 4S |
+| **4R-A…B** | Muscles | Research index | After packs start |
+| **5V / 5X** | Eyes | YouTube / X | After 4M+4S value proven |
+| **4B-A…B** | Brain | Product handoff policies + PA dashboard | With 4M/4S |
+
+Detail and status table: `flahaintel-final-product-lock.md` §6–§7.
 
 ---
 
@@ -292,16 +333,31 @@ A task is done only when:
 
 ### 4.4 Suggested first sprint (2 weeks)
 
-**Goal:** Host is boringly operable.
+**Goal:** Backbone stays healthy **and** final-product direction is visible in the backlog (no drift).
 
-1. **E1-T1** Artifact/backup volume placement  
-2. **E1-T2** Scheduled backup  
-3. **E1-T3** Cadence runbook  
-4. **E1-T4** Free-space alert  
-5. **E3-T1** Source policies for accepted RSS  
-6. **E2-T1** Pin runtime npm deps  
+1. **E1-T1…T4** Ops: disk, scheduled backup, cadence, free-space alert (`BB-*`)  
+2. **E3-T1** Source policies for accepted RSS (`BRN-*`)  
+3. **E2-T1** Pin npm deps (`BB-*`)  
+4. **Charter only (no code until approved):** one-pager gate **4M-A** Qatar market price source onboarding  
+5. **Charter only:** one-pager gate **4S-A** soil/irrigation source pack definition  
 
-**Exit criteria:** Scheduled backup succeeds twice; free space healthy; residual still ACCEPT on demand; RSS policies in place.
+**Exit criteria:** Ops P0 green; residual still ACCEPT; **4M-A and 4S-A written and owner-approved** before implementation starts.
+
+### 4.4b Product track backlog seeds (LOCKED direction)
+
+| ID | Task | Track | Status |
+|----|------|-------|--------|
+| EYE-MKT-01 | Document Qatar official market price source(s) + ownership evidence | T-MKT | READY (charter) |
+| EYE-MKT-02 | Document Jordan central market daily list source + ownership evidence | T-MKT | READY (charter) |
+| MUS-MKT-01 | Price row schema (date, market, crop, unit, price, currency, evidence link) | T-MKT | BACKLOG |
+| MUS-MKT-02 | Daily harvest job + 365d retention | T-MKT | BACKLOG |
+| MUS-MKT-03 | Simple trend view for analysts | T-MKT | BACKLOG |
+| EYE-SCI-01 | Curated soil/irrigation source list (governed) | T-SCI | READY (charter) |
+| MUS-SCI-01 | Threshold/method extract template + human review | T-SCI | BACKLOG |
+| MUS-SCI-02 | FlahaSOIL comparison artifact workflow (no auto-change of SOIL) | T-SCI | BACKLOG |
+| MUS-HND-01 | Handoff rules SOIL/CALC/FAST | T-SCI | BACKLOG |
+| LAT-VID-01 | YouTube channel policy (later) | T-VID | HOLD |
+| LAT-SOC-01 | X/Twitter allowlist policy (later) | T-SOC | HOLD |
 
 ### 4.5 Branch & evidence workflow (best practice)
 
@@ -367,14 +423,16 @@ Stop and escalate if asked to:
 
 ## 8. One-page summary
 
-**Frame:** Local-first governed intelligence workstation; evidence + humans; no open crawl/AI auto-publish.  
+**Frame:** Final FlahaINTEL = Backbone + Eyes + Muscles + Brain serving PA and FlahaSOIL/CALC/FAST (see final-product-lock).  
 
-**Audit:** Phases 1–3N closed and accepted; main risks are disk, backup scheduling, source policies, and dependency pins.  
+**Audit:** Backbone **BUILT**; eyes/muscles for markets & soil **PLANNED**; platform 1–3N closed.  
 
-**Plan:** Stabilize ops (P0) → security/governance (P1) → polish/coverage (P2) → future product only with new charter.  
+**Plan:** Keep spine healthy (P0) → Market prices + Soil packs (P1 product) → Research index → Video/social later.  
 
-**Tasks:** Execute E1 then E2/E3; keep E6 blocked until explicit approval.
+**Tasks:** E1 ops + BRN policies + charter 4M-A / 4S-A; HOLD YouTube/Twitter until packs prove value.  
+
+**Direction rule:** If it does not serve the locked final product, do not build it.
 
 ---
 
-*End of program charter. Update this file when a new gate is approved or a P0/P1 task closes.*
+*End of program charter. Update this file when a new gate is approved or a P0/P1 task closes. Do not edit final-product-lock outcomes without owner approval.*

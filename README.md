@@ -198,6 +198,7 @@ npm run ops:smoke
 
 ## Further reading
 
+- **Final product lock (north star):** [`docs/program/flahaintel-final-product-lock.md`](docs/program/flahaintel-final-product-lock.md)
 - **Program frame, audit, plan & backlog:** [`docs/program/flahaintel-program-frame-audit-plan-backlog.md`](docs/program/flahaintel-program-frame-audit-plan-backlog.md)
 - Agent rules and verified gates: [`AGENTS.md`](AGENTS.md)
 - Phase 3 architecture roadmap: [`docs/ingestion/phase-3a-architecture-and-engine-evaluation.md`](docs/ingestion/phase-3a-architecture-and-engine-evaluation.md)

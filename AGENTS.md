@@ -16,20 +16,29 @@ Last modified: 2026-07-30
 
 ## Project purpose
 
-FlahaINTEL is a **local-first OSINT and news intelligence platform** for Flaha Agri Tech’s Precision Agriculture Division.
+FlahaINTEL is Flaha Agri Tech’s **Precision Agriculture intelligence system** (local-first, governed).
 
-It is an internal, governed intelligence workstation that:
+**Final product (LOCKED):** `docs/program/flahaintel-final-product-lock.md`  
+Do not steer implementation away from that lock. Platform Phases 1–3N delivered the **backbone** only; eyes/muscles/product handoff are future gates.
 
-- manages authoritative **RSS** sources with hardened collection and deduplication;
-- runs a durable multi-stage **ingestion pipeline** (acquire → extract → normalize);
-- stores **immutable artifacts** and PostgreSQL job/review provenance;
-- supports **analyst governance** (approve / reject / hold / correct) and promotion eligibility;
-- exposes an operational **API + web shell** (Dashboard, Sources, Submit, Jobs, Content, Governance, Artifacts, Settings);
-- hardens **production-like operations** (fail-closed config, workers, backup/runbooks) including **Windows** acceptance (Phase 3N).
+Metaphor:
 
-Do not expand beyond the currently approved milestone unless explicitly instructed.
+- **Backbone** — trust, evidence, safe collection, audit (largely built through Phase 3N)
+- **Eyes** — markets, science, news, controlled web; later video/social under allowlists
+- **Muscles** — schedules, extraction, trends, knowledge packs, sister-product feeds
+- **Brain** — human + admin governance and product handoff rules
 
-When a new milestone is approved, preserve the verified RSS foundation and update this file and the project documentation to reflect the new scope.
+**Platform capabilities in repo today:**
+
+- authoritative **RSS** sources with hardened collection and deduplication;
+- durable multi-stage **ingestion pipeline** (acquire → extract → normalize);
+- **immutable artifacts** and PostgreSQL jobs, provenance, decisions;
+- **analyst governance** (approve / reject / hold / correct) and promotion eligibility;
+- operational **API + web shell**;
+- **Windows production-like** ops acceptance (Phase 3N).
+
+Do not expand beyond the currently approved milestone unless explicitly instructed.  
+When a new milestone is approved, preserve the verified foundation, map the work to the final product lock (O1–O5 / Backbone|Eyes|Muscles|Brain), and update this file.
 
 ## Source file ownership headers
 
