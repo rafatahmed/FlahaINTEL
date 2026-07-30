@@ -1,0 +1,39 @@
+{
+  "version": "3m.acceptance",
+  "userAgent": "FlahaINTEL/3M (+https://flaha.local; controlled-crawl; contact-ops)",
+  "respectRobots": true,
+  "maxPages": 10,
+  "maxDepth": 1,
+  "maxRedirects": 3,
+  "maxAttachments": 2,
+  "maxAttachmentBytes": 5000000,
+  "maxTotalCrawlBytes": 20000000,
+  "rateLimitPerHostPerMinute": 20,
+  "allowedHosts": [
+    "quotes.toscrape.com",
+    "books.toscrape.com",
+    "example.com"
+  ],
+  "allowedPathPrefixes": {
+    "quotes.toscrape.com": [
+      "/",
+      "/js/",
+      "/js"
+    ],
+    "books.toscrape.com": [
+      "/",
+      "/catalogue/"
+    ],
+    "example.com": [
+      "/"
+    ]
+  },
+  "allowedAttachmentTypes": [
+    "text/html",
+    "application/pdf",
+    "text/plain"
+  ],
+  "schedule": {
+    "mode": "manual"
+  }
+}

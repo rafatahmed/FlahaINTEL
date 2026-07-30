@@ -69,8 +69,31 @@ function urlToLocator(urlText: string): GovernedLocator {
   };
 }
 
+function passwordFromDatabaseUrl(urlText: string | undefined): string | undefined {
+  if (!urlText) return undefined;
+  try {
+    const u = new URL(urlText);
+    return u.password ? decodeURIComponent(u.password) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Non-interactive Postgres client env (Windows psql hangs without PGPASSWORD). */
+function pgClientEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  const password = process.env.PGPASSWORD || passwordFromDatabaseUrl(process.env.DATABASE_URL);
+  return {
+    ...process.env,
+    ...extra,
+    ...(password ? { PGPASSWORD: password } : {}),
+    PGCONNECT_TIMEOUT: process.env.PGCONNECT_TIMEOUT || "15",
+  };
+}
+
 async function runCmd(cmd: string, args: string[], opts: { timeoutMs?: number; env?: NodeJS.ProcessEnv } = {}) {
   return new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
+    // Default timeout so Windows tools never hang indefinitely on password prompts.
+    const timeoutMs = opts.timeoutMs === undefined ? 60_000 : opts.timeoutMs;
     const child = spawn(cmd, args, {
       cwd: repoRoot,
       env: { ...process.env, ...opts.env },
@@ -80,12 +103,17 @@ async function runCmd(cmd: string, args: string[], opts: { timeoutMs?: number; e
     let stderr = "";
     child.stdout.on("data", (d) => (stdout += d.toString()));
     child.stderr.on("data", (d) => (stderr += d.toString()));
-    const t = opts.timeoutMs
-      ? setTimeout(() => {
-          child.kill();
-          reject(new Error(`timeout ${cmd}`));
-        }, opts.timeoutMs)
-      : null;
+    const t =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            try {
+              child.kill();
+            } catch {
+              /* ignore */
+            }
+            reject(new Error(`timeout ${timeoutMs}ms: ${cmd} ${args.slice(0, 4).join(" ")}`));
+          }, timeoutMs)
+        : null;
     child.on("close", (code) => {
       if (t) clearTimeout(t);
       resolve({ code: code ?? 1, stdout, stderr });
@@ -870,7 +898,12 @@ async function main() {
     log("workers operational", report.workers as Record<string, unknown>);
 
     // ---------- Backup + off-host restore ----------
+    log("backup start", { step: "pg_dump" });
     const pgBin = process.env.FLAHA_PG_BIN!;
+    const pgEnv = pgClientEnv();
+    if (!pgEnv.PGPASSWORD) {
+      throw new Error("PGPASSWORD unavailable; set DATABASE_URL with password or PGPASSWORD for residual backup.");
+    }
     const backupRoot = path.join(repoRoot, ".flaha-backups-offhost"); // separate from artifact root
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const backupDir = path.join(backupRoot, stamp);
@@ -879,9 +912,11 @@ async function main() {
     const dbUrl = process.env.DATABASE_URL!;
     const dumpRes = await runCmd(path.join(pgBin, "pg_dump.exe"), ["--dbname", dbUrl, "-Fc", "-f", dump], {
       timeoutMs: 120_000,
+      env: pgEnv,
     });
     if (dumpRes.code !== 0) throw new Error(`pg_dump failed ${dumpRes.stderr}`);
     const dumpStat = await stat(dump);
+    log("backup dump ok", { bytes: dumpStat.size });
     // artifact backup
     const artZipDir = path.join(backupDir, "artifacts-copy");
     await mkdir(artZipDir, { recursive: true });
@@ -909,48 +944,44 @@ async function main() {
       JSON.stringify(manifest, null, 2),
     );
 
-    // isolated restore
+    // isolated restore (non-interactive via PGPASSWORD)
+    log("backup start", { step: "isolated-restore" });
     const restoreDb = "flaha_intel_restore_3m_residual";
-    await runCmd(path.join(pgBin, "psql.exe"), [
-      "-h",
-      "localhost",
-      "-U",
-      "postgres",
-      "-d",
-      "postgres",
-      "-c",
-      `DROP DATABASE IF EXISTS ${restoreDb};`,
-    ]);
-    await runCmd(path.join(pgBin, "psql.exe"), [
-      "-h",
-      "localhost",
-      "-U",
-      "postgres",
-      "-d",
-      "postgres",
-      "-c",
-      `CREATE DATABASE ${restoreDb};`,
-    ]);
-    // parse password from DATABASE_URL for env
+    const pgUser = process.env.FLAHA_PG_SUPERUSER || "postgres";
+    await runCmd(
+      path.join(pgBin, "psql.exe"),
+      ["-h", "localhost", "-U", pgUser, "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c", `DROP DATABASE IF EXISTS ${restoreDb};`],
+      { timeoutMs: 30_000, env: pgEnv },
+    );
+    await runCmd(
+      path.join(pgBin, "psql.exe"),
+      ["-h", "localhost", "-U", pgUser, "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c", `CREATE DATABASE ${restoreDb};`],
+      { timeoutMs: 30_000, env: pgEnv },
+    );
     const restoreRes = await runCmd(
       path.join(pgBin, "pg_restore.exe"),
-      ["-h", "localhost", "-U", "postgres", "-d", restoreDb, "--no-owner", "--no-acl", dump],
-      { timeoutMs: 180_000 },
+      ["-h", "localhost", "-U", pgUser, "-d", restoreDb, "--no-owner", "--no-acl", dump],
+      { timeoutMs: 180_000, env: pgEnv },
     );
-    const countSql = await runCmd(path.join(pgBin, "psql.exe"), [
-      "-h",
-      "localhost",
-      "-U",
-      "postgres",
-      "-d",
-      restoreDb,
-      "-t",
-      "-c",
-      `SELECT 'migrations,'||COUNT(*) FROM _prisma_migrations
+    const countSql = await runCmd(
+      path.join(pgBin, "psql.exe"),
+      [
+        "-h",
+        "localhost",
+        "-U",
+        pgUser,
+        "-d",
+        restoreDb,
+        "-t",
+        "-A",
+        "-c",
+        `SELECT 'migrations,'||COUNT(*) FROM _prisma_migrations
        UNION ALL SELECT 'candidates,'||COUNT(*) FROM "GovernanceCandidate"
        UNION ALL SELECT 'decisions,'||COUNT(*) FROM "GovernanceDecision"
        UNION ALL SELECT 'jobs,'||COUNT(*) FROM "IngestionJob";`,
-    ]);
+      ],
+      { timeoutMs: 30_000, env: pgEnv },
+    );
     const restoreCounts = Object.fromEntries(
       countSql.stdout
         .split(/\r?\n/)
@@ -961,16 +992,12 @@ async function main() {
           return [k, Number(v)];
         }),
     );
-    await runCmd(path.join(pgBin, "psql.exe"), [
-      "-h",
-      "localhost",
-      "-U",
-      "postgres",
-      "-d",
-      "postgres",
-      "-c",
-      `DROP DATABASE IF EXISTS ${restoreDb};`,
-    ]);
+    await runCmd(
+      path.join(pgBin, "psql.exe"),
+      ["-h", "localhost", "-U", pgUser, "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c", `DROP DATABASE IF EXISTS ${restoreDb};`],
+      { timeoutMs: 30_000, env: pgEnv },
+    );
+    log("backup restore counts", restoreCounts as Record<string, unknown>);
 
     report.backup = {
       databaseBackup: dumpStat.size > 0 && dumpRes.code === 0 ? "PASS" : "FAIL",

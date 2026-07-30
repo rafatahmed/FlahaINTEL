@@ -7,7 +7,15 @@
     "dev": "npm run dev --workspace=@flaha-intel/api & npm run dev --workspace=@flaha-intel/web",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspace=@flaha-intel/api",
-    "prisma:generate": "npm run prisma:generate --workspace=@flaha-intel/api"
+    "prisma:generate": "npm run prisma:generate --workspace=@flaha-intel/api",
+    "governance:seed": "npm run governance:seed --workspace=@flaha-intel/api",
+    "bootstrap:local": "npm run bootstrap:local --workspace=@flaha-intel/api",
+    "bootstrap:rss-accepted": "npm run bootstrap:rss-accepted --workspace=@flaha-intel/api",
+    "governance:backfill-sources": "npm run governance:backfill-sources --workspace=@flaha-intel/api",
+    "ops:provision-runtimes": "powershell -NoProfile -File ops/scripts/provision-runtimes.ps1",
+    "ops:provision-verify": "powershell -NoProfile -File ops/scripts/provision-runtimes.ps1 -VerifyOnly",
+    "ops:residual-acceptance": "node ops/scripts/phase-3m-residual-acceptance.mjs",
+    "ops:smoke": "powershell -NoProfile -File ops/scripts/smoke-test.ps1"
   },
   "engines": {
     "node": ">=20"
