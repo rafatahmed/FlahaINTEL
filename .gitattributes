@@ -4,16 +4,100 @@
 #
 # Title: Repository Git Attribute Policy
 # Introduction:
-# Defines canonical line endings and protects binary and governed corpus bytes.
+# Defines canonical line endings, marks binaries, and protects governed
+# corpus bytes so Windows and Linux checkouts stay byte-stable where required.
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-07-15
-# Last modified: 2026-07-15
+# Last modified: 2026-07-30
 
-# Normalize human-authored text to LF in both the index and working tree.
+# ---------------------------------------------------------------------------
+# Default: detect text, normalize to LF in the repository
+# Working trees on Windows still receive LF (eol=lf) to match CI/Linux.
+# ---------------------------------------------------------------------------
 * text=auto eol=lf
 
-# Binary formats must never pass through text or whitespace conversion.
+# ---------------------------------------------------------------------------
+# Explicit source and config text (LF)
+# ---------------------------------------------------------------------------
+*.ts text eol=lf
+*.tsx text eol=lf
+*.mts text eol=lf
+*.cts text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.jsonl text eol=lf
+*.md text eol=lf
+*.mdx text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.xml text eol=lf
+*.html text eol=lf
+*.htm text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.sass text eol=lf
+*.less text eol=lf
+*.svg text eol=lf
+*.sql text eol=lf
+*.prisma text eol=lf
+*.graphql text eol=lf
+*.gql text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.ps1 text eol=lf
+*.psm1 text eol=lf
+*.psd1 text eol=lf
+*.py text eol=lf
+*.pyi text eol=lf
+*.rb text eol=lf
+*.rs text eol=lf
+*.go text eol=lf
+*.java text eol=lf
+*.kt text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.cs text eol=lf
+*.r text eol=lf
+*.R text eol=lf
+*.csv text eol=lf
+*.tsv text eol=lf
+*.txt text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+*.service text eol=lf
+*.env text eol=lf
+*.env.example text eol=lf
+*.example text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+*.editorconfig text eol=lf
+*.npmrc text eol=lf
+*.nvmrc text eol=lf
+Caddyfile text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+Makefile text eol=lf
+Procfile text eol=lf
+LICENSE text eol=lf
+NOTICE text eol=lf
+
+# Windows batch files need CRLF when present
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# ---------------------------------------------------------------------------
+# Binary: never subject to EOL or diff mangling
+# ---------------------------------------------------------------------------
 *.pdf binary
 *.png binary
 *.jpg binary
@@ -21,14 +105,83 @@
 *.gif binary
 *.webp binary
 *.ico binary
+*.bmp binary
+*.tif binary
+*.tiff binary
+*.avif binary
+
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+
 *.zip binary
 *.gz binary
+*.tgz binary
+*.bz2 binary
+*.xz binary
+*.7z binary
+*.rar binary
+*.tar binary
 
-# Governed corpus text has byte-stable UTF-8 LF representation.
+*.docx binary
+*.doc binary
+*.xlsx binary
+*.xls binary
+*.pptx binary
+*.ppt binary
+*.odt binary
+*.ods binary
+*.odp binary
+*.rtf binary
+
+*.parquet binary
+*.arrow binary
+*.feather binary
+*.orc binary
+*.avro binary
+*.sqlite binary
+*.sqlite3 binary
+*.db binary
+
+*.wasm binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.exe binary
+*.bin binary
+*.dat binary
+*.pak binary
+*.node binary
+
+*.mp3 binary
+*.mp4 binary
+*.webm binary
+*.wav binary
+*.flac binary
+*.ogg binary
+*.mov binary
+*.avi binary
+
+*.p12 binary
+*.pfx binary
+*.pem binary
+*.key binary
+*.crt binary
+*.cer binary
+*.der binary
+*.keystore binary
+
+# ---------------------------------------------------------------------------
+# Governed benchmark corpus: byte-stable UTF-8 LF for text fixtures
+# ---------------------------------------------------------------------------
 benchmarks/ingestion/corpus/**/*.csv text eol=lf
 benchmarks/ingestion/corpus/**/*.json text eol=lf
 benchmarks/ingestion/corpus/**/*.jsonl text eol=lf
 benchmarks/ingestion/corpus/**/*.html text eol=lf
+benchmarks/ingestion/corpus/**/*.md text eol=lf
+benchmarks/ingestion/corpus/**/*.txt text eol=lf
 
 # Governed non-UTF-8 and intentionally invalid HTML fixtures are binary.
 benchmarks/ingestion/corpus/html/encoding-windows-1252.html binary
@@ -36,3 +189,15 @@ benchmarks/ingestion/corpus/html/encoding-iso-8859-1.html binary
 benchmarks/ingestion/corpus/html/encoding-windows-1256.html binary
 benchmarks/ingestion/corpus/html/encoding-iso-8859-6.html binary
 benchmarks/ingestion/corpus/html/encoding-invalid-utf8.html binary
+
+# Corpus binary documents stay binary regardless of path rules above.
+benchmarks/ingestion/corpus/**/*.pdf binary
+benchmarks/ingestion/corpus/**/*.docx binary
+benchmarks/ingestion/corpus/**/*.pptx binary
+benchmarks/ingestion/corpus/**/*.rtf binary
+
+# Lockfiles and contract schemas: LF for reproducible CI diffs
+package-lock.json text eol=lf
+**/package-lock.json text eol=lf
+packages/ingestion-contracts/**/*.json text eol=lf
+)

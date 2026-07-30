@@ -1,28 +1,135 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: Repository Git Ignore Policy
+# Introduction:
+# Systematically excludes dependencies, build outputs, secrets, local runtimes,
+# operational state, caches, and OS/IDE noise from version control.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-07-15
+# Last modified: 2026-07-30
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
 node_modules/
+**/node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Python environments and packaging
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# ---------------------------------------------------------------------------
+# Build outputs and TypeScript caches
+# ---------------------------------------------------------------------------
 dist/
-.env
-*.log
-.vite/
-coverage/
-benchmarks/ingestion/results/*/
-!benchmarks/ingestion/results/.gitkeep
-
-
+**/dist/
+build/
+**/build/
+out/
+**/out/
 *.tsbuildinfo
+.turbo/
+.vite/
+*.js.map
+*.d.ts.map
 
-# Python generated files
-__pycache__/
-*.py[cod]
+# Keep package source maps out of accidental publish trees; do not ignore source.
+!packages/**/src/**
+
+# ---------------------------------------------------------------------------
+# Test, coverage, and tooling caches
+# ---------------------------------------------------------------------------
+coverage/
+**/coverage/
+.nyc_output/
+.vitest/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.venv/
-.benchmark-wheelhouse/
-.benchmark-envs/
-.benchmark-models/
-.benchmark-runtime/
-.benchmark-browsers/
-.benchmark-cache/
+.pytype/
+.tox/
+.nox/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.lcov
+
+# Python bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# ---------------------------------------------------------------------------
+# Logs and temporary files
+# ---------------------------------------------------------------------------
+*.log
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ---------------------------------------------------------------------------
+# Secrets, environment, and credentials (never commit real secrets)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!**/*.env.example
+!**/*.example.env
+!**/.env.example
+ops/config/*.env
+!ops/config/*.env.example
+runtime-paths.env
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+!docs/**/*.crt
+local-certs/
+**/*secret*
+!**/*secret*.md
+!**/*secret*.example*
+id_rsa
+id_ed25519
+*.keystore
+
+# ---------------------------------------------------------------------------
+# Flaha local runtime, artifacts, backups, and production-like state
+# ---------------------------------------------------------------------------
 .flaha-artifacts/
 .flaha-artifacts-prod/
 .flaha-backups/
@@ -30,13 +137,96 @@ __pycache__/
 .flaha-runtimes/
 .flaha-local-production/
 .flaha-releases/
-*.pem
-*.key
-*.p12
-*.pfx
-local-certs/
-runtime-paths.env
+.flaha-state/
+.flaha-sessions/
+.flaha-revoked/
+**/revoked-sessions.json
+**/session-revocation.json
+
+# Local acceptance / provision / residual reports (generated evidence)
 **/*-residual-report.json
 **/*-acceptance-report.json
 **/*-provision-report.json
+**/*-smoke-report.json
+**/*-runtime-report.json
+
+# ---------------------------------------------------------------------------
+# Benchmark isolated runtimes, caches, and generated corpus
+# ---------------------------------------------------------------------------
+.benchmark-wheelhouse/
+.benchmark-envs/
+.benchmark-models/
+.benchmark-runtime/
+.benchmark-browsers/
+.benchmark-cache/
 benchmarks/ingestion/generated-corpus/
+benchmarks/ingestion/results/*/
+!benchmarks/ingestion/results/.gitkeep
+# Explicitly keep governed result fixtures and reports (tracked under other paths)
+!benchmarks/ingestion/result-fixtures/**
+!benchmarks/ingestion/reports/**
+
+# Playwright / browser downloads outside pinned benchmark tree
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# ---------------------------------------------------------------------------
+# Database and local data dumps
+# ---------------------------------------------------------------------------
+*.sql.gz
+*.dump
+*.bak
+*.sqlite
+*.sqlite3
+*.db
+!docs/**/*.db
+pgdata/
+postgres-data/
+
+# ---------------------------------------------------------------------------
+# OS and editor noise
+# ---------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+.Spotlight-V100
+.Trashes
+
+# Editors / IDEs (keep shared project settings if added intentionally)
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.code-workspace
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Agent / AI local session state (never operational source of truth)
+.grok/
+.claude/
+.cursor/
+.codex/
+.agents/cache/
+.agents/sessions/
+
+# ---------------------------------------------------------------------------
+# CI packaging and release staging (local)
+# ---------------------------------------------------------------------------
+dist-ci/
+release/
+releases/
+*.tgz
+!docs/**/*.tgz
+)
