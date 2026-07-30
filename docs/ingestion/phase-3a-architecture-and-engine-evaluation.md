@@ -530,7 +530,8 @@ Each gate requires an explicit approval before implementation and stops with evi
 10. **3J — Normalization pipeline:** complete; provider-neutral content normalization from verified extraction artifacts.
 11. **3K — Governance and review workflow:** complete; governed candidates, deterministic checks, analyst decisions, and promotion eligibility.
 12. **3L — API and UI:** complete; operational FlahaINTEL product shell over the durable pipeline.
-13. **3M — Production hardening:** active; production security, reliability, deployment, and operational hardening.
+13. **3M — Production hardening:** complete; production security, reliability, deployment, and operational hardening.
+14. **3N — Windows production-like:** complete; host residual ACCEPT — see `docs/ingestion/phase-3n-evidence.md` and program charter `docs/program/flahaintel-program-frame-audit-plan-backlog.md`.
 
 ### Phase-number protection
 

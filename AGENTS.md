@@ -176,12 +176,15 @@ Additional migrations in the Phase 3 lineage include durable ingestion jobs, gov
 
 ### Phase 3 documentation map
 
+- **Program frame / audit / plan / backlog:** `docs/program/flahaintel-program-frame-audit-plan-backlog.md`
 - Roadmap: `docs/ingestion/phase-3a-architecture-and-engine-evaluation.md` §31
 - 3N scope: `docs/ingestion/phase-3n-windows-production-like.md`
 - 3N checklist: `docs/ingestion/gate-3n-acceptance-checklist.md`
 - 3N evidence: `docs/ingestion/phase-3n-evidence.md`
 - Production: `docs/ingestion/phase-3m-production-hardening.md`
 - Product shell: `docs/ingestion/phase-3l-api-web-ui.md`
+
+After Phase 3N, do not invent Phase 4+ work without an approved gate. Prefer the P0 ops backlog in the program charter.
 
 ## Local bootstrap (Windows / development)
 

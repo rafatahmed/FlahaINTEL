@@ -198,7 +198,9 @@ npm run ops:smoke
 
 ## Further reading
 
+- **Program frame, audit, plan & backlog:** [`docs/program/flahaintel-program-frame-audit-plan-backlog.md`](docs/program/flahaintel-program-frame-audit-plan-backlog.md)
 - Agent rules and verified gates: [`AGENTS.md`](AGENTS.md)
 - Phase 3 architecture roadmap: [`docs/ingestion/phase-3a-architecture-and-engine-evaluation.md`](docs/ingestion/phase-3a-architecture-and-engine-evaluation.md)
+- Phase 3N evidence: [`docs/ingestion/phase-3n-evidence.md`](docs/ingestion/phase-3n-evidence.md)
 - Production hardening: [`docs/ingestion/phase-3m-production-hardening.md`](docs/ingestion/phase-3m-production-hardening.md)
 - Runbooks: [`ops/runbooks/`](ops/runbooks/)
