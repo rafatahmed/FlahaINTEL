@@ -1,6 +1,12 @@
 {
-  "registryVersion": 3,
+  "registryVersion": 4,
   "principle": "Worldwide market channels; country is metadata. Start with Qatar then Jordan. See source-recon-qa-jo.md.",
+  "reviewPolicy": {
+    "modes": ["HUMAN_REQUIRED", "AUTO_APPROVE_OFFICIAL"],
+    "default": "HUMAN_REQUIRED",
+    "autoApproveRequires": ["verificationStatus=ACCEPTED", "ownershipVerified=true", "enabled=true"],
+    "note": "Auto-approve is policy-driven channel setting, not silent unlimited publish. Humans set/change the policy; harvest audit uses reviewDecisionSource=CHANNEL_POLICY. Human can still batch approve/reject. See docs/markets/market-price-review-workflow.md."
+  },
   "currencyNotes": {
     "JO": "1 qrsh (قرش / piaster) = 0.01 JOD. UI prices are often in qrsh; store native + convert to JOD.",
     "QA": "Prices in QAR unless stated otherwise."
@@ -53,6 +59,7 @@
       "currencyDefault": "QAR",
       "harvestIntervalDays": 3,
       "filterMaxSpanDays": 3,
+      "reviewMode": "AUTO_APPROVE_OFFICIAL",
       "complexity": "simple",
       "delivery": "PDF_PERIOD",
       "notes": "Simple channel beside MoCI. English page links a period PDF (from–to). Columns: vegetable, grade, cultivation method, price/kg. Harvest every 3 days.",
@@ -77,6 +84,7 @@
       "currencyDefault": "QAR",
       "harvestIntervalDays": 1,
       "filterMaxSpanDays": 3,
+      "reviewMode": "AUTO_APPROVE_OFFICIAL",
       "complexity": "medium",
       "delivery": "HTML_DAILY_BULLETIN",
       "originLabelDefault": "LOCAL",
@@ -104,6 +112,7 @@
       "currencyDefault": "QAR",
       "harvestIntervalDays": 1,
       "filterMaxSpanDays": 3,
+      "reviewMode": "AUTO_APPROVE_OFFICIAL",
       "complexity": "medium",
       "delivery": "HTML_DAILY_BULLETIN",
       "originLabelDefault": "IMPORTED",
@@ -131,6 +140,7 @@
       "currencyDefault": "QAR",
       "harvestIntervalDays": 1,
       "filterMaxSpanDays": 3,
+      "reviewMode": "AUTO_APPROVE_OFFICIAL",
       "complexity": "medium",
       "delivery": "HTML_DAILY_BULLETIN",
       "originLabelDefault": "LOCAL",
@@ -158,6 +168,7 @@
       "currencyDefault": "QAR",
       "harvestIntervalDays": 1,
       "filterMaxSpanDays": 3,
+      "reviewMode": "AUTO_APPROVE_OFFICIAL",
       "complexity": "medium",
       "delivery": "HTML_DAILY_BULLETIN",
       "originLabelDefault": "IMPORTED",
@@ -187,6 +198,7 @@
       "nativeToCurrencyFactor": 0.01,
       "harvestIntervalDays": 1,
       "filterMaxSpanDays": 3,
+      "reviewMode": "AUTO_APPROVE_OFFICIAL",
       "complexity": "comprehensive",
       "delivery": "WEB_FORM_TABLE_PRINT_PDF",
       "filters": {

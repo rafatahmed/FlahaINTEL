@@ -111,4 +111,67 @@ export class KnowledgePackService {
       include: { items: { orderBy: { sequence: "asc" } } },
     });
   }
+
+  /**
+   * Idempotent sample/content seed: replace items when pack code already exists.
+   * Does not auto-approve; reviewState stays DRAFT unless already advanced by humans.
+   */
+  async upsertPackByCode(input: CreatePackInput): Promise<{
+    created: boolean;
+    pack: Awaited<ReturnType<KnowledgePackService["createPack"]>>;
+  }> {
+    const code = input.code
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!code) throw new KnowledgePackError("INVALID_CODE", "code is required.");
+    if (!THEMES.has(input.theme)) throw new KnowledgePackError("INVALID_THEME", "theme is invalid.");
+    if (!input.title?.trim()) throw new KnowledgePackError("INVALID_TITLE", "title is required.");
+
+    const existing = await this.db.knowledgePack.findUnique({
+      where: { tenantId_code: { tenantId: input.tenantId, code } },
+      include: { items: true },
+    });
+
+    const items = input.items ?? [];
+
+    if (!existing) {
+      const pack = await this.createPack({ ...input, code });
+      return { created: true, pack };
+    }
+
+    const pack = await this.db.$transaction(async (tx) => {
+      await tx.knowledgePackItem.deleteMany({ where: { packId: existing.id } });
+      return tx.knowledgePack.update({
+        where: { id: existing.id },
+        data: {
+          theme: input.theme,
+          title: input.title.trim(),
+          summary: input.summary?.trim() || null,
+          cropTags: input.cropTags ?? [],
+          regionTags: input.regionTags ?? [],
+          climateTags: input.climateTags ?? [],
+          language: input.language?.trim() || "en",
+          // Keep human review state; only bump version when content replaced.
+          version: { increment: 1 },
+          items: {
+            create: items.map((item, index) => ({
+              sequence: index + 1,
+              title: item.title.trim(),
+              extractKind: item.extractKind.trim() || "NOTE",
+              bodyText: item.bodyText?.trim() || null,
+              structured: (item.structured ?? {}) as Prisma.InputJsonValue,
+              sourceUrl: item.sourceUrl?.trim() || null,
+              evidenceArtifactId: item.evidenceArtifactId || null,
+              governanceCandidateId: item.governanceCandidateId || null,
+            })),
+          },
+        },
+        include: { items: { orderBy: { sequence: "asc" } } },
+      });
+    });
+
+    return { created: false, pack };
+  }
 }

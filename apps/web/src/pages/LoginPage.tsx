@@ -36,7 +36,15 @@ export function LoginPage() {
         token: session.token,
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Login failed.");
+      const msg = e instanceof Error ? e.message : "Login failed.";
+      // Browser fetch fails with NetworkError when API is down, wrong VITE_API_URL, or CORS blocks.
+      if (/networkerror|failed to fetch|load failed|network request failed/i.test(msg)) {
+        setError(
+          `${msg} — API not reachable. Start apps/api (default http://localhost:3003) and check VITE_API_URL matches.`,
+        );
+      } else {
+        setError(msg);
+      }
     } finally {
       setBusy(false);
     }

@@ -62,6 +62,21 @@ Science of **soil, irrigation, nutrition, water** is universal.
 
 Approved packs **inform** FlahaSOIL / CALC / FAST work; they **never** silently change product algorithms without a separate product change process.
 
+## Sample content (4S systemic starter)
+
+Machine-readable samples live in:
+
+- `docs/knowledge/samples/soil-irrigation-pack-samples.json`
+
+Seed into the local tenant (idempotent):
+
+```bash
+cd apps/api
+npm run knowledge:seed-samples
+```
+
+Samples stay `DRAFT` for human governance. They are illustrative literature notes and **never** auto-update FlahaSOIL.
+
 ## API
 
 - `GET /api/knowledge-packs`

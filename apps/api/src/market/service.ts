@@ -4,7 +4,7 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Market Channel and Price Service
- * Introduction: Global markets with rich rows, Jordan daily / Qatar 3-day cadence, 3-day filters.
+ * Introduction: Global markets with rich rows, cadence, and policy-driven review (auto vs human).
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
@@ -12,6 +12,13 @@
  */
 import type { PrismaClient, SourceAuthorityType } from "@prisma/client";
 import { Prisma } from "@prisma/client";
+import {
+  canAutoApproveOfficial,
+  parseReviewMode,
+  resolveHarvestReview,
+  type ChannelReviewMode,
+  type PriceReviewDecisionSource,
+} from "./reviewPolicy.js";
 import {
   assertFilterSpan,
   channelCode,
@@ -47,6 +54,8 @@ export type UpsertChannelInput = {
   currencyDefault?: string;
   harvestIntervalDays?: number;
   filterMaxSpanDays?: number;
+  /** Default HUMAN_REQUIRED. AUTO_APPROVE_OFFICIAL only for trusted official channels. */
+  reviewMode?: ChannelReviewMode;
   notes?: string | null;
 };
 
@@ -103,6 +112,10 @@ export class MarketService {
     if (harvestIntervalDays < 1 || filterMaxSpanDays < 1) {
       throw new MarketValidationError("INVALID_CADENCE", "harvestIntervalDays and filterMaxSpanDays must be >= 1.");
     }
+    const reviewMode = input.reviewMode ?? "HUMAN_REQUIRED";
+    if (reviewMode !== "HUMAN_REQUIRED" && reviewMode !== "AUTO_APPROVE_OFFICIAL") {
+      throw new MarketValidationError("INVALID_REVIEW_MODE", "reviewMode must be HUMAN_REQUIRED or AUTO_APPROVE_OFFICIAL.");
+    }
 
     return this.db.marketChannel.upsert({
       where: { code },
@@ -123,6 +136,7 @@ export class MarketService {
         currencyDefault,
         harvestIntervalDays,
         filterMaxSpanDays,
+        reviewMode,
         notes: input.notes?.trim() || null,
       },
       update: {
@@ -139,8 +153,36 @@ export class MarketService {
         currencyDefault,
         harvestIntervalDays,
         filterMaxSpanDays,
+        reviewMode,
         notes: input.notes?.trim() || null,
       },
+    });
+  }
+
+  /**
+   * Change channel review policy (governance admin). Does not rewrite historical rows;
+   * next harvest/record applies the new policy to new or changed fingerprints.
+   */
+  async setChannelReviewMode(params: { channelCode: string; reviewMode: ChannelReviewMode }) {
+    let mode: ChannelReviewMode;
+    try {
+      mode = parseReviewMode(params.reviewMode);
+    } catch {
+      throw new MarketValidationError("INVALID_REVIEW_MODE", "reviewMode must be HUMAN_REQUIRED or AUTO_APPROVE_OFFICIAL.");
+    }
+    const channel = await this.db.marketChannel.findUnique({ where: { code: params.channelCode } });
+    if (!channel) throw new MarketValidationError("CHANNEL_NOT_FOUND", `Unknown channel ${params.channelCode}.`);
+    if (mode === "AUTO_APPROVE_OFFICIAL") {
+      if (channel.verificationStatus !== "ACCEPTED" || !channel.ownershipVerified) {
+        throw new MarketValidationError(
+          "AUTO_APPROVE_NOT_ELIGIBLE",
+          "AUTO_APPROVE_OFFICIAL requires verificationStatus=ACCEPTED and ownershipVerified=true.",
+        );
+      }
+    }
+    return this.db.marketChannel.update({
+      where: { id: channel.id },
+      data: { reviewMode: mode },
     });
   }
 
@@ -178,7 +220,16 @@ export class MarketService {
     if (!channel) throw new MarketValidationError("CHANNEL_NOT_FOUND", `Unknown channel ${params.channelCode}.`);
     if (!channel.enabled) throw new MarketValidationError("CHANNEL_DISABLED", "Channel is disabled.");
 
+    const policyChannel = {
+      code: channel.code,
+      reviewMode: channel.reviewMode,
+      verificationStatus: channel.verificationStatus,
+      ownershipVerified: channel.ownershipVerified,
+      enabled: channel.enabled,
+    };
+    const autoEligible = canAutoApproveOfficial(policyChannel);
     const created = [];
+    const reviewReasons: Record<string, number> = {};
     for (const row of params.rows) {
       requireEvidence(row);
       const observedOn = parseObservedOn(row.observedOn);
@@ -242,18 +293,64 @@ export class MarketService {
       const nameEn = row.commodityNameEn?.trim() || (channel.language === "en" ? row.commodityName.trim() : null);
       const nameAr = row.commodityNameAr?.trim() || null;
 
-      const observation = await this.db.marketPriceObservation.upsert({
-        where: {
-          channelId_observedOn_commodityCode_unit_currency_packDescription_originLabel: {
-            channelId: channel.id,
-            observedOn,
-            commodityCode,
-            unit,
-            currency,
-            packDescription,
-            originLabel,
-          },
+      const uniqueWhere = {
+        channelId_observedOn_commodityCode_unit_currency_packDescription_originLabel: {
+          channelId: channel.id,
+          observedOn,
+          commodityCode,
+          unit,
+          currency,
+          packDescription,
+          originLabel,
         },
+      };
+
+      const existing = await this.db.marketPriceObservation.findUnique({
+        where: uniqueWhere,
+        select: {
+          id: true,
+          reviewState: true,
+          reviewDecisionSource: true,
+          contentFingerprint: true,
+          reviewedById: true,
+          reviewedAt: true,
+          reviewNote: true,
+        },
+      });
+
+      const harvestReview = resolveHarvestReview({
+        channel: policyChannel,
+        existing: existing
+          ? {
+              reviewState: existing.reviewState,
+              reviewDecisionSource: existing.reviewDecisionSource,
+              contentFingerprint: existing.contentFingerprint,
+            }
+          : null,
+        fingerprint,
+      });
+      reviewReasons[harvestReview.reason] = (reviewReasons[harvestReview.reason] ?? 0) + 1;
+
+      // When preserving a prior human/policy decision, keep reviewer timestamps/notes.
+      const preserve =
+        harvestReview.reason.startsWith("preserve_") && existing != null
+          ? {
+              reviewState: existing.reviewState,
+              reviewDecisionSource: existing.reviewDecisionSource,
+              reviewedById: existing.reviewedById,
+              reviewedAt: existing.reviewedAt,
+              reviewNote: existing.reviewNote,
+            }
+          : {
+              reviewState: harvestReview.reviewState,
+              reviewDecisionSource: harvestReview.reviewDecisionSource,
+              reviewedById: harvestReview.reviewedById,
+              reviewedAt: harvestReview.reviewedAt,
+              reviewNote: harvestReview.reviewNote,
+            };
+
+      const observation = await this.db.marketPriceObservation.upsert({
+        where: uniqueWhere,
         create: {
           tenantId: params.tenantId,
           channelId: channel.id,
@@ -285,6 +382,11 @@ export class MarketService {
           evidenceArtifactId: row.evidenceArtifactId || null,
           sourceBatchId: params.sourceBatchId,
           contentFingerprint: fingerprint,
+          reviewState: preserve.reviewState,
+          reviewDecisionSource: preserve.reviewDecisionSource,
+          reviewedById: preserve.reviewedById,
+          reviewedAt: preserve.reviewedAt,
+          reviewNote: preserve.reviewNote,
           createdById: params.createdById,
           correlationId: params.correlationId || null,
         },
@@ -311,10 +413,11 @@ export class MarketService {
           evidenceArtifactId: row.evidenceArtifactId || null,
           sourceBatchId: params.sourceBatchId,
           contentFingerprint: fingerprint,
-          reviewState: "PENDING_REVIEW",
-          reviewedById: null,
-          reviewedAt: null,
-          reviewNote: null,
+          reviewState: preserve.reviewState,
+          reviewDecisionSource: preserve.reviewDecisionSource,
+          reviewedById: preserve.reviewedById,
+          reviewedAt: preserve.reviewedAt,
+          reviewNote: preserve.reviewNote,
           correlationId: params.correlationId || null,
         },
       });
@@ -324,6 +427,14 @@ export class MarketService {
       channel,
       count: created.length,
       rows: created,
+      reviewPolicy: {
+        reviewMode: channel.reviewMode,
+        autoApproveEligible: autoEligible,
+        decisionBreakdown: reviewReasons,
+        note: autoEligible
+          ? "Channel policy AUTO_APPROVE_OFFICIAL applied (audit: CHANNEL_POLICY). Admin may switch to HUMAN_REQUIRED."
+          : "Rows enter PENDING_REVIEW for human governance (default or policy not eligible).",
+      },
       cadence: {
         harvestIntervalDays: channel.harvestIntervalDays,
         filterMaxSpanDays: channel.filterMaxSpanDays,
@@ -394,6 +505,7 @@ export class MarketService {
     from?: string;
     to?: string;
     reviewState?: "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+    reviewDecisionSource?: PriceReviewDecisionSource;
     limit?: number;
   }) {
     if (params.from && params.to && params.channelCode) {
@@ -407,6 +519,7 @@ export class MarketService {
       where: {
         tenantId: params.tenantId,
         reviewState: params.reviewState,
+        reviewDecisionSource: params.reviewDecisionSource,
         commodityCode: params.commodityCode ? normalizeCommodityCode(params.commodityCode) : undefined,
         observedOn: {
           gte: params.from ? parseObservedOn(params.from) : undefined,
@@ -418,14 +531,50 @@ export class MarketService {
         },
       },
       include: { channel: true },
-      orderBy: [{ observedOn: "desc" }, { commodityCode: "asc" }],
+      orderBy: [
+        { observedOn: "desc" },
+        { commodityName: "asc" },
+        { grade: "asc" },
+        { cultivationMethod: "asc" },
+        { commodityCode: "asc" },
+      ],
       take: limit,
     });
+  }
+
+  /** Queue summary for PA review UI (pending human vs auto-approved counts). */
+  async reviewQueueSummary(params: { tenantId: string; channelCode?: string; countryCode?: string }) {
+    const channelFilter = {
+      code: params.channelCode,
+      countryCode: params.countryCode ? normalizeCountryCode(params.countryCode) : undefined,
+    };
+    const base = {
+      tenantId: params.tenantId,
+      channel: params.channelCode || params.countryCode ? channelFilter : undefined,
+    };
+    const [pending, approvedHuman, approvedPolicy, rejected] = await Promise.all([
+      this.db.marketPriceObservation.count({ where: { ...base, reviewState: "PENDING_REVIEW" } }),
+      this.db.marketPriceObservation.count({
+        where: { ...base, reviewState: "APPROVED", reviewDecisionSource: "HUMAN" },
+      }),
+      this.db.marketPriceObservation.count({
+        where: { ...base, reviewState: "APPROVED", reviewDecisionSource: "CHANNEL_POLICY" },
+      }),
+      this.db.marketPriceObservation.count({ where: { ...base, reviewState: "REJECTED" } }),
+    ]);
+    return {
+      pendingReview: pending,
+      approvedByHuman: approvedHuman,
+      approvedByChannelPolicy: approvedPolicy,
+      rejected,
+      total: pending + approvedHuman + approvedPolicy + rejected,
+    };
   }
 
   /**
    * Simple trend series for one commodity on one channel (for charts / advice).
    * Returns chronological points; prefers unitPrice, else priceMode, else packPrice.
+   * For Mahaseel, pass grade + cultivationMethod (or packDescription) so series are not mixed.
    */
   async priceTrend(params: {
     tenantId: string;
@@ -434,6 +583,9 @@ export class MarketService {
     from?: string;
     to?: string;
     originLabel?: string;
+    grade?: string;
+    cultivationMethod?: string;
+    packDescription?: string;
     limit?: number;
   }) {
     const channel = await this.db.marketChannel.findUnique({ where: { code: params.channelCode } });
@@ -442,12 +594,22 @@ export class MarketService {
       assertFilterSpan(params.from, params.to, Math.max(channel.filterMaxSpanDays, 365));
     }
     const code = normalizeCommodityCode(params.commodityCode);
+    const grade = params.grade?.trim() || undefined;
+    const cultivationMethod = params.cultivationMethod?.trim() || undefined;
+    const packDescription =
+      params.packDescription?.trim() ||
+      (grade && cultivationMethod
+        ? `grade-${grade}-${cultivationMethod}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+        : undefined);
     const rows = await this.db.marketPriceObservation.findMany({
       where: {
         tenantId: params.tenantId,
         channelId: channel.id,
         commodityCode: code,
         originLabel: params.originLabel?.trim().toUpperCase() || undefined,
+        grade: grade || undefined,
+        cultivationMethod: cultivationMethod || undefined,
+        packDescription: packDescription || undefined,
         observedOn: {
           gte: params.from ? parseObservedOn(params.from) : undefined,
           lte: params.to ? parseObservedOn(params.to) : undefined,
@@ -460,14 +622,21 @@ export class MarketService {
       channelCode: channel.code,
       countryCode: channel.countryCode,
       commodityCode: code,
+      grade: grade ?? null,
+      cultivationMethod: cultivationMethod ?? null,
+      packDescription: packDescription ?? null,
       points: rows.map((r) => ({
         observedOn: toIsoDate(r.observedOn),
+        periodFrom: r.periodFrom ? toIsoDate(r.periodFrom) : null,
+        periodTo: r.periodTo ? toIsoDate(r.periodTo) : null,
         unitPrice: r.unitPrice?.toNumber() ?? null,
         priceMode: r.priceMode?.toNumber() ?? null,
         priceHigh: r.priceHigh?.toNumber() ?? null,
         priceLow: r.priceLow?.toNumber() ?? null,
         currency: r.currency,
         quantityTons: r.quantityTons?.toNumber() ?? null,
+        grade: r.grade,
+        cultivationMethod: r.cultivationMethod,
         reviewState: r.reviewState,
         value:
           r.unitPrice?.toNumber() ??
@@ -493,10 +662,56 @@ export class MarketService {
       where: { id: existing.id },
       data: {
         reviewState: params.reviewState,
+        reviewDecisionSource: "HUMAN",
         reviewedById: params.reviewerId,
         reviewedAt: new Date(),
         reviewNote: params.note?.trim() || null,
       },
     });
+  }
+
+  /**
+   * Batch human approve/reject (governance_review). Caps at 200 ids per call.
+   */
+  async reviewPriceBatch(params: {
+    tenantId: string;
+    reviewerId: string;
+    priceIds: string[];
+    reviewState: "APPROVED" | "REJECTED";
+    note?: string;
+  }) {
+    const ids = [...new Set(params.priceIds.map((id) => id.trim()).filter(Boolean))];
+    if (!ids.length) {
+      throw new MarketValidationError("EMPTY_REVIEW_BATCH", "At least one priceId is required.");
+    }
+    if (ids.length > 200) {
+      throw new MarketValidationError("REVIEW_BATCH_TOO_LARGE", "Maximum 200 priceIds per batch review.");
+    }
+    if (params.reviewState !== "APPROVED" && params.reviewState !== "REJECTED") {
+      throw new MarketValidationError("INVALID_REVIEW_STATE", "reviewState must be APPROVED or REJECTED.");
+    }
+    const found = await this.db.marketPriceObservation.findMany({
+      where: { tenantId: params.tenantId, id: { in: ids } },
+      select: { id: true },
+    });
+    const foundIds = new Set(found.map((r) => r.id));
+    const missing = ids.filter((id) => !foundIds.has(id));
+    if (missing.length) {
+      throw new MarketValidationError(
+        "PRICE_NOT_FOUND",
+        `Price observation(s) not found in tenant: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? "…" : ""}`,
+      );
+    }
+    const result = await this.db.marketPriceObservation.updateMany({
+      where: { tenantId: params.tenantId, id: { in: ids } },
+      data: {
+        reviewState: params.reviewState,
+        reviewDecisionSource: "HUMAN",
+        reviewedById: params.reviewerId,
+        reviewedAt: new Date(),
+        reviewNote: params.note?.trim() || null,
+      },
+    });
+    return { updated: result.count, reviewState: params.reviewState, reviewDecisionSource: "HUMAN" as const };
   }
 }

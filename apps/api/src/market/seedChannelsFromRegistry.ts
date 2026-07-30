@@ -31,6 +31,8 @@ type RegistryChannel = {
   currencyDefault?: string;
   harvestIntervalDays?: number;
   filterMaxSpanDays?: number;
+  /** HUMAN_REQUIRED (default) or AUTO_APPROVE_OFFICIAL for trusted official bulletins. */
+  reviewMode?: "HUMAN_REQUIRED" | "AUTO_APPROVE_OFFICIAL";
   notes?: string | null;
 };
 
@@ -52,6 +54,11 @@ try {
       ch.harvestIntervalDays ??
       (ch.marketCode?.includes("mahaseel") ? 3 : ch.countryCode?.toUpperCase() === "QA" ? 1 : 1);
     const filterMaxSpanDays = ch.filterMaxSpanDays ?? 3;
+    // Trusted official first-wave channels may use AUTO_APPROVE_OFFICIAL when registry sets it
+    // and ownership is verified. Schema default remains HUMAN_REQUIRED.
+    const reviewMode =
+      ch.reviewMode ??
+      (ch.verificationStatus === "ACCEPTED" && ch.ownershipVerified ? "AUTO_APPROVE_OFFICIAL" : "HUMAN_REQUIRED");
     const row = await markets.upsertChannel({
       countryCode: ch.countryCode,
       marketCode: ch.marketCode,
@@ -68,11 +75,12 @@ try {
       currencyDefault: ch.currencyDefault,
       harvestIntervalDays,
       filterMaxSpanDays,
+      reviewMode,
       notes: ch.notes,
     });
     upserted += 1;
     console.log(
-      `upserted ${row.code} status=${row.verificationStatus} enabled=${row.enabled} harvestEvery=${row.harvestIntervalDays}d filterMax=${row.filterMaxSpanDays}d`,
+      `upserted ${row.code} status=${row.verificationStatus} enabled=${row.enabled} reviewMode=${row.reviewMode} harvestEvery=${row.harvestIntervalDays}d filterMax=${row.filterMaxSpanDays}d`,
     );
   }
   console.log(JSON.stringify({ upserted, total: raw.channels.length }, null, 2));

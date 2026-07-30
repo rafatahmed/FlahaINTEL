@@ -35,6 +35,7 @@ Country is a field, not a separate product. First implementations: Qatar, then J
 - Uniqueness rules for daily rows  
 - Retention target: ≥ 365 days per market  
 - Place for human review before “official series” use  
+- Channel review policy: default `HUMAN_REQUIRED`; trusted official channels may use policy-driven `AUTO_APPROVE_OFFICIAL` with audit (`reviewDecisionSource`) — see `docs/markets/market-price-review-workflow.md`
 
 ## Scope (out)
 
@@ -48,6 +49,7 @@ Country is a field, not a separate product. First implementations: Qatar, then J
 - [x] Works for two different countries without code forks (countryCode field + multi-country tests)  
 - [x] Evidence link required for each price batch  
 - [x] Tests for uniqueness and currency/unit validation (`market/validation.test.ts`)
+- [x] Auto-approve vs human review policy (`market/reviewPolicy.test.ts` + migration `20260730160000_market_price_review_policy`)
 
 ## Depends on
 

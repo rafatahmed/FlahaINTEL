@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-07-30
  */
 import { CssBaseline } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -21,7 +21,9 @@ import { ArtifactsPage } from "./pages/ArtifactsPage";
 import { ContentPage } from "./pages/ContentPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { JobsPage } from "./pages/JobsPage";
+import { KnowledgePacksPage } from "./pages/KnowledgePacksPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MarketsPage } from "./pages/MarketsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SubmitPage } from "./pages/SubmitPage";
 
@@ -46,6 +48,8 @@ function Shell() {
       readiness={readiness}
     >
       {nav === "dashboard" && <DashboardPage />}
+      {nav === "markets" && <MarketsPage />}
+      {nav === "knowledge" && <KnowledgePacksPage />}
       {nav === "sources" && <SourceManager />}
       {nav === "submit" && <SubmitPage />}
       {nav === "jobs" && <JobsPage />}

@@ -243,4 +243,48 @@ export const api = {
     request<Page<Record<string, unknown>>>(`/api/artifacts${query(filters)}`),
   artifact: (id: string) => request<Record<string, unknown>>(`/api/artifacts/${id}`),
   artifactPreview: (id: string) => request<{ preview: string; truncated: boolean; rendering: string }>(`/api/artifacts/${id}/preview`),
+
+  marketChannels: (countryCode?: string) =>
+    request<{ channels: Array<Record<string, unknown>> }>(`/api/markets/channels${query({ countryCode })}`),
+  marketPrices: (filters: Record<string, string | number | undefined> = {}) =>
+    request<{ prices: Array<Record<string, unknown>> }>(`/api/markets/prices${query(filters)}`),
+  marketPriceTrend: (filters: {
+    channelCode: string;
+    commodityCode: string;
+    from?: string;
+    to?: string;
+    originLabel?: string;
+    grade?: string;
+    cultivationMethod?: string;
+    packDescription?: string;
+    limit?: number;
+  }) => request<{
+    channelCode: string;
+    countryCode: string;
+    commodityCode: string;
+    grade?: string | null;
+    cultivationMethod?: string | null;
+    points: Array<{
+      observedOn: string;
+      value: number | null;
+      unitPrice: number | null;
+      priceMode: number | null;
+      priceHigh: number | null;
+      priceLow: number | null;
+      currency: string;
+      quantityTons: number | null;
+      grade?: string | null;
+      cultivationMethod?: string | null;
+      reviewState: string;
+    }>;
+  }>(`/api/markets/prices/trend${query(filters)}`),
+  marketReviewSummary: (filters: { channelCode?: string; countryCode?: string } = {}) =>
+    request<{ summary: Record<string, number> }>(`/api/markets/prices/review-summary${query(filters)}`),
+  joAmmanCommodityMap: () =>
+    request<{ channelCode: string; count: number; entries: Array<{ ar: string; en: string; code: string }> }>(
+      "/api/markets/commodity-map/jo-amman",
+    ),
+  knowledgePacks: (theme?: string) =>
+    request<{ packs: Array<Record<string, unknown>> }>(`/api/knowledge-packs${query({ theme })}`),
+  knowledgePack: (id: string) => request<{ pack: Record<string, unknown> }>(`/api/knowledge-packs/${id}`),
 };

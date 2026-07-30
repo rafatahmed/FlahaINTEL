@@ -961,6 +961,25 @@ enum MarketPriceReviewState {
   REJECTED
 }
 
+/// Channel-level policy for harvest-time review (human remains in charge of the policy).
+enum MarketChannelReviewMode {
+  /// Default: every harvested/updated row enters PENDING_REVIEW for a human.
+  HUMAN_REQUIRED
+  /// Trusted official channels may auto-approve when ACCEPTED + ownershipVerified.
+  /// Admin can flip back to HUMAN_REQUIRED at any time. Not silent unlimited publish.
+  AUTO_APPROVE_OFFICIAL
+}
+
+/// How the current reviewState was decided (audit trail for auto vs human).
+enum MarketPriceReviewDecisionSource {
+  /// Still pending human review (or never decided).
+  NONE
+  /// A human reviewer approved or rejected.
+  HUMAN
+  /// Channel policy AUTO_APPROVE_OFFICIAL applied at harvest/record.
+  CHANNEL_POLICY
+}
+
 enum KnowledgePackTheme {
   SOIL
   IRRIGATION
@@ -999,6 +1018,8 @@ model MarketChannel {
   harvestIntervalDays Int                           @default(1)
   /// Max inclusive day span for filter queries (Jordan product filter window = 3).
   filterMaxSpanDays   Int                           @default(3)
+  /// Policy: human review queue vs auto-approve official bulletins (policy-driven, not silent).
+  reviewMode         MarketChannelReviewMode        @default(HUMAN_REQUIRED)
   notes              String?
   createdAt          DateTime                       @default(now())
   updatedAt          DateTime                       @updatedAt
@@ -1008,6 +1029,7 @@ model MarketChannel {
   @@unique([countryCode, marketCode])
   @@index([countryCode, enabled])
   @@index([verificationStatus])
+  @@index([reviewMode])
 }
 
 /// One price row for a commodity on a bulletin date (tenant-scoped for multi-tenant product).
@@ -1052,6 +1074,8 @@ model MarketPriceObservation {
   sourceBatchId    String
   contentFingerprint String              @unique
   reviewState      MarketPriceReviewState @default(PENDING_REVIEW)
+  /// NONE while pending; HUMAN after governance review; CHANNEL_POLICY after auto-approve.
+  reviewDecisionSource MarketPriceReviewDecisionSource @default(NONE)
   reviewedById     String?               @db.Uuid
   reviewedBy       UserAccount?          @relation("MarketPriceReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   reviewedAt       DateTime?
@@ -1066,6 +1090,7 @@ model MarketPriceObservation {
   @@index([tenantId, channelId, observedOn])
   @@index([tenantId, commodityCode, observedOn])
   @@index([tenantId, reviewState])
+  @@index([tenantId, reviewDecisionSource])
   @@index([sourceBatchId])
 }
 

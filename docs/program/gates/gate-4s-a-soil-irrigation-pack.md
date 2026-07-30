@@ -44,7 +44,7 @@ Define the **knowledge pack** shape for soil analysis and irrigation/water-savin
 ## Acceptance (when implemented)
 
 - [x] Pack schema documented (`docs/knowledge/knowledge-pack-schema.md` + Prisma models)  
-- [ ] At least one sample pack created from governed documents (API ready; operator can POST sample)  
+- [x] Sample packs seeded systemically (`docs/knowledge/samples/soil-irrigation-pack-samples.json` + `npm run knowledge:seed-samples`)
 - [x] Comparison note path toward FlahaSOIL documented (manual; packs never auto-change SOIL)  
 - [x] Works with multi-country tags (regionTags e.g. QA, JO, CA)
 

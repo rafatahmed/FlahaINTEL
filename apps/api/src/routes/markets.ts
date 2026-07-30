@@ -4,7 +4,7 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Market API Routes
- * Introduction: Channels and price observations for global market intelligence (4M-0/4M-A).
+ * Introduction: Channels, prices, and auto-approve vs human review governance (4M).
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
@@ -13,6 +13,7 @@
 import type { PrismaClient } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { AppError } from "../errors.js";
+import { listJoAmmanCommodityMap } from "../market/joAmmanCommodityMap.js";
 import { MarketService } from "../market/service.js";
 import { MarketValidationError } from "../market/validation.js";
 import { assertPermission, resolveProductActor } from "../product/auth.js";
@@ -41,6 +42,22 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
       }
     });
 
+    /** Jordan Amman AR ↔ EN commodity map (thin black ↔ اسود رفيع, …). */
+    app.get("/markets/commodity-map/jo-amman", async (request) => {
+      try {
+        await resolveProductActor(prisma, request);
+        const entries = listJoAmmanCommodityMap();
+        return {
+          channelCode: "jo-amman-central-market",
+          countryCode: "JO",
+          count: entries.length,
+          entries,
+        };
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
     app.post("/markets/channels", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);
@@ -60,7 +77,24 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           enabled: body.enabled !== false,
           language: body.language != null ? String(body.language) : "en",
           currencyDefault: body.currencyDefault != null ? String(body.currencyDefault) : undefined,
+          reviewMode: body.reviewMode != null ? (String(body.reviewMode) as never) : undefined,
           notes: body.notes != null ? String(body.notes) : null,
+        });
+        return { channel };
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Set channel review policy (HUMAN_REQUIRED | AUTO_APPROVE_OFFICIAL). Governance admin only. */
+    app.patch<{ Params: { code: string } }>("/markets/channels/:code/review-mode", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "governance_admin");
+        const body = request.body as { reviewMode?: string };
+        const channel = await markets.setChannelReviewMode({
+          channelCode: request.params.code,
+          reviewMode: body.reviewMode as never,
         });
         return { channel };
       } catch (e) {
@@ -81,9 +115,27 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           from: q.from,
           to: q.to,
           reviewState: q.reviewState as never,
+          reviewDecisionSource: q.reviewDecisionSource as never,
           limit: q.limit ? Number(q.limit) : 100,
         });
         return { prices };
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Pending / auto / human review counts for PA queue. */
+    app.get("/markets/prices/review-summary", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as { channelCode?: string; countryCode?: string };
+        const summary = await markets.reviewQueueSummary({
+          tenantId: actor.tenantId,
+          channelCode: q.channelCode,
+          countryCode: q.countryCode,
+        });
+        return { summary };
       } catch (e) {
         mapError(e);
       }
@@ -104,6 +156,9 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           from: q.from,
           to: q.to,
           originLabel: q.originLabel,
+          grade: q.grade,
+          cultivationMethod: q.cultivationMethod,
+          packDescription: q.packDescription,
           limit: q.limit ? Number(q.limit) : 400,
         });
         return trend;
@@ -186,6 +241,29 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           note: body.note,
         });
         return { price };
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Batch human approve/reject (max 200). Decision source = HUMAN. */
+    app.post("/markets/prices/review/batch", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "governance_review");
+        const body = request.body as {
+          priceIds?: string[];
+          reviewState?: "APPROVED" | "REJECTED";
+          note?: string;
+        };
+        const result = await markets.reviewPriceBatch({
+          tenantId: actor.tenantId,
+          reviewerId: actor.userId,
+          priceIds: Array.isArray(body.priceIds) ? body.priceIds : [],
+          reviewState: body.reviewState as "APPROVED" | "REJECTED",
+          note: body.note,
+        });
+        return result;
       } catch (e) {
         mapError(e);
       }

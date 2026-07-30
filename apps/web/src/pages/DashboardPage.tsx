@@ -41,12 +41,43 @@ export function DashboardPage() {
   const submissions = (data.recentSubmissions || []) as Array<Record<string, unknown>>;
   const jobs = (data.recentJobs || []) as Array<Record<string, unknown>>;
   const failures = (data.recentFailures || []) as Array<Record<string, unknown>>;
-  const readiness = data.readiness as { overall?: string } | undefined;
+  const readiness = data.readiness as {
+    overall?: string;
+    components?: Array<{ component: string; state: string; detail: string }>;
+  } | undefined;
   const sources = (data.sourceHealth || []) as Array<Record<string, unknown>>;
+  const badComponents = (readiness?.components || []).filter(
+    (c) => c.state === "UNAVAILABLE" || c.state === "DEGRADED",
+  );
+  const notConfigured = (readiness?.components || []).filter((c) => c.state === "NOT_CONFIGURED");
 
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Dashboard</Typography>
+      {readiness?.overall && readiness.overall !== "READY" && (
+        <Alert severity={readiness.overall === "UNAVAILABLE" ? "error" : "warning"}>
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+            System {readiness.overall}
+            {badComponents[0] ? ` — ${badComponents.map((c) => c.component).join(", ")}` : ""}
+          </Typography>
+          {badComponents.map((c) => (
+            <Typography key={c.component} variant="body2">
+              <strong>{c.component}</strong>: {c.detail}
+            </Typography>
+          ))}
+          {readiness.overall === "UNAVAILABLE" && badComponents.some((c) => c.component === "DiskCapacity") && (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Free space on the API disk is below the block threshold (default 5%). Free disk on C: (empty Recycle Bin,
+              remove large Downloads/temp, clear npm cache), then refresh. See Settings → System readiness.
+            </Typography>
+          )}
+          {notConfigured.some((c) => c.component === "WorkerLoops") && (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Worker loops are not running (jobs stay READY). Start acquisition/extraction/normalization workers when you need pipeline progress — optional for market harvest/dashboard inspect.
+            </Typography>
+          )}
+        </Alert>
+      )}
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" } }}>
         {[
           { label: "Pending governance", value: counts.pendingGovernance ?? 0 },

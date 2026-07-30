@@ -31,6 +31,7 @@ describe("Amman mapper", () => {
     expect(row.observedOn).toBe("2026-07-30");
     expect(row.commodityNameAr).toBe("اسود رفيع");
     expect(row.commodityNameEn).toBe("thin black");
+    expect(row.commodityCode).toBe("thin-black");
     expect(row.priceHighNative).toBe(50);
     expect(row.priceModeNative).toBe(25);
     expect(row.priceLowNative).toBe(10);
@@ -38,6 +39,23 @@ describe("Amman mapper", () => {
     expect(qrshToJod(50)).toBe(0.5);
     expect(qrshToJod(25)).toBe(0.25);
     expect(qrshToJod(10)).toBe(0.1);
+  });
+
+  it("enriches AR-only cards via EN map (tomato / بندورة)", () => {
+    const row = mapAmmanRow({
+      priceDate: "30-07-2026",
+      commodityNameAr: "بندورة",
+      highestQrsh: 40,
+      mostCommonQrsh: 30,
+      minimumQrsh: 20,
+      quantityTons: 10,
+      packageUnit: "kg",
+      origin: "LOCAL",
+      evidenceUrl: "https://www.ammancity.gov.jo/ar/market/prices.aspx",
+    });
+    expect(row.commodityNameEn).toBe("tomato");
+    expect(row.commodityCode).toBe("tomato");
+    expect(row.commodityName).toBe("tomato");
   });
 
   it("maps day totals by type", () => {

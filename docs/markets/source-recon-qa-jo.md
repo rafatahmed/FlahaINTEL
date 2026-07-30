@@ -116,7 +116,7 @@ PDF is excellent **evidence artifact** for governance.
 
 1. Governed POST search (from/to + LOCAL|IMPORTED)  
 2. Parse HTML cards/table **or** operator/PDF path  
-3. Map AR name → stable `commodityCode` + keep `commodityNameAr` / `commodityNameEn`  
+3. Map AR name → stable `commodityCode` + keep `commodityNameAr` / `commodityNameEn` via `docs/markets/jo-amman-commodity-en-map.json` (e.g. thin black ↔ اسود رفيع)
 4. Convert قرش → JOD  
 5. Human review  
 

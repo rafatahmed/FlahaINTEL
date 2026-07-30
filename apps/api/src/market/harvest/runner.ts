@@ -27,6 +27,12 @@ export type HarvestResult = {
   observedOn?: string;
   sourceBatchId?: string;
   cadence?: { harvestIntervalDays: number; filterMaxSpanDays: number; note?: string };
+  reviewPolicy?: {
+    reviewMode: string;
+    autoApproveEligible: boolean;
+    decisionBreakdown: Record<string, number>;
+    note?: string;
+  };
 };
 
 function daysSince(isoDate: string): number {
@@ -82,6 +88,7 @@ async function harvestMoci(
     observedOn,
     sourceBatchId,
     cadence: result.cadence,
+    reviewPolicy: result.reviewPolicy,
   };
 }
 
@@ -134,6 +141,7 @@ async function harvestMahaseel(
     observedOn,
     sourceBatchId,
     cadence: result.cadence,
+    reviewPolicy: result.reviewPolicy,
   };
 }
 
@@ -195,6 +203,7 @@ async function harvestAmman(
     observedOn,
     sourceBatchId,
     cadence: result.cadence,
+    reviewPolicy: result.reviewPolicy,
   };
 }
 

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-07-30
  */
 import {
   Article,
@@ -16,8 +16,10 @@ import {
   Dashboard,
   Gavel,
   Inventory2,
+  MenuBook,
   Settings,
   Source,
+  Storefront,
   Work,
 } from "@mui/icons-material";
 import {
@@ -40,6 +42,8 @@ const DRAWER_WIDTH = 240;
 
 export type NavKey =
   | "dashboard"
+  | "markets"
+  | "knowledge"
   | "sources"
   | "submit"
   | "jobs"
@@ -50,6 +54,8 @@ export type NavKey =
 
 const NAV: Array<{ key: NavKey; label: string; icon: ReactNode }> = [
   { key: "dashboard", label: "Dashboard", icon: <Dashboard /> },
+  { key: "markets", label: "Markets", icon: <Storefront /> },
+  { key: "knowledge", label: "Knowledge", icon: <MenuBook /> },
   { key: "sources", label: "Sources", icon: <Source /> },
   { key: "submit", label: "Submit", icon: <CloudUpload /> },
   { key: "jobs", label: "Jobs", icon: <Work /> },
