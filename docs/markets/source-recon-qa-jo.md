@@ -223,10 +223,14 @@ npm run markets:seed-channels
 npm run markets:harvest -- --force
 npm run markets:harvest -- --country=QA --force
 npm run markets:harvest -- --channel=qa-moci-daily-vegetables --force
-npm run markets:harvest -- --channel=jo-amman-central-market --amman-json=apps/api/fixtures/markets/amman-sample-2026-07-30.json --force
+npm run markets:harvest -- --channel=jo-amman-central-market --force
+npm run markets:harvest -- --channel=jo-amman-central-market --from=2026-07-28 --to=2026-07-30 --origin=LOCAL --force
+npm run ops:register-market-harvest-task
 ```
 
 Cadence is enforced unless `--force`:
-- MoCI + Jordan: daily
-- Mahaseel: every 3 days
-- Product query filters: max 3-day span
+- MoCI + Jordan: **daily** live harvest
+- Mahaseel: every **3 days** (period PDF)
+- Product query filters: max **3-day** span
+
+Amman live path uses ASP.NET GET+POST (ViewState) and parses product cards + day totals.

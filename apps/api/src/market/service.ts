@@ -423,6 +423,61 @@ export class MarketService {
     });
   }
 
+  /**
+   * Simple trend series for one commodity on one channel (for charts / advice).
+   * Returns chronological points; prefers unitPrice, else priceMode, else packPrice.
+   */
+  async priceTrend(params: {
+    tenantId: string;
+    channelCode: string;
+    commodityCode: string;
+    from?: string;
+    to?: string;
+    originLabel?: string;
+    limit?: number;
+  }) {
+    const channel = await this.db.marketChannel.findUnique({ where: { code: params.channelCode } });
+    if (!channel) throw new MarketValidationError("CHANNEL_NOT_FOUND", `Unknown channel ${params.channelCode}.`);
+    if (params.from && params.to) {
+      assertFilterSpan(params.from, params.to, Math.max(channel.filterMaxSpanDays, 365));
+    }
+    const code = normalizeCommodityCode(params.commodityCode);
+    const rows = await this.db.marketPriceObservation.findMany({
+      where: {
+        tenantId: params.tenantId,
+        channelId: channel.id,
+        commodityCode: code,
+        originLabel: params.originLabel?.trim().toUpperCase() || undefined,
+        observedOn: {
+          gte: params.from ? parseObservedOn(params.from) : undefined,
+          lte: params.to ? parseObservedOn(params.to) : undefined,
+        },
+      },
+      orderBy: { observedOn: "asc" },
+      take: Math.min(Math.max(params.limit ?? 400, 1), 2000),
+    });
+    return {
+      channelCode: channel.code,
+      countryCode: channel.countryCode,
+      commodityCode: code,
+      points: rows.map((r) => ({
+        observedOn: toIsoDate(r.observedOn),
+        unitPrice: r.unitPrice?.toNumber() ?? null,
+        priceMode: r.priceMode?.toNumber() ?? null,
+        priceHigh: r.priceHigh?.toNumber() ?? null,
+        priceLow: r.priceLow?.toNumber() ?? null,
+        currency: r.currency,
+        quantityTons: r.quantityTons?.toNumber() ?? null,
+        reviewState: r.reviewState,
+        value:
+          r.unitPrice?.toNumber() ??
+          r.priceMode?.toNumber() ??
+          r.packPrice?.toNumber() ??
+          null,
+      })),
+    };
+  }
+
   async reviewPrice(params: {
     tenantId: string;
     priceId: string;

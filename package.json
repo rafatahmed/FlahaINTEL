@@ -20,7 +20,8 @@
     "ops:residual-acceptance": "node ops/scripts/phase-3m-residual-acceptance.mjs",
     "ops:smoke": "powershell -NoProfile -File ops/scripts/smoke-test.ps1",
     "ops:check-free-space": "powershell -NoProfile -File ops/scripts/check-free-space.ps1",
-    "ops:register-backup-task": "powershell -NoProfile -File ops/scripts/register-backup-task.ps1"
+    "ops:register-backup-task": "powershell -NoProfile -File ops/scripts/register-backup-task.ps1",
+    "ops:register-market-harvest-task": "powershell -NoProfile -File ops/scripts/register-market-harvest-task.ps1"
   },
   "engines": {
     "node": ">=20"

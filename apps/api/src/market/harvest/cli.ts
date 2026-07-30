@@ -53,6 +53,10 @@ try {
   const channel = arg("channel");
   const country = arg("country");
   const ammanJson = arg("amman-json");
+  const from = arg("from");
+  const to = arg("to");
+  const originRaw = arg("origin")?.toUpperCase();
+  const origin = originRaw === "IMPORTED" || originRaw === "LOCAL" ? originRaw : undefined;
 
   let ammanRows: AmmanRawRow[] | undefined;
   let dayTotals: { vegetablesTons: number; fruitTons: number; leafyGreensTons: number } | undefined;
@@ -89,6 +93,9 @@ try {
       force,
       ammanRows,
       dayTotals,
+      from,
+      to,
+      origin,
     });
     console.log(JSON.stringify(one, null, 2));
   } else {
@@ -99,6 +106,9 @@ try {
       countryCode: country?.toUpperCase(),
       ammanRows,
       dayTotals,
+      from,
+      to,
+      origin,
     });
     console.log(JSON.stringify({ results: many }, null, 2));
   }

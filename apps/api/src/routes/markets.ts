@@ -89,6 +89,29 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
       }
     });
 
+    app.get("/markets/prices/trend", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as Record<string, string | undefined>;
+        if (!q.channelCode || !q.commodityCode) {
+          throw new AppError(400, "TREND_PARAMS", "channelCode and commodityCode are required.");
+        }
+        const trend = await markets.priceTrend({
+          tenantId: actor.tenantId,
+          channelCode: q.channelCode,
+          commodityCode: q.commodityCode,
+          from: q.from,
+          to: q.to,
+          originLabel: q.originLabel,
+          limit: q.limit ? Number(q.limit) : 400,
+        });
+        return trend;
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
     app.post("/markets/prices/batch", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);

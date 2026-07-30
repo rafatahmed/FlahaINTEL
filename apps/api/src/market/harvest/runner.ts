@@ -15,7 +15,8 @@ import { mapAmmanDaySummaries, mapAmmanRow, type AmmanRawRow } from "../parsers/
 import { parseMahaseelPriceLines } from "../parsers/mahaseel.js";
 import { mapMociResponse, MOCI_API_BY_CHANNEL, mociApiUrl, type MociApiResponse } from "../parsers/moci.js";
 import { MarketService, type PriceRowInput } from "../service.js";
-import { MarketValidationError, toIsoDate } from "../validation.js";
+import { assertFilterSpan, MarketValidationError, toIsoDate } from "../validation.js";
+import { harvestAmmanLive } from "./ammanLive.js";
 import { fetchBuffer, fetchJson, fetchText } from "./fetchText.js";
 
 export type HarvestResult = {
@@ -137,24 +138,35 @@ async function harvestMahaseel(
 }
 
 /**
- * Amman: optional structured rows from operator JSON, or skip live POST until hardened.
- * When ammanRows provided, ingest with qrsh conversion.
+ * Amman: live ASP.NET search (preferred) or operator JSON override.
+ * Default window = today only (daily). Optional from/to up to filterMaxSpanDays (3).
  */
 async function harvestAmman(
   markets: MarketService,
   channel: MarketChannel,
   ctx: { tenantId: string; userId: string },
-  ammanRows?: AmmanRawRow[],
-  dayTotals?: { vegetablesTons: number; fruitTons: number; leafyGreensTons: number },
+  opts?: {
+    ammanRows?: AmmanRawRow[];
+    dayTotals?: { vegetablesTons: number; fruitTons: number; leafyGreensTons: number };
+    from?: string;
+    to?: string;
+    origin?: "LOCAL" | "IMPORTED";
+  },
 ): Promise<HarvestResult> {
+  let ammanRows = opts?.ammanRows;
+  let dayTotals = opts?.dayTotals;
+  const origin = opts?.origin ?? "LOCAL";
+
   if (!ammanRows?.length) {
-    return {
-      channelCode: channel.code,
-      skipped: true,
-      reason:
-        "Amman live ASP.NET harvest not automated yet — pass --amman-json path with rows (from UI/PDF). Channel is ready for daily cadence.",
-    };
+    const today = toIsoDate(new Date());
+    const from = opts?.from ?? today;
+    const to = opts?.to ?? today;
+    assertFilterSpan(from, to, channel.filterMaxSpanDays);
+    const live = await harvestAmmanLive({ from, to, origin });
+    ammanRows = live.rows;
+    dayTotals = live.dayTotals;
   }
+
   const rows: PriceRowInput[] = ammanRows.map(mapAmmanRow);
   const observedOn = rows[0]!.observedOn;
   const sourceBatchId = `amman-${observedOn}-${Date.now()}`;
@@ -171,7 +183,7 @@ async function harvestAmman(
       tenantId: ctx.tenantId,
       channelCode: channel.code,
       observedOn,
-      originLabel: ammanRows[0]?.origin ?? "LOCAL",
+      originLabel: ammanRows[0]?.origin ?? origin,
       sourceBatchId,
       evidenceUrl: channel.officialUrl,
       summaries: mapAmmanDaySummaries(dayTotals),
@@ -195,6 +207,9 @@ export async function harvestChannel(
     force?: boolean;
     ammanRows?: AmmanRawRow[];
     dayTotals?: { vegetablesTons: number; fruitTons: number; leafyGreensTons: number };
+    from?: string;
+    to?: string;
+    origin?: "LOCAL" | "IMPORTED";
   },
 ): Promise<HarvestResult> {
   const markets = new MarketService(db);
@@ -213,7 +228,13 @@ export async function harvestChannel(
     return harvestMahaseel(markets, channel, opts);
   }
   if (channel.code.includes("amman")) {
-    return harvestAmman(markets, channel, opts, opts.ammanRows, opts.dayTotals);
+    return harvestAmman(markets, channel, opts, {
+      ammanRows: opts.ammanRows,
+      dayTotals: opts.dayTotals,
+      from: opts.from,
+      to: opts.to,
+      origin: opts.origin,
+    });
   }
   throw new MarketValidationError("HARVEST_UNSUPPORTED", `No harvest adapter for ${channel.code}`);
 }
@@ -227,6 +248,9 @@ export async function harvestDueChannels(
     countryCode?: string;
     ammanRows?: AmmanRawRow[];
     dayTotals?: { vegetablesTons: number; fruitTons: number; leafyGreensTons: number };
+    from?: string;
+    to?: string;
+    origin?: "LOCAL" | "IMPORTED";
   },
 ): Promise<HarvestResult[]> {
   const channels = await db.marketChannel.findMany({
@@ -247,6 +271,9 @@ export async function harvestDueChannels(
           force: opts.force,
           ammanRows: ch.code.includes("amman") ? opts.ammanRows : undefined,
           dayTotals: ch.code.includes("amman") ? opts.dayTotals : undefined,
+          from: opts.from,
+          to: opts.to,
+          origin: opts.origin,
         }),
       );
     } catch (e) {

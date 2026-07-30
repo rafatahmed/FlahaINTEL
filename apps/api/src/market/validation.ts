@@ -46,13 +46,18 @@ export function normalizeCurrency(value: string): string {
 }
 
 export function normalizeCommodityCode(nameOrCode: string): string {
-  const slug = nameOrCode
-    .trim()
+  const raw = nameOrCode.trim();
+  if (!raw) {
+    throw new MarketValidationError("INVALID_COMMODITY_CODE", "commodityCode must be a non-empty slug.");
+  }
+  let slug = raw
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+  // Arabic / non-Latin names (Amman): stable hash-based slug so codes remain ASCII.
   if (!slug || !SLUG.test(slug)) {
-    throw new MarketValidationError("INVALID_COMMODITY_CODE", "commodityCode must be a non-empty slug.");
+    const h = createHash("sha256").update(raw, "utf8").digest("hex").slice(0, 12);
+    slug = `ar-${h}`;
   }
   return slug;
 }
