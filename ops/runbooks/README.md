@@ -16,6 +16,8 @@
 | Disk full | [disk-full.md](./disk-full.md) |
 | Artifact corruption | [artifact-corruption.md](./artifact-corruption.md) |
 | Backup and restore | [backup-restore.md](./backup-restore.md) |
+| Disk and volume layout | [disk-and-volume-layout.md](./disk-and-volume-layout.md) |
+| Operational cadence | [ops-cadence.md](./ops-cadence.md) |
 | Compromised session | [compromised-session.md](./compromised-session.md) |
 | Source blocking | [source-blocking.md](./source-blocking.md) |
 | Emergency shutdown | [emergency-shutdown.md](./emergency-shutdown.md) |

@@ -282,17 +282,17 @@ A task is done only when:
 
 | ID | Task | Priority | Status | Depends | DoD |
 |----|------|----------|--------|---------|-----|
-| E1-T1 | Move ArtifactStore + backups off full system volume (config + runbook) | P0 | READY | — | Paths documented; free space ≥ 15% |
-| E1-T2 | Install Windows Task Scheduler job for `backup.ps1` + off-host copy | P0 | READY | E1-T1 | Dry-run log + last-backup.json |
-| E1-T3 | Document weekly `ops:provision-verify` + monthly residual cadence | P0 | READY | — | Runbook section |
-| E1-T4 | Free-space alert rule + operator response | P0 | READY | E1-T1 | Alert rule entry + runbook |
+| E1-T1 | Move ArtifactStore + backups off full system volume (config + runbook) | P0 | **DONE** (runbook) / host move pending | — | Paths documented; free space ≥ 15% on host still **LOW** |
+| E1-T2 | Install Windows Task Scheduler job for `backup.ps1` + off-host copy | P0 | **DONE** (scripts) / register pending on host | E1-T1 | `register-backup-task.ps1` shipped |
+| E1-T3 | Document weekly `ops:provision-verify` + monthly residual cadence | P0 | **DONE** | — | `ops-cadence.md` |
+| E1-T4 | Free-space alert rule + operator response | P0 | **DONE** | E1-T1 | `check-free-space.ps1` + alert-rules |
 | E1-T5 | Smoke pack: start API/web, login, list sources, submit fixture TXT | P1 | READY | Bootstrap | Smoke script or checklist |
 
 #### Epic E2 — Security & supply chain (P1)
 
 | ID | Task | Priority | Status | Depends | DoD |
 |----|------|----------|--------|---------|-----|
-| E2-T1 | Pin Fastify / @fastify/* / rss-parser versions (no `latest`) | P1 | READY | — | Lockfile + CI green |
+| E2-T1 | Pin Fastify / @fastify/* / rss-parser versions (no `latest`) | P1 | **DONE** | — | package.json pinned |
 | E2-T2 | Session secret rotation drill (runbook dry-run) | P1 | READY | — | Runbook steps verified |
 | E2-T3 | Confirm production bind loopback + Caddy-only exposure checklist | P1 | READY | — | Checklist in ops |
 | E2-T4 | Review residual threat-model items still open | P1 | BACKLOG | — | Annotated threat-model section |
@@ -301,7 +301,7 @@ A task is done only when:
 
 | ID | Task | Priority | Status | Depends | DoD |
 |----|------|----------|--------|---------|-----|
-| E3-T1 | Create source governance policies for 7 ACCEPTED RSS sources | P1 | READY | Bootstrap | Eligibility path not blocked for RSS-linked candidates |
+| E3-T1 | Create source governance policies for 7 ACCEPTED RSS sources | P1 | **DONE** | Bootstrap | `bootstrap:source-policies` (7 policies created on local host) |
 | E3-T2 | Operator guide: when promotion is blocked vs ready | P1 | READY | E3-T1 | Docs page |
 | E3-T3 | Residual enhancement: optional policy seed for acceptance hosts | P2 | BACKLOG | E3-T1 | Residual still ACCEPT |
 | E3-T4 | Reviewer assignment workflow dry-run in UI | P2 | READY | Bootstrap user | Screenshot or checklist |

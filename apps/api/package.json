@@ -19,6 +19,7 @@
     "governance:backfill-sources": "node --env-file=../../.env --import tsx src/governance/backfillSourceMetadata.ts",
     "bootstrap:local": "node --env-file=../../.env --import tsx src/governance/bootstrapLocal.ts",
     "bootstrap:rss-accepted": "node --env-file=../../.env --import tsx src/governance/bootstrapAcceptedRssSources.ts",
+    "bootstrap:source-policies": "node --env-file=../../.env --import tsx src/governance/bootstrapSourcePolicies.ts",
     "ingest:create-acquisition": "node --env-file=../../.env --import tsx src/acquisition/cli.ts create",
     "ingest:worker:once": "node --env-file=../../.env --import tsx src/acquisition/cli.ts worker-once",
     "ingest:job": "node --env-file=../../.env --import tsx src/acquisition/cli.ts job",
@@ -38,20 +39,20 @@
     "worker:stale-recovery": "node --env-file=../../.env --import tsx src/production/workers/cli.ts stale-recovery"
   },
   "dependencies": {
-    "@fastify/cors": "latest",
+    "@fastify/cors": "11.3.0",
     "@fastify/multipart": "^10.1.0",
     "@flaha-intel/artifact-store": "0.1.0",
     "@flaha-intel/ingestion-provider-core": "0.1.0",
     "@flaha-intel/worker-supervisor": "0.1.0",
     "@prisma/client": "6.19.0",
-    "fastify": "latest",
-    "rss-parser": "latest"
+    "fastify": "5.10.0",
+    "rss-parser": "3.13.0"
   },
   "devDependencies": {
-    "@types/node": "latest",
+    "@types/node": "22.15.30",
     "prisma": "6.19.0",
-    "tsx": "latest",
-    "typescript": "latest",
-    "vitest": "latest"
+    "tsx": "4.23.1",
+    "typescript": "5.8.3",
+    "vitest": "4.1.10"
   }
 }

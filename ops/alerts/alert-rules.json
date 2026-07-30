@@ -25,7 +25,13 @@
       "id": "disk-low",
       "severity": "critical",
       "condition": "DiskCapacity UNAVAILABLE or free ratio below block threshold",
-      "action": "Free space; pause submissions; expand volume"
+      "action": "Run ops/scripts/check-free-space.ps1; free space; pause submissions; move ARTIFACT_STORE_ROOT/FLAHA_BACKUP_ROOT off system volume; see ops/runbooks/disk-and-volume-layout.md"
+    },
+    {
+      "id": "disk-warn-operator",
+      "severity": "high",
+      "condition": "Free space on OS or artifact volume below 15% (check-free-space.ps1 exit 2)",
+      "action": "Operator frees space same day; do not run residual acceptance until OK; follow disk-full and disk-and-volume-layout runbooks"
     },
     {
       "id": "artifact-reconciliation-failure",

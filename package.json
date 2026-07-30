@@ -11,11 +11,14 @@
     "governance:seed": "npm run governance:seed --workspace=@flaha-intel/api",
     "bootstrap:local": "npm run bootstrap:local --workspace=@flaha-intel/api",
     "bootstrap:rss-accepted": "npm run bootstrap:rss-accepted --workspace=@flaha-intel/api",
+    "bootstrap:source-policies": "npm run bootstrap:source-policies --workspace=@flaha-intel/api",
     "governance:backfill-sources": "npm run governance:backfill-sources --workspace=@flaha-intel/api",
     "ops:provision-runtimes": "powershell -NoProfile -File ops/scripts/provision-runtimes.ps1",
     "ops:provision-verify": "powershell -NoProfile -File ops/scripts/provision-runtimes.ps1 -VerifyOnly",
     "ops:residual-acceptance": "node ops/scripts/phase-3m-residual-acceptance.mjs",
-    "ops:smoke": "powershell -NoProfile -File ops/scripts/smoke-test.ps1"
+    "ops:smoke": "powershell -NoProfile -File ops/scripts/smoke-test.ps1",
+    "ops:check-free-space": "powershell -NoProfile -File ops/scripts/check-free-space.ps1",
+    "ops:register-backup-task": "powershell -NoProfile -File ops/scripts/register-backup-task.ps1"
   },
   "engines": {
     "node": ">=20"
