@@ -24,6 +24,31 @@ This document is the answer to: *“Are we building the right FlahaINTEL, or onl
 
 ---
 
+## 0. Geographic principle (LOCKED)
+
+**The farmer is one. Crops and vegetables are one. Soil is one. Fertilizers are one. Water is one. The Earth is one.**
+
+What changes by place is only:
+
+- borders and names  
+- languages and markets  
+- rules, regulations, taxes, and institutions  
+- how prices and knowledge are published  
+
+**Final product geography:** FlahaINTEL is **worldwide**. Wherever Flaha Agri Tech invests, benchmarks, partners, or can help the farmer — **we need to be able to be there** (Canada, MENA, Europe, anywhere the mission leads).
+
+**Implementation order (not product limit):**
+
+| Order | Role |
+|-------|------|
+| **Start** | **Qatar** and **Jordan** — first market-price and local-ops paths (prove the model) |
+| **Next** | Any region Flaha prioritizes for investment or farmer impact |
+| **Never** | Treat Qatar/Jordan (or any single country) as the ceiling of FlahaINTEL |
+
+Every market or knowledge channel is onboarded the same way: **documented source → governance → evidence → human approval → structured use** — only the local rules and publishers change.
+
+---
+
 ## 1. You are right — the simple picture
 
 | Part | Meaning | Role |
@@ -47,7 +72,7 @@ Without backbone, eyes and muscles become a **reckless scraper**.
 
 ## 2. Locked final product (one sentence)
 
-**FlahaINTEL is Flaha’s private agri-intelligence system for the Precision Agriculture division: it watches trusted external sources, collects and structures knowledge (markets, soil, irrigation, nutrition, digital agri), keeps a full evidence trail, keeps humans in charge, and feeds governed context into FlahaSOIL, FlahaCALC, FlahaFAST and farm advice — not a public news site and not unsupervised scraping.**
+**FlahaINTEL is Flaha’s private agri-intelligence system for the Precision Agriculture division: it watches trusted external sources anywhere Flaha serves farmers, collects and structures knowledge (markets, soil, irrigation, nutrition, digital agri), keeps a full evidence trail, keeps humans in charge, and feeds governed context into FlahaSOIL, FlahaCALC, FlahaFAST and farm advice — not a public news site, not unsupervised scraping, and not limited to one country.**
 
 ---
 
@@ -55,23 +80,24 @@ Without backbone, eyes and muscles become a **reckless scraper**.
 
 ### O1 — Stay current on the world that affects farmers and markets
 
-- Official and institutional news  
-- **Market price lists** (e.g. Qatar central market / Mahaseel-type notes, Jordan central market daily prices)  
+- Official and institutional news (global + local)  
+- **Market price lists** wherever Flaha needs them (start: Qatar central market / Mahaseel-type notes, Jordan daily central-market lists; later: any country of investment including Canada and beyond)  
 - Weather, logistics, fertilizer context (from **approved** channels over time)  
-- Enough history (e.g. **one year+** price series) for trend and advice  
+- Enough history (e.g. **one year+** price series **per market**) for trend and advice  
 
 ### O2 — Build real PA knowledge context (not only FAO headlines)
 
-- Irrigation, water saving, nutrition, soil, digital platforms  
+- Irrigation, water saving, nutrition, soil, digital platforms — **universal agronomy**, tagged by place only where rules or climate differ  
 - From **many resource types**: articles, reports, web explainers, equations/methods, cross-references  
 - Packaged as **internal knowledge packs**, not random bookmarks  
+- Comparable across regions so Flaha can benchmark and invest with one scientific backbone  
 
 ### O3 — Internal knowledge trail that improves Flaha products
 
-- For irrigation: full package to support better formulas and water-saving advice  
+- For irrigation: full package to support better formulas and water-saving advice **for the farmer, wherever they farm**  
 - For **FlahaCALC / FlahaFAST / FlahaSOIL**: governed inputs and comparison artifacts  
 - Example: soil literature thresholds → controlled artifact → compare deviation vs FlahaSOIL → improve product  
-- Example: scientific writing support (e.g. soil moisture × tomato production in Qatar) via **indexed, governed** library  
+- Example: scientific writing support (e.g. soil moisture × tomato in a given country) via **indexed, governed** library — country is a **tag**, not a product wall
 
 ### O4 — Safer collection, source governance, audit
 
@@ -129,24 +155,25 @@ Already largely delivered (Phases 1–3N):
 
 | Eye | Purpose | Priority order |
 |-----|---------|----------------|
-| **E-Market** | Official market price pages/PDFs (Qatar, Jordan first) | **P1 product** |
-| **E-Science** | Soil / irrigation / nutrition literature and reports | **P1 product** |
-| **E-News** | Institutional + agri news RSS | Live today — keep |
+| **E-Market** | Official market price pages/PDFs **worldwide** (onboard per country; **start Qatar + Jordan**) | **P1 product** |
+| **E-Science** | Soil / irrigation / nutrition literature and reports (global science, local context tags) | **P1 product** |
+| **E-News** | Institutional + agri news RSS (global + regional) | Live today — keep |
 | **E-Web** | Allowlisted explainers for product R&D (e.g. soil analysis pages) | P2 |
 | **E-Video** | YouTube webinars (transcript/notes under governance) | P3 later |
 | **E-Social** | X/Twitter allowlisted accounts (logistics, weather, fert prices) | P3 later |
 
-**Rule:** New eyes = **named sources + policy**, not anonymous mass scrape.
+**Rule:** New eyes = **named sources + policy + place metadata**, not anonymous mass scrape.  
+**Rule:** Adding Canada, Europe, or any new country is a **source-onboarding gate**, not a new product identity.
 
 ### 4.3 Muscles (LOCKED target capabilities)
 
 | Muscle | What it does |
 |--------|----------------|
-| **M-Schedule** | Daily/weekly harvest for prices and priority sources |
-| **M-Extract-Price** | Turn market lists into clean price rows (crop, date, market, unit, price) |
-| **M-Extract-Science** | Structured notes: thresholds, methods, crops, regions (human-reviewed) |
-| **M-Trend** | Year-scale history and simple trend views for markets |
-| **M-Pack** | Build “knowledge packs” (irrigation, soil, nutrition…) from approved items |
+| **M-Schedule** | Daily/weekly harvest for prices and priority sources **per market** |
+| **M-Extract-Price** | Turn market lists into clean price rows (crop, date, **country/market**, unit, price, currency) |
+| **M-Extract-Science** | Structured notes: thresholds, methods, crops, **region tags** (human-reviewed) |
+| **M-Trend** | Year-scale history and simple trend views **per market**; compare markets when useful |
+| **M-Pack** | Build “knowledge packs” (irrigation, soil, nutrition…) from approved items — universal themes, local overlays |
 | **M-Handoff** | Export/link packs to FlahaSOIL / CALC / FAST under rules |
 
 ### 4.4 Brain (LOCKED control model)
@@ -184,7 +211,7 @@ These are **rejected as the destination** (even if someone builds a demo):
 | Backbone | Strong | **BUILT** |
 | Eyes — news RSS | Working | **BUILT** |
 | Eyes — controlled web/docs | Working (limited) | **PARTIAL** |
-| Eyes — Qatar/Jordan market prices | Not productized | **PLANNED** |
+| Eyes — multi-country market prices (start QA + JO) | Not productized | **PLANNED** (global design, first two countries) |
 | Eyes — science depth packs | Not productized | **PLANNED** |
 | Eyes — YouTube / social | Not built | **LATER** |
 | Muscles — daily price harvest + trends | Not built | **PLANNED** |
@@ -211,17 +238,19 @@ Phases 1–3N remain **Platform Complete (backbone)**, not **Product Complete (f
 
 ### Stage B — Eyes & Muscles: Markets (NEXT product track)
 
-**Goal:** Official daily prices → history → trends → advice support  
+**Goal:** Official prices → history → trends → advice support — **model works for any country**; **first implementations: Qatar, then Jordan**.
 
 Suggested gates (names reserved):
 
 | Gate | Outcome |
 |------|---------|
-| **4M-A** | Source onboarding: Qatar market price channel (documented, governed) |
-| **4M-B** | Source onboarding: Jordan central market daily list |
-| **4M-C** | Price extraction model + storage (crop, date, market, price) |
-| **4M-D** | Daily schedule + 1-year retention + simple trend view |
-| **4M-E** | Analyst pack: “market context for farm advice” |
+| **4M-0** | Global market data model (country, market, crop, unit, currency, evidence) — not country-specific code walls |
+| **4M-A** | Source onboarding: **Qatar** market price channel (documented, governed) — **first** |
+| **4M-B** | Source onboarding: **Jordan** central market daily list — **second** |
+| **4M-C** | Price extraction + storage using the global model |
+| **4M-D** | Schedule + 1-year retention + trend view (per market) |
+| **4M-E** | Analyst pack: market context for farm advice |
+| **4M-N** | Repeat onboarding pattern for **any new country** (e.g. Canada or elsewhere) when Flaha invests or needs to help farmers there |
 
 ### Stage C — Eyes & Muscles: Soil & irrigation knowledge (PARALLEL or after B)
 
@@ -299,19 +328,20 @@ Suggested gates (names reserved):
 | Did backbone work waste time? | **No — required.** Without it, market/soil scrapes would be ungoverned and unusable for Flaha products. |
 | Is there direction risk? | **There was**, while “Phase 3 complete” sounded like full product. **This lock ends that.** |
 | Are you “only a clerk”? | **Platform is clerk-spine. Final product is PA intelligence factory.** Both stages are intentional. |
-| What to build next? | **Markets (Qatar/Jordan) + Soil knowledge packs** — highest PA value, fits Flaha brand, uses existing backbone. |
+| What to build next? | **Global market model + first countries Qatar then Jordan + soil knowledge packs** — same farmer/soil/water science everywhere. |
 | What to delay? | YouTube + Twitter until markets and soil packs work end-to-end. |
-| What never to sacrifice? | Human control, source audit, evidence trail. |
+| What never to sacrifice? | Human control, source audit, evidence trail; **global mission** (no single-country product box). |
 
 ### Recommended immediate program order
 
 ```text
-1) Keep backbone healthy (ops, backup, disk)     — BB-*
-2) Market price intelligence (Qatar → Jordan)  — EYE-MKT + MUS-MKT
-3) Soil / irrigation knowledge packs           — EYE-SCI + MUS-SCI
-4) Handoff to FlahaSOIL / CALC / FAST          — MUS-HND + BRN
-5) Research index                              — Stage D
-6) Video + social eyes                         — Stage E
+1) Keep backbone healthy (ops, backup, disk)              — BB-*
+2) Global market data model, then Qatar, then Jordan    — EYE-MKT + MUS-MKT
+3) Soil / irrigation knowledge packs (universal + place tags) — EYE-SCI + MUS-SCI
+4) Handoff to FlahaSOIL / CALC / FAST                   — MUS-HND + BRN
+5) Research index (crop × place as tags)                — Stage D
+6) Any new country (Canada, etc.) via same onboarding   — 4M-N pattern
+7) Video + social eyes                                  — Stage E
 ```
 
 ### Owner checkpoint
@@ -323,11 +353,15 @@ Next implementation work must open a gate under Stage B or C (or BB ops), not in
 
 ## 10. One page for the team
 
-**Final FlahaINTEL** = Eyes + Muscles + Brain on a strong Backbone, serving Precision Agriculture and Flaha sister products.
+**Final FlahaINTEL** = Eyes + Muscles + Brain on a strong Backbone, serving Precision Agriculture and Flaha sister products **anywhere Flaha helps the farmer**.
+
+**One Earth:** farmer, soil, water, fertilizer, crops — universal. Borders change names and rules only.  
 
 **Today** = Backbone strong; eyes half-open; muscles early; brain for review only.  
 
-**Next** = Official market prices + soil/irrigation knowledge packs.  
+**Next** = Global market model; **start Qatar + Jordan**; soil/irrigation knowledge packs.  
+
+**Whenever Flaha invests elsewhere** = same pattern, new country sources (Canada or any region).  
 
 **Later** = Video, social, richer research tools.  
 

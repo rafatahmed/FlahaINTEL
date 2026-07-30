@@ -62,7 +62,8 @@ keep a full evidence trail, keep humans in charge, and feed governed context int
 #### Final product (LOCKED) — see final-product-lock.md
 
 Outcomes O1–O5: markets & world context · PA knowledge packs · product improvement trails · safe governed sources · human/admin control.  
-Channels: news, official market lists (Qatar/Jordan first), science docs/web, later video/social.  
+Channels: news, official market lists (**worldwide**; implement **Qatar then Jordan** first), science docs/web, later video/social.  
+Geography: one farmer/soil/water/earth; borders only change names and rules — see final-product-lock §0.  
 Muscles: schedules, price extract, science extract, trends, packs, handoff to sister products.
 
 #### Platform delivered (Phase 3N) — not the full final product
@@ -218,7 +219,7 @@ LATER (approval)    Optional Phase 4+ product gates only if chartered
 | **T-BB / T-OPS** | Backbone | Backup, disk, residual cadence, keep spine healthy | **P0** |
 | **T-SEC** | Backbone | Dependency pins, secret rotation, bind checklist | **P1** |
 | **T-GOV** | Brain | Source policies; admin control depth | **P1** |
-| **T-MKT** | Eyes + Muscles | Qatar/Jordan market prices → history → trends | **P1 product** |
+| **T-MKT** | Eyes + Muscles | Global market model; **start Qatar → Jordan**; any country next | **P1 product** |
 | **T-SCI** | Eyes + Muscles | Soil/irrigation knowledge packs → FlahaSOIL/CALC/FAST path | **P1 product** |
 | **T-RES** | Muscles | Research index for scientific writing | **P2** |
 | **T-UX** | Brain UX | Analyst polish, smoke pack | **P2** |
@@ -234,7 +235,7 @@ Do **not** implement until approved. Must map to final-product-lock stages.
 | **3O** | Backbone | Task Scheduler backup, residual cadence, free-space alerts | 3N ACCEPT |
 | **3P** | Backbone | Pin dependencies | 3N ACCEPT |
 | **3Q** | Brain | Source policies for accepted RSS | 3K/3N |
-| **4M-A…E** | Eyes+Muscles | Market price intelligence (Qatar then Jordan) | Product owner |
+| **4M-0…E + 4M-N** | Eyes+Muscles | Market prices: global model; start QA+JO; any country via 4M-N | Product owner |
 | **4S-A…D** | Eyes+Muscles | Soil knowledge + FlahaSOIL comparison path | Product owner |
 | **4I-A…B** | Muscles | Irrigation packs + CALC/FAST handoff rules | After/with 4S |
 | **4R-A…B** | Muscles | Research index | After packs start |
@@ -338,21 +339,23 @@ A task is done only when:
 1. **E1-T1…T4** Ops: disk, scheduled backup, cadence, free-space alert (`BB-*`)  
 2. **E3-T1** Source policies for accepted RSS (`BRN-*`)  
 3. **E2-T1** Pin npm deps (`BB-*`)  
-4. **Charter only (no code until approved):** one-pager gate **4M-A** Qatar market price source onboarding  
-5. **Charter only:** one-pager gate **4S-A** soil/irrigation source pack definition  
+4. **Charter only (no code until approved):** **4M-0** global market model + **4M-A** Qatar first  
+5. **Charter only:** **4M-B** Jordan second; **4S-A** soil/irrigation pack (universal + place tags)  
 
-**Exit criteria:** Ops P0 green; residual still ACCEPT; **4M-A and 4S-A written and owner-approved** before implementation starts.
+**Exit criteria:** Ops P0 green; residual still ACCEPT; **4M-0 / 4M-A / 4S-A written and owner-approved** before implementation starts.
 
 ### 4.4b Product track backlog seeds (LOCKED direction)
 
 | ID | Task | Track | Status |
 |----|------|-------|--------|
-| EYE-MKT-01 | Document Qatar official market price source(s) + ownership evidence | T-MKT | READY (charter) |
-| EYE-MKT-02 | Document Jordan central market daily list source + ownership evidence | T-MKT | READY (charter) |
-| MUS-MKT-01 | Price row schema (date, market, crop, unit, price, currency, evidence link) | T-MKT | BACKLOG |
-| MUS-MKT-02 | Daily harvest job + 365d retention | T-MKT | BACKLOG |
-| MUS-MKT-03 | Simple trend view for analysts | T-MKT | BACKLOG |
-| EYE-SCI-01 | Curated soil/irrigation source list (governed) | T-SCI | READY (charter) |
+| EYE-MKT-00 | Global market model (country/market/crop/unit/currency/evidence) — any country | T-MKT | READY (charter) |
+| EYE-MKT-01 | Document **Qatar** market price source(s) + ownership (**first**) | T-MKT | READY (charter) |
+| EYE-MKT-02 | Document **Jordan** central market daily list + ownership (**second**) | T-MKT | READY (charter) |
+| EYE-MKT-N | Template to onboard **any new country** when Flaha invests or helps farmers there | T-MKT | BACKLOG |
+| MUS-MKT-01 | Price row schema (date, country, market, crop, unit, price, currency, evidence) | T-MKT | BACKLOG |
+| MUS-MKT-02 | Daily harvest job + 365d retention **per market** | T-MKT | BACKLOG |
+| MUS-MKT-03 | Trend view for analysts (filter by country/market) | T-MKT | BACKLOG |
+| EYE-SCI-01 | Curated soil/irrigation source list (governed; global science + place tags) | T-SCI | READY (charter) |
 | MUS-SCI-01 | Threshold/method extract template + human review | T-SCI | BACKLOG |
 | MUS-SCI-02 | FlahaSOIL comparison artifact workflow (no auto-change of SOIL) | T-SCI | BACKLOG |
 | MUS-HND-01 | Handoff rules SOIL/CALC/FAST | T-SCI | BACKLOG |
@@ -427,7 +430,7 @@ Stop and escalate if asked to:
 
 **Audit:** Backbone **BUILT**; eyes/muscles for markets & soil **PLANNED**; platform 1–3N closed.  
 
-**Plan:** Keep spine healthy (P0) → Market prices + Soil packs (P1 product) → Research index → Video/social later.  
+**Plan:** Keep spine healthy (P0) → Global market model + **Qatar then Jordan** + Soil packs (P1) → any country via same pattern → Research index → Video/social later.  
 
 **Tasks:** E1 ops + BRN policies + charter 4M-A / 4S-A; HOLD YouTube/Twitter until packs prove value.  
 

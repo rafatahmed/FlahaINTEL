@@ -24,7 +24,7 @@ Do not steer implementation away from that lock. Platform Phases 1–3N delivere
 Metaphor:
 
 - **Backbone** — trust, evidence, safe collection, audit (largely built through Phase 3N)
-- **Eyes** — markets, science, news, controlled web; later video/social under allowlists
+- **Eyes** — markets, science, news, controlled web **worldwide** (implement Qatar then Jordan first; any country Flaha serves); later video/social under allowlists
 - **Muscles** — schedules, extraction, trends, knowledge packs, sister-product feeds
 - **Brain** — human + admin governance and product handoff rules
 
