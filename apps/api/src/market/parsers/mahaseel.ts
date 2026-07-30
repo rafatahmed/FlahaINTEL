@@ -4,7 +4,7 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Mahaseel Period PDF Text Parser
- * Introduction: Parses structured Mahaseel local vegetable price lines into PriceRowInput.
+ * Introduction: Parses Mahaseel multi-line PDF text (name / grade method / price) into rows.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
@@ -13,9 +13,6 @@
 import type { PriceRowInput } from "../service.js";
 import { MarketValidationError, parseObservedOn, toIsoDate } from "../validation.js";
 
-/**
- * Parse period header: "from 05/01/2023 to 08/01/2023" or "from 05-01-2023 to 08-01-2023"
- */
 export function parseMahaseelPeriod(text: string): { periodFrom: string; periodTo: string; observedOn: string } {
   const m = text.match(/from\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})\s+to\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i);
   if (!m) {
@@ -26,9 +23,18 @@ export function parseMahaseelPeriod(text: string): { periodFrom: string; periodT
   return { periodFrom, periodTo, observedOn: periodTo };
 }
 
+const GRADE_METHOD = /^(\d+|Long|Normal)\s+(.+?)\s*$/i;
+const PRICE_ONLY = /^(\d+(?:\.\d+)?)\s*$/;
+const HEADER = /vegetable\s+grade|price\s*\(kg\)|mahaseel pricing/i;
+
 /**
- * Parse lines like: "Tomato 1 Wired 3.50" or tab-separated table rows after OCR/PDF text extract.
- * Expected columns after vegetable name: grade, cultivation method (may be multi-word), price.
+ * PDF text is multi-line:
+ *   Tomato
+ *   1 Wired
+ *   3.50
+ *   2 Wired
+ *   2.80
+ * Also accepts single-line: "Tomato 1 Wired 3.50"
  */
 export function parseMahaseelPriceLines(
   text: string,
@@ -36,36 +42,70 @@ export function parseMahaseelPriceLines(
 ): { periodFrom: string; periodTo: string; rows: PriceRowInput[] } {
   const { periodFrom, periodTo, observedOn } = parseMahaseelPeriod(text);
   const rows: PriceRowInput[] = [];
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
 
-  // Prefer structured "Vegetable Grade Method Price" blocks from our PDF text extract
-  const rowRe =
-    /^([A-Za-z][A-Za-z0-9 \/\(\),\-]+?)\s+(\d+|Long|Normal)\s+([A-Za-z][A-Za-z \/]+?)\s+(\d+(?:\.\d+)?)\s*$/;
+  let commodity: string | null = null;
+  let pendingGradeMethod: { grade: string; method: string } | null = null;
 
-  for (const line of lines) {
-    if (/^vegetable/i.test(line) || /grade/i.test(line) && /price/i.test(line)) continue;
-    if (/^mahaseel/i.test(line) || /^from\s+/i.test(line)) continue;
-    const m = line.match(rowRe);
-    if (!m) continue;
-    const commodityName = m[1]!.trim();
-    const grade = m[2]!.trim();
-    const cultivationMethod = m[3]!.trim();
-    const unitPrice = Number(m[4]);
+  const pushRow = (grade: string, method: string, unitPrice: number) => {
+    if (!commodity) return;
     rows.push({
       observedOn,
       periodFrom,
       periodTo,
-      commodityName,
-      commodityNameEn: commodityName,
+      commodityName: commodity,
+      commodityNameEn: commodity,
       originLabel: "LOCAL",
       unit: "kg",
-      packDescription: `grade-${grade}-${cultivationMethod}`.toLowerCase().replace(/\s+/g, "-"),
+      packDescription: `grade-${grade}-${method}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
       unitPrice,
       currency: "QAR",
       grade,
-      cultivationMethod,
+      cultivationMethod: method,
       evidenceUrl,
     });
+  };
+
+  for (const line of lines) {
+    if (HEADER.test(line) || /^from\s+/i.test(line)) continue;
+
+    // Single-line form
+    const single = line.match(
+      /^([A-Za-z][A-Za-z0-9 \/\(\),\-]+?)\s+(\d+|Long|Normal)\s+([A-Za-z][A-Za-z \/]+?)\s+(\d+(?:\.\d+)?)$/,
+    );
+    if (single) {
+      commodity = single[1]!.trim();
+      pushRow(single[2]!.trim(), single[3]!.trim(), Number(single[4]));
+      pendingGradeMethod = null;
+      continue;
+    }
+
+    const priceM = line.match(PRICE_ONLY);
+    if (priceM && pendingGradeMethod && commodity) {
+      pushRow(pendingGradeMethod.grade, pendingGradeMethod.method, Number(priceM[1]));
+      pendingGradeMethod = null;
+      continue;
+    }
+
+    const gm = line.match(GRADE_METHOD);
+    if (gm && commodity) {
+      pendingGradeMethod = { grade: gm[1]!.trim(), method: gm[2]!.trim() };
+      continue;
+    }
+
+    // Commodity name line (may wrap e.g. "American Lettuce (Iceberg)")
+    if (/^[A-Za-z]/.test(line) && !PRICE_ONLY.test(line) && !GRADE_METHOD.test(line)) {
+      // continuation of previous name if previous was incomplete
+      if (commodity && line.startsWith("(")) {
+        commodity = `${commodity} ${line}`.trim();
+      } else {
+        commodity = line;
+      }
+      pendingGradeMethod = null;
+    }
   }
 
   if (!rows.length) {

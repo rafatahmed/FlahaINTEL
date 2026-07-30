@@ -1,0 +1,21 @@
+{
+  "dayTotals": {
+    "vegetablesTons": 2103.424,
+    "fruitTons": 761.316,
+    "leafyGreensTons": 169.974
+  },
+  "rows": [
+    {
+      "priceDate": "30-07-2026",
+      "commodityNameAr": "اسود رفيع",
+      "commodityNameEn": "thin black",
+      "highestQrsh": 50,
+      "mostCommonQrsh": 25,
+      "minimumQrsh": 10,
+      "quantityTons": 31.929,
+      "packageUnit": "kg",
+      "origin": "LOCAL",
+      "evidenceUrl": "https://www.ammancity.gov.jo/ar/market/prices.aspx"
+    }
+  ]
+}

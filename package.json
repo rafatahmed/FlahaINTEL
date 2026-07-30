@@ -13,6 +13,7 @@
     "bootstrap:rss-accepted": "npm run bootstrap:rss-accepted --workspace=@flaha-intel/api",
     "bootstrap:source-policies": "npm run bootstrap:source-policies --workspace=@flaha-intel/api",
     "markets:seed-channels": "npm run markets:seed-channels --workspace=@flaha-intel/api",
+    "markets:harvest": "npm run markets:harvest --workspace=@flaha-intel/api --",
     "governance:backfill-sources": "npm run governance:backfill-sources --workspace=@flaha-intel/api",
     "ops:provision-runtimes": "powershell -NoProfile -File ops/scripts/provision-runtimes.ps1",
     "ops:provision-verify": "powershell -NoProfile -File ops/scripts/provision-runtimes.ps1 -VerifyOnly",

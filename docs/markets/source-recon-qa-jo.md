@@ -200,3 +200,33 @@ Stored on `MarketChannel.harvestIntervalDays` and `MarketChannel.filterMaxSpanDa
 | Imported Fruits Prices | `qa-moci-imported-fruits` | `.../imported-fruits-prices/` |
 
 Same ministry, **four channels**, daily cadence. Distinct from simple Mahaseel period PDF.
+
+### MoCI live API (for harvest muscle)
+
+Page scripts call:
+
+`https://www.moci.gov.qa/wp-content/themes/2018_mec_v1/api/dailyPrice.php?id={N}&lang=en`
+
+| Channel | apiId |
+|---------|------:|
+| Local daily vegetables | 12 |
+| Imported vegetables | 13 |
+| Imported fruits | 16 |
+| Daily fish | 17 |
+
+JSON fields: `name`, `Source`, `Size`, `Unit`, `PackPrice`, `price`, `date` (DD/MM/YYYY).
+
+### Harvest CLI
+
+```text
+npm run markets:seed-channels
+npm run markets:harvest -- --force
+npm run markets:harvest -- --country=QA --force
+npm run markets:harvest -- --channel=qa-moci-daily-vegetables --force
+npm run markets:harvest -- --channel=jo-amman-central-market --amman-json=apps/api/fixtures/markets/amman-sample-2026-07-30.json --force
+```
+
+Cadence is enforced unless `--force`:
+- MoCI + Jordan: daily
+- Mahaseel: every 3 days
+- Product query filters: max 3-day span
