@@ -12,14 +12,18 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  assertFilterSpan,
   channelCode,
+  defaultFilterMaxSpanDays,
+  defaultHarvestIntervalDays,
   MarketValidationError,
   normalizeCommodityCode,
   normalizeCountryCode,
   normalizeCurrency,
   priceContentFingerprint,
+  qrshToJod,
+  requireAnyPrice,
   requireEvidence,
-  requirePrice,
 } from "./validation.js";
 
 describe("market validation (4M-0)", () => {
@@ -50,9 +54,32 @@ describe("market validation (4M-0)", () => {
   });
 
   it("requires a non-negative price", () => {
-    expect(() => requirePrice(null, null)).toThrow(MarketValidationError);
-    expect(() => requirePrice(-1, null)).toThrow(MarketValidationError);
-    expect(() => requirePrice(10, 2.5)).not.toThrow();
+    expect(() => requireAnyPrice({})).toThrow(MarketValidationError);
+    expect(() => requireAnyPrice({ unitPrice: -1 })).toThrow(MarketValidationError);
+    expect(() => requireAnyPrice({ unitPrice: 2.5 })).not.toThrow();
+    expect(() => requireAnyPrice({ priceModeNative: 25 })).not.toThrow();
+  });
+
+  it("converts qrsh to JOD (1 qrsh = 0.01 JOD)", () => {
+    expect(qrshToJod(50)).toBe(0.5);
+    expect(qrshToJod(25)).toBe(0.25);
+    expect(qrshToJod(10)).toBe(0.1);
+  });
+
+  it("enforces 3-day filter windows for product pulls", () => {
+    expect(() => assertFilterSpan("2026-07-28", "2026-07-30", 3)).not.toThrow();
+    expect(() => assertFilterSpan("2026-07-30", "2026-07-30", 3)).not.toThrow();
+    expect(() => assertFilterSpan("2026-07-27", "2026-07-30", 3)).toThrow(MarketValidationError);
+    expect(() => assertFilterSpan("2026-07-27", "2026-07-30", 3)).toThrow(/max allowed/);
+  });
+
+  it("defaults Jordan daily, MoCI Qatar daily, Mahaseel every 3 days", () => {
+    expect(defaultHarvestIntervalDays("JO")).toBe(1);
+    expect(defaultHarvestIntervalDays("QA")).toBe(1);
+    expect(defaultHarvestIntervalDays("QA", "mahaseel-local-vegetables")).toBe(3);
+    expect(defaultHarvestIntervalDays("QA", "moci-daily-vegetables")).toBe(1);
+    expect(defaultFilterMaxSpanDays("JO")).toBe(3);
+    expect(defaultFilterMaxSpanDays("QA")).toBe(3);
   });
 
   it("fingerprints differ when price changes; same for identical rows", () => {
@@ -63,8 +90,14 @@ describe("market validation (4M-0)", () => {
       unit: "kg",
       currency: "QAR",
       packDescription: "box-medium",
+      originLabel: "LOCAL",
       packPrice: "10.00",
       unitPrice: "2.50",
+      priceHigh: null as string | null,
+      priceMode: null as string | null,
+      priceLow: null as string | null,
+      grade: "",
+      cultivationMethod: "",
     };
     const a = priceContentFingerprint(base);
     const b = priceContentFingerprint(base);

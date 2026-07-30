@@ -29,6 +29,8 @@ type RegistryChannel = {
   enabled?: boolean;
   language?: string;
   currencyDefault?: string;
+  harvestIntervalDays?: number;
+  filterMaxSpanDays?: number;
   notes?: string | null;
 };
 
@@ -44,6 +46,12 @@ try {
       console.log(`skip placeholder ${ch.countryCode}-${ch.marketCode}`);
       continue;
     }
+    // Cadence from registry when set: Jordan daily; MoCI QA daily; Mahaseel every 3 days.
+    // Product filter windows max 3 days for all first-wave channels.
+    const harvestIntervalDays =
+      ch.harvestIntervalDays ??
+      (ch.marketCode?.includes("mahaseel") ? 3 : ch.countryCode?.toUpperCase() === "QA" ? 1 : 1);
+    const filterMaxSpanDays = ch.filterMaxSpanDays ?? 3;
     const row = await markets.upsertChannel({
       countryCode: ch.countryCode,
       marketCode: ch.marketCode,
@@ -58,10 +66,14 @@ try {
       enabled: ch.enabled,
       language: ch.language,
       currencyDefault: ch.currencyDefault,
+      harvestIntervalDays,
+      filterMaxSpanDays,
       notes: ch.notes,
     });
     upserted += 1;
-    console.log(`upserted ${row.code} status=${row.verificationStatus} enabled=${row.enabled}`);
+    console.log(
+      `upserted ${row.code} status=${row.verificationStatus} enabled=${row.enabled} harvestEvery=${row.harvestIntervalDays}d filterMax=${row.filterMaxSpanDays}d`,
+    );
   }
   console.log(JSON.stringify({ upserted, total: raw.channels.length }, null, 2));
 } finally {

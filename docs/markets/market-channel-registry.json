@@ -1,8 +1,39 @@
 {
-  "registryVersion": 2,
+  "registryVersion": 3,
   "principle": "Worldwide market channels; country is metadata. Start with Qatar then Jordan. See source-recon-qa-jo.md.",
   "currencyNotes": {
-    "JO": "1 qrsh (قرش / piaster) = 0.01 JOD. UI prices are often in qrsh; store native + convert to JOD."
+    "JO": "1 qrsh (قرش / piaster) = 0.01 JOD. UI prices are often in qrsh; store native + convert to JOD.",
+    "QA": "Prices in QAR unless stated otherwise."
+  },
+  "cadence": {
+    "JO": {
+      "harvestIntervalDays": 1,
+      "filterMaxSpanDays": 3,
+      "note": "Jordan daily keep-up; when pulling products use from–to filter up to 3 days."
+    },
+    "QA": {
+      "note": "Split by channel: MoCI portal lists are DAILY (like Jordan). Mahaseel period PDF is every 3 days.",
+      "channels": {
+        "qa-mahaseel-local-vegetables": { "harvestIntervalDays": 3, "filterMaxSpanDays": 3 },
+        "qa-moci-daily-vegetables": { "harvestIntervalDays": 1, "filterMaxSpanDays": 3 },
+        "qa-moci-imported-vegetables": { "harvestIntervalDays": 1, "filterMaxSpanDays": 3 },
+        "qa-moci-daily-fish": { "harvestIntervalDays": 1, "filterMaxSpanDays": 3 },
+        "qa-moci-imported-fruits": { "harvestIntervalDays": 1, "filterMaxSpanDays": 3 }
+      }
+    }
+  },
+  "portals": {
+    "qa-moci-commodities-daily": {
+      "name": "Qatar MoCI Commodities Daily Prices",
+      "publisher": "Ministry of Commerce and Industry (Qatar)",
+      "homepageUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/",
+      "lists": [
+        "qa-moci-daily-vegetables",
+        "qa-moci-imported-vegetables",
+        "qa-moci-daily-fish",
+        "qa-moci-imported-fruits"
+      ]
+    }
   },
   "channels": [
     {
@@ -20,9 +51,11 @@
       "enabled": true,
       "language": "en",
       "currencyDefault": "QAR",
+      "harvestIntervalDays": 3,
+      "filterMaxSpanDays": 3,
       "complexity": "simple",
       "delivery": "PDF_PERIOD",
-      "notes": "Simple channel. English page links a period PDF (e.g. from–to dates). Columns: vegetable, grade, cultivation method, price/kg. PDF URL may change when a new period is published. Not always same-day; check freshness each harvest.",
+      "notes": "Simple channel beside MoCI. English page links a period PDF (from–to). Columns: vegetable, grade, cultivation method, price/kg. Harvest every 3 days.",
       "relatedUrls": [],
       "gate": "4M-A",
       "recon": "docs/markets/source-recon-qa-jo.md"
@@ -34,21 +67,103 @@
       "name": "Qatar MoCI daily vegetable prices",
       "publisher": "Ministry of Commerce and Industry (Qatar)",
       "authorityType": "GOVERNMENT_AGENCY",
-      "officialUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/%E2%80%8B%E2%80%8Bdaily-vegetable-prices/",
+      "officialUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/%e2%80%8b%e2%80%8bdaily-vegetable-prices/",
       "homepageUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/",
-      "evidenceUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/%E2%80%8B%E2%80%8Bdaily-vegetable-prices/",
+      "evidenceUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/%e2%80%8b%e2%80%8bdaily-vegetable-prices/",
       "ownershipVerified": true,
       "verificationStatus": "ACCEPTED",
       "enabled": true,
       "language": "en",
       "currencyDefault": "QAR",
+      "harvestIntervalDays": 1,
+      "filterMaxSpanDays": 3,
       "complexity": "medium",
-      "delivery": "HTML_BULLETIN",
-      "notes": "Optional second QA channel for ministry daily bulletins (distinct from Mahaseel period PDF).",
+      "delivery": "HTML_DAILY_BULLETIN",
+      "originLabelDefault": "LOCAL",
+      "notes": "Official MoCI daily vegetable bulletin (local). Same portal family as imported veg/fish/fruits. Harvest daily like Jordan.",
       "relatedUrls": [
-        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-vegetable-prices/",
-        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-fruits-prices/",
-        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/daily-fish-prices/"
+        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/"
+      ],
+      "gate": "4M-A",
+      "recon": "docs/markets/source-recon-qa-jo.md"
+    },
+    {
+      "code": "qa-moci-imported-vegetables",
+      "countryCode": "QA",
+      "marketCode": "moci-imported-vegetables",
+      "name": "Qatar MoCI imported vegetable prices",
+      "publisher": "Ministry of Commerce and Industry (Qatar)",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "officialUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-vegetable-prices/",
+      "homepageUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/",
+      "evidenceUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-vegetable-prices/",
+      "ownershipVerified": true,
+      "verificationStatus": "ACCEPTED",
+      "enabled": true,
+      "language": "en",
+      "currencyDefault": "QAR",
+      "harvestIntervalDays": 1,
+      "filterMaxSpanDays": 3,
+      "complexity": "medium",
+      "delivery": "HTML_DAILY_BULLETIN",
+      "originLabelDefault": "IMPORTED",
+      "notes": "MoCI daily imported vegetables. Pair with local daily vegetables for full QA veg picture.",
+      "relatedUrls": [
+        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/"
+      ],
+      "gate": "4M-A",
+      "recon": "docs/markets/source-recon-qa-jo.md"
+    },
+    {
+      "code": "qa-moci-daily-fish",
+      "countryCode": "QA",
+      "marketCode": "moci-daily-fish",
+      "name": "Qatar MoCI daily fish prices",
+      "publisher": "Ministry of Commerce and Industry (Qatar)",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "officialUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/daily-fish-prices/",
+      "homepageUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/",
+      "evidenceUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/daily-fish-prices/",
+      "ownershipVerified": true,
+      "verificationStatus": "ACCEPTED",
+      "enabled": true,
+      "language": "en",
+      "currencyDefault": "QAR",
+      "harvestIntervalDays": 1,
+      "filterMaxSpanDays": 3,
+      "complexity": "medium",
+      "delivery": "HTML_DAILY_BULLETIN",
+      "originLabelDefault": "LOCAL",
+      "notes": "MoCI daily fish prices (same commodities daily portal).",
+      "relatedUrls": [
+        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/"
+      ],
+      "gate": "4M-A",
+      "recon": "docs/markets/source-recon-qa-jo.md"
+    },
+    {
+      "code": "qa-moci-imported-fruits",
+      "countryCode": "QA",
+      "marketCode": "moci-imported-fruits",
+      "name": "Qatar MoCI imported fruits prices",
+      "publisher": "Ministry of Commerce and Industry (Qatar)",
+      "authorityType": "GOVERNMENT_AGENCY",
+      "officialUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-fruits-prices/",
+      "homepageUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/",
+      "evidenceUrl": "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-fruits-prices/",
+      "ownershipVerified": true,
+      "verificationStatus": "ACCEPTED",
+      "enabled": true,
+      "language": "en",
+      "currencyDefault": "QAR",
+      "harvestIntervalDays": 1,
+      "filterMaxSpanDays": 3,
+      "complexity": "medium",
+      "delivery": "HTML_DAILY_BULLETIN",
+      "originLabelDefault": "IMPORTED",
+      "notes": "MoCI daily imported fruits prices.",
+      "relatedUrls": [
+        "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/"
       ],
       "gate": "4M-A",
       "recon": "docs/markets/source-recon-qa-jo.md"
@@ -70,6 +185,8 @@
       "currencyDefault": "JOD",
       "nativePriceUnit": "QRSH",
       "nativeToCurrencyFactor": 0.01,
+      "harvestIntervalDays": 1,
+      "filterMaxSpanDays": 3,
       "complexity": "comprehensive",
       "delivery": "WEB_FORM_TABLE_PRINT_PDF",
       "filters": {
@@ -95,7 +212,7 @@
         "quantityFruitTons",
         "quantityLeafyGreensTons"
       ],
-      "notes": "Comprehensive daily market system. Arabic-first UI; browser translate yields English labels; Price printing can save English table as PDF evidence. Example 2026-07-30 product: اسود رفيع / thin black apple — high 50 qrsh, mode 25, low 10, qty 31.929 t, pack 1 kg. Day totals e.g. veg 2103.424 t, fruit 761.316 t, leafy 169.974 t. ASP.NET ViewState postback required for automation.",
+      "notes": "Comprehensive daily market system. Arabic-first; translate + Price printing → PDF evidence. LOCAL/IMPORTED filter. 1 qrsh = 0.01 JOD. Product filter windows max 3 days.",
       "relatedUrls": [],
       "gate": "4M-B",
       "recon": "docs/markets/source-recon-qa-jo.md"

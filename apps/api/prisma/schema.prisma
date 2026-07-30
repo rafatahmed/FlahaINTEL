@@ -637,6 +637,7 @@ model Tenant {
   decisions   GovernanceDecision[]
   submissions ProductSubmission[]
   marketPriceObservations MarketPriceObservation[]
+  marketDaySummaries MarketDaySummary[]
   knowledgePacks KnowledgePack[]
 
   @@index([active])
@@ -994,10 +995,15 @@ model MarketChannel {
   enabled            Boolean                        @default(true)
   language           String                         @default("en")
   currencyDefault    String                         @default("QAR")
+  /// Harvest cadence in days (Jordan daily = 1; Qatar Mahaseel/MoCI = 3).
+  harvestIntervalDays Int                           @default(1)
+  /// Max inclusive day span for filter queries (Jordan product filter window = 3).
+  filterMaxSpanDays   Int                           @default(3)
   notes              String?
   createdAt          DateTime                       @default(now())
   updatedAt          DateTime                       @updatedAt
   prices             MarketPriceObservation[]
+  daySummaries       MarketDaySummary[]
 
   @@unique([countryCode, marketCode])
   @@index([countryCode, enabled])
@@ -1005,21 +1011,42 @@ model MarketChannel {
 }
 
 /// One price row for a commodity on a bulletin date (tenant-scoped for multi-tenant product).
+/// Supports simple channels (Mahaseel: period PDF, unit price) and comprehensive channels
+/// (Amman: high/mode/low in native units e.g. qrsh, bilingual names, tons).
 model MarketPriceObservation {
   id               String                @id @default(uuid()) @db.Uuid
   tenantId         String                @db.Uuid
   tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   channelId        String                @db.Uuid
   channel          MarketChannel         @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  /// Primary calendar day for the price (Jordan daily; Mahaseel often period end).
   observedOn       DateTime              @db.Date
+  /// Optional bulletin period (Mahaseel from–to).
+  periodFrom       DateTime?             @db.Date
+  periodTo         DateTime?             @db.Date
   commodityCode    String
   commodityName    String
+  commodityNameAr  String?
+  commodityNameEn  String?
   originLabel      String?
   unit             String
   packDescription  String                @default("")
   packPrice        Decimal?              @db.Decimal(18, 4)
   unitPrice        Decimal?              @db.Decimal(18, 4)
+  /// Amman: highest / most-common / minimum (canonical currency after conversion).
+  priceHigh        Decimal?              @db.Decimal(18, 4)
+  priceMode        Decimal?              @db.Decimal(18, 4)
+  priceLow         Decimal?              @db.Decimal(18, 4)
+  /// Native quote unit when UI is not ISO currency (e.g. QRSH where 1 QRSH = 0.01 JOD).
+  nativePriceUnit  String?
+  nativeToCurrencyFactor Decimal?        @db.Decimal(18, 6)
+  priceHighNative  Decimal?              @db.Decimal(18, 4)
+  priceModeNative  Decimal?              @db.Decimal(18, 4)
+  priceLowNative   Decimal?              @db.Decimal(18, 4)
   currency         String
+  grade            String?
+  cultivationMethod String?
+  quantityTons     Decimal?              @db.Decimal(18, 3)
   evidenceUrl      String?
   evidenceArtifactId String?             @db.Uuid
   sourceBatchId    String
@@ -1035,11 +1062,32 @@ model MarketPriceObservation {
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 
-  @@unique([channelId, observedOn, commodityCode, unit, currency, packDescription])
+  @@unique([channelId, observedOn, commodityCode, unit, currency, packDescription, originLabel])
   @@index([tenantId, channelId, observedOn])
   @@index([tenantId, commodityCode, observedOn])
   @@index([tenantId, reviewState])
   @@index([sourceBatchId])
+}
+
+/// Optional market-day aggregates (e.g. Amman total tons by vegetables/fruit/leafy).
+model MarketDaySummary {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @db.Uuid
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  channelId   String        @db.Uuid
+  channel     MarketChannel @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  observedOn  DateTime      @db.Date
+  originLabel String        @default("")
+  category    String
+  quantityTons Decimal      @db.Decimal(18, 3)
+  unitLabel   String        @default("tons")
+  evidenceUrl String?
+  sourceBatchId String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([channelId, observedOn, originLabel, category])
+  @@index([tenantId, channelId, observedOn])
 }
 
 /// Universal PA knowledge pack (soil/irrigation/…); place is tags only.

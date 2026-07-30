@@ -26,8 +26,12 @@
     "www.example.com": ["/", "/index.html"],
     "example.org": ["/", "/index.html"],
     "www.example.org": ["/", "/index.html"],
-    "www.moci.gov.qa": ["/en/our-services/consumer/commodities-daily-prices/"],
-    "moci.gov.qa": ["/en/our-services/consumer/commodities-daily-prices/"],
+    "www.moci.gov.qa": [
+      "/en/our-services/consumer/commodities-daily-prices/"
+    ],
+    "moci.gov.qa": [
+      "/en/our-services/consumer/commodities-daily-prices/"
+    ],
     "mahaseel.qa": ["/en/prices-of-vegetables/", "/wp-content/uploads/"],
     "www.mahaseel.qa": ["/en/prices-of-vegetables/", "/wp-content/uploads/"],
     "www.ammancity.gov.jo": ["/ar/market/"],

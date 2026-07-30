@@ -45,9 +45,9 @@ npm run bootstrap:source-policies
 
 ## Next
 
-1. **4M-C / muscle:** parse MoCI daily HTML/PDF into `MarketPriceObservation` rows (with evidence)  
-2. **4M-B:** confirm Jordan official URL + enable channel  
-3. Sample knowledge pack via API for soil thresholds  
+1. **Scheduler muscle:** Jordan daily job + Qatar every-3-days job (filter ≤ 3 days)  
+2. Live Amman ASP.NET POST harvest (optional; batch API + print PDF path works)  
+3. Live Mahaseel PDF download when period updates  
 4. Host: free disk + register backup task  
 
 ## Exit criteria for Sprint 1

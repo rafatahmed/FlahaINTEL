@@ -4,7 +4,7 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Market Price Validation
- * Introduction: Country-agnostic validation for market channels and price rows (Gate 4M-0).
+ * Introduction: Country-agnostic validation for market channels, cadence, and price rows.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
@@ -15,6 +15,9 @@ import { createHash } from "node:crypto";
 const ISO_COUNTRY = /^[A-Z]{2}$/;
 const ISO_CURRENCY = /^[A-Z]{3}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Jordan: 1 قرش (qrsh/piaster) = 0.01 JOD */
+export const QRSH_TO_JOD = 0.01;
 
 export class MarketValidationError extends Error {
   constructor(
@@ -92,17 +95,68 @@ export function requireEvidence(input: { evidenceUrl?: string | null; evidenceAr
   }
 }
 
+export function requireAnyPrice(input: {
+  packPrice?: number | null;
+  unitPrice?: number | null;
+  priceHigh?: number | null;
+  priceMode?: number | null;
+  priceLow?: number | null;
+  priceHighNative?: number | null;
+  priceModeNative?: number | null;
+  priceLowNative?: number | null;
+}): void {
+  const values = [
+    input.packPrice,
+    input.unitPrice,
+    input.priceHigh,
+    input.priceMode,
+    input.priceLow,
+    input.priceHighNative,
+    input.priceModeNative,
+    input.priceLowNative,
+  ];
+  const present = values.filter((v) => v != null && Number.isFinite(v));
+  if (!present.length) {
+    throw new MarketValidationError("PRICE_REQUIRED", "At least one price field is required.");
+  }
+  for (const v of present) {
+    if ((v as number) < 0) throw new MarketValidationError("INVALID_PRICE", "Prices must be >= 0.");
+  }
+}
+
+/** @deprecated use requireAnyPrice */
 export function requirePrice(packPrice: number | null | undefined, unitPrice: number | null | undefined): void {
-  const hasPack = packPrice != null && Number.isFinite(packPrice);
-  const hasUnit = unitPrice != null && Number.isFinite(unitPrice);
-  if (!hasPack && !hasUnit) {
-    throw new MarketValidationError("PRICE_REQUIRED", "At least one of packPrice or unitPrice is required.");
+  requireAnyPrice({ packPrice, unitPrice });
+}
+
+export function convertNativeToCurrency(native: number, factor: number): number {
+  if (!Number.isFinite(native) || !Number.isFinite(factor) || factor <= 0) {
+    throw new MarketValidationError("INVALID_NATIVE_FACTOR", "native conversion factor must be a positive number.");
   }
-  if (hasPack && (packPrice as number) < 0) {
-    throw new MarketValidationError("INVALID_PRICE", "packPrice must be >= 0.");
+  return Number((native * factor).toFixed(4));
+}
+
+export function qrshToJod(qrsh: number): number {
+  return convertNativeToCurrency(qrsh, QRSH_TO_JOD);
+}
+
+/**
+ * Inclusive day span of [from, to] must be <= maxSpanDays.
+ * Example: from=30 and to=01 next month is multi-day; from=to is 1 day.
+ */
+export function assertFilterSpan(fromIso: string, toIso: string, maxSpanDays: number): void {
+  const from = parseObservedOn(fromIso);
+  const to = parseObservedOn(toIso);
+  if (to.getTime() < from.getTime()) {
+    throw new MarketValidationError("INVALID_DATE_RANGE", "to date must be on or after from date.");
   }
-  if (hasUnit && (unitPrice as number) < 0) {
-    throw new MarketValidationError("INVALID_PRICE", "unitPrice must be >= 0.");
+  const ms = to.getTime() - from.getTime();
+  const inclusiveDays = Math.floor(ms / 86_400_000) + 1;
+  if (inclusiveDays > maxSpanDays) {
+    throw new MarketValidationError(
+      "FILTER_SPAN_EXCEEDED",
+      `Filter span is ${inclusiveDays} days; max allowed for this channel is ${maxSpanDays} (use every-three-days windows).`,
+    );
   }
 }
 
@@ -113,8 +167,14 @@ export function priceContentFingerprint(parts: {
   unit: string;
   currency: string;
   packDescription: string;
+  originLabel: string;
   packPrice: string | null;
   unitPrice: string | null;
+  priceHigh: string | null;
+  priceMode: string | null;
+  priceLow: string | null;
+  grade: string;
+  cultivationMethod: string;
 }): string {
   const material = [
     parts.channelCode,
@@ -123,19 +183,54 @@ export function priceContentFingerprint(parts: {
     parts.unit,
     parts.currency,
     parts.packDescription,
+    parts.originLabel,
     parts.packPrice ?? "",
     parts.unitPrice ?? "",
+    parts.priceHigh ?? "",
+    parts.priceMode ?? "",
+    parts.priceLow ?? "",
+    parts.grade,
+    parts.cultivationMethod,
   ].join("|");
   return createHash("sha256").update(material, "utf8").digest("hex");
 }
 
 export function parseObservedOn(value: string): Date {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn must be YYYY-MM-DD.");
+  // Accept YYYY-MM-DD or DD-MM-YYYY / DD/MM/YYYY
+  const iso = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const d = new Date(`${iso}T00:00:00.000Z`);
+    if (Number.isNaN(d.getTime())) throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn is not a valid date.");
+    return d;
   }
-  const d = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) {
-    throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn is not a valid date.");
+  const m = iso.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+  if (m) {
+    const d = new Date(`${m[3]}-${m[2]}-${m[1]}T00:00:00.000Z`);
+    if (Number.isNaN(d.getTime())) throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn is not a valid date.");
+    return d;
   }
-  return d;
+  throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn must be YYYY-MM-DD or DD-MM-YYYY.");
+}
+
+export function toIsoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Default cadence when channel does not specify harvestIntervalDays.
+ * Owner rule: Jordan daily; Qatar MoCI daily; Mahaseel (period PDF) every 3 days.
+ * Prefer explicit harvestIntervalDays on MarketChannel / registry.
+ */
+export function defaultHarvestIntervalDays(countryCode: string, marketCode?: string): number {
+  const c = normalizeCountryCode(countryCode);
+  const m = (marketCode || "").toLowerCase();
+  if (m.includes("mahaseel")) return 3;
+  if (c === "JO") return 1;
+  if (c === "QA") return 1; // MoCI daily portal (veg, imported veg, fish, fruits)
+  return 1;
+}
+
+export function defaultFilterMaxSpanDays(_countryCode: string): number {
+  // Product pulls: from–to filter up to 3 days (Jordan and Qatar).
+  return 3;
 }

@@ -167,3 +167,36 @@ Country remains `QA` / `JO` only — **no separate Jordan product**.
 | MoCI QA daily | Optional second QA channel | If true daily government bulletin needed |
 
 **Owner insight accepted:** Mahaseel context is simple; Jordan context is large and comprehensive — both feed the **same** worldwide FlahaINTEL market model.
+
+---
+
+## 6. Harvest cadence (owner rule — locked)
+
+| Country | Channel | Harvest interval | Product filter window |
+|---------|---------|------------------|------------------------|
+| **Jordan** | `jo-amman-central-market` | **Daily** | from–to **≤ 3 days** |
+| **Qatar MoCI** | daily vegetables, imported vegetables, daily fish, imported fruits | **Daily** (like Jordan) | from–to **≤ 3 days** |
+| **Qatar Mahaseel** | `qa-mahaseel-local-vegetables` | **Every 3 days** (period PDF) | ≤ 3 days |
+
+```text
+Jordan:           harvest daily; filter products in ≤ 3-day windows.
+Qatar MoCI port:  harvest daily (4 lists under one portal).
+Qatar Mahaseel:   harvest every 3 days (period PDF).
+```
+
+Stored on `MarketChannel.harvestIntervalDays` and `MarketChannel.filterMaxSpanDays`.
+
+---
+
+## 7. Qatar MoCI commodities daily portal (beside Mahaseel)
+
+**Portal:** https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/
+
+| List | Channel code | URL slug |
+|------|--------------|----------|
+| Daily vegetable prices | `qa-moci-daily-vegetables` | `.../%e2%80%8b%e2%80%8bdaily-vegetable-prices/` (site uses zero-width chars in slug; plain `daily-vegetable-prices/` returns 404) |
+| Imported Vegetable Prices | `qa-moci-imported-vegetables` | `.../imported-vegetable-prices/` |
+| Daily fish prices | `qa-moci-daily-fish` | `.../daily-fish-prices/` |
+| Imported Fruits Prices | `qa-moci-imported-fruits` | `.../imported-fruits-prices/` |
+
+Same ministry, **four channels**, daily cadence. Distinct from simple Mahaseel period PDF.

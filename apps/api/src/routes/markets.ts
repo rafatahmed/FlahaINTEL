@@ -98,6 +98,10 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           sourceBatchId: string;
           correlationId?: string;
           rows: unknown[];
+          daySummaries?: Array<{ category: string; quantityTons: number; unitLabel?: string }>;
+          observedOn?: string;
+          originLabel?: string;
+          evidenceUrl?: string;
         };
         const result = await markets.recordPriceBatch({
           tenantId: actor.tenantId,
@@ -107,7 +111,40 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           correlationId: body.correlationId,
           rows: (body.rows || []) as never[],
         });
-        return result;
+        let summaries;
+        if (body.daySummaries?.length && body.observedOn) {
+          summaries = await markets.recordDaySummaries({
+            tenantId: actor.tenantId,
+            channelCode: String(body.channelCode || ""),
+            observedOn: body.observedOn,
+            originLabel: body.originLabel,
+            sourceBatchId: String(body.sourceBatchId || `batch-${Date.now()}`),
+            evidenceUrl: body.evidenceUrl,
+            summaries: body.daySummaries,
+          });
+        }
+        return { ...result, daySummaries: summaries };
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Validate a product filter window (owner rule: max 3 days). */
+    app.get("/markets/channels/:code/filter-window", async (request) => {
+      try {
+        await resolveProductActor(prisma, request);
+        const q = request.query as { from?: string; to?: string };
+        const code = (request.params as { code: string }).code;
+        if (!q.from || !q.to) throw new AppError(400, "DATES_REQUIRED", "from and to query params are required (YYYY-MM-DD).");
+        const channel = await markets.assertChannelFilterWindow(code, q.from, q.to);
+        return {
+          ok: true,
+          channelCode: channel.code,
+          harvestIntervalDays: channel.harvestIntervalDays,
+          filterMaxSpanDays: channel.filterMaxSpanDays,
+          from: q.from,
+          to: q.to,
+        };
       } catch (e) {
         mapError(e);
       }
