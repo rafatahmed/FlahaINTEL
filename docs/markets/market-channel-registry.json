@@ -1,7 +1,32 @@
 {
-  "registryVersion": 1,
-  "principle": "Worldwide market channels; country is metadata. Start with Qatar then Jordan.",
+  "registryVersion": 2,
+  "principle": "Worldwide market channels; country is metadata. Start with Qatar then Jordan. See source-recon-qa-jo.md.",
+  "currencyNotes": {
+    "JO": "1 qrsh (قرش / piaster) = 0.01 JOD. UI prices are often in qrsh; store native + convert to JOD."
+  },
   "channels": [
+    {
+      "code": "qa-mahaseel-local-vegetables",
+      "countryCode": "QA",
+      "marketCode": "mahaseel-local-vegetables",
+      "name": "Mahaseel local vegetable prices (period PDF)",
+      "publisher": "Mahaseel for Marketing and Agri-Services",
+      "authorityType": "COMMERCIAL_ORGANIZATION",
+      "officialUrl": "https://mahaseel.qa/en/prices-of-vegetables/",
+      "homepageUrl": "https://mahaseel.qa/en/",
+      "evidenceUrl": "https://mahaseel.qa/en/prices-of-vegetables/",
+      "ownershipVerified": true,
+      "verificationStatus": "ACCEPTED",
+      "enabled": true,
+      "language": "en",
+      "currencyDefault": "QAR",
+      "complexity": "simple",
+      "delivery": "PDF_PERIOD",
+      "notes": "Simple channel. English page links a period PDF (e.g. from–to dates). Columns: vegetable, grade, cultivation method, price/kg. PDF URL may change when a new period is published. Not always same-day; check freshness each harvest.",
+      "relatedUrls": [],
+      "gate": "4M-A",
+      "recon": "docs/markets/source-recon-qa-jo.md"
+    },
     {
       "code": "qa-moci-daily-vegetables",
       "countryCode": "QA",
@@ -17,32 +42,63 @@
       "enabled": true,
       "language": "en",
       "currencyDefault": "QAR",
-      "notes": "Official daily vegetable price bulletin (Gate 4M-A first channel). Related MoCI lists: imported vegetables, fruits, fish. Al-Sailiya Central Market enforces MoCI bulletins. Live HTML harvest is a later muscle; registry documents the governed source.",
+      "complexity": "medium",
+      "delivery": "HTML_BULLETIN",
+      "notes": "Optional second QA channel for ministry daily bulletins (distinct from Mahaseel period PDF).",
       "relatedUrls": [
         "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-vegetable-prices/",
         "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/imported-fruits-prices/",
         "https://www.moci.gov.qa/en/our-services/consumer/commodities-daily-prices/daily-fish-prices/"
       ],
-      "gate": "4M-A"
+      "gate": "4M-A",
+      "recon": "docs/markets/source-recon-qa-jo.md"
     },
     {
-      "code": "jo-central-market-daily",
+      "code": "jo-amman-central-market",
       "countryCode": "JO",
-      "marketCode": "central-market-daily",
-      "name": "Jordan central market daily prices (placeholder)",
-      "publisher": "To be confirmed — Jordan central wholesale market authority",
+      "marketCode": "amman-central-market",
+      "name": "Greater Amman Municipality central market fruit and vegetable prices",
+      "publisher": "Greater Amman Municipality (أمانة عمّان الكبرى)",
       "authorityType": "GOVERNMENT_AGENCY",
-      "officialUrl": "https://example.invalid/jordan-central-market-prices-pending-onboarding",
-      "homepageUrl": null,
-      "evidenceUrl": null,
-      "ownershipVerified": false,
-      "verificationStatus": "PENDING",
-      "enabled": false,
+      "officialUrl": "https://www.ammancity.gov.jo/ar/market/prices.aspx",
+      "homepageUrl": "https://www.ammancity.gov.jo/",
+      "evidenceUrl": "https://www.ammancity.gov.jo/ar/market/prices.aspx",
+      "ownershipVerified": true,
+      "verificationStatus": "ACCEPTED",
+      "enabled": true,
       "language": "ar",
       "currencyDefault": "JOD",
-      "notes": "Gate 4M-B placeholder. Do not harvest until official URL and ownership evidence are recorded (same pattern as Qatar).",
+      "nativePriceUnit": "QRSH",
+      "nativeToCurrencyFactor": 0.01,
+      "complexity": "comprehensive",
+      "delivery": "WEB_FORM_TABLE_PRINT_PDF",
+      "filters": {
+        "fromDate": true,
+        "toDate": true,
+        "origin": ["LOCAL", "IMPORTED"],
+        "originUiAr": { "LOCAL": "محلي", "IMPORTED": "مستورد" },
+        "search": true,
+        "printPrices": true
+      },
+      "rowFields": [
+        "commodityNameAr",
+        "commodityNameEn",
+        "priceDate",
+        "priceHighQrsh",
+        "priceModeQrsh",
+        "priceLowQrsh",
+        "quantityTons",
+        "packageUnit"
+      ],
+      "daySummaryFields": [
+        "quantityVegetablesTons",
+        "quantityFruitTons",
+        "quantityLeafyGreensTons"
+      ],
+      "notes": "Comprehensive daily market system. Arabic-first UI; browser translate yields English labels; Price printing can save English table as PDF evidence. Example 2026-07-30 product: اسود رفيع / thin black apple — high 50 qrsh, mode 25, low 10, qty 31.929 t, pack 1 kg. Day totals e.g. veg 2103.424 t, fruit 761.316 t, leafy 169.974 t. ASP.NET ViewState postback required for automation.",
       "relatedUrls": [],
-      "gate": "4M-B"
+      "gate": "4M-B",
+      "recon": "docs/markets/source-recon-qa-jo.md"
     }
   ]
 }

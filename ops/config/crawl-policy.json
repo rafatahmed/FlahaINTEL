@@ -15,7 +15,11 @@
     "example.org",
     "www.example.org",
     "www.moci.gov.qa",
-    "moci.gov.qa"
+    "moci.gov.qa",
+    "mahaseel.qa",
+    "www.mahaseel.qa",
+    "www.ammancity.gov.jo",
+    "ammancity.gov.jo"
   ],
   "allowedPathPrefixes": {
     "example.com": ["/", "/index.html"],
@@ -23,7 +27,11 @@
     "example.org": ["/", "/index.html"],
     "www.example.org": ["/", "/index.html"],
     "www.moci.gov.qa": ["/en/our-services/consumer/commodities-daily-prices/"],
-    "moci.gov.qa": ["/en/our-services/consumer/commodities-daily-prices/"]
+    "moci.gov.qa": ["/en/our-services/consumer/commodities-daily-prices/"],
+    "mahaseel.qa": ["/en/prices-of-vegetables/", "/wp-content/uploads/"],
+    "www.mahaseel.qa": ["/en/prices-of-vegetables/", "/wp-content/uploads/"],
+    "www.ammancity.gov.jo": ["/ar/market/"],
+    "ammancity.gov.jo": ["/ar/market/"]
   },
   "allowedAttachmentTypes": [
     "application/pdf",
