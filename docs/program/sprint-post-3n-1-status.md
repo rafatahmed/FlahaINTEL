@@ -68,14 +68,16 @@ npm run knowledge:seed-samples
 | 4B-A | Product feed policies | **DONE** | Per-target themes; cross-product guards |
 | 4B-B | PA dashboard scorecard | **DONE** | `/api/pa-dashboard` + Dashboard card |
 
+| 4R-A | Research topic index (desk) | **FRAMED** | Charter: `gates/gate-4r-a-research-topic-index.md` — implement after accept |
+| Markets analytics | Multi-year / monthly / histogram | **DONE** | `market-price-analytics.md` |
+
 ## Next (systemic order)
 
-1. **Host hygiene:** free C: toward ≥5–15% when practical (readiness still DEGRADED on disk)  
-2. **Grow market series:** keep scheduled harvest + optional historical import until channels hit **MEETS_TARGET** (≥365d)  
-3. **Approve sample packs** (human) then **Export handoff** from Knowledge for CALC/FAST/SOIL  
-4. **Use the spine:** land Mahaseel EN PDFs (preferred) or AR via EN map  
-5. **FKP:** frozen-thin only (MCP later when a named consumer exists)  
-6. **Do not** open YouTube/X until markets + soil packs are used end-to-end
+1. **Owner accept 4R-A frame** → implement 4R-A.1 (materialized index + Research tab)  
+2. **Operate:** harvest + historical fill + approve packs + handoff exports  
+3. **Host hygiene:** free C: toward ≥5–15% when practical  
+4. **4R-B** research collections (after 4R-A usable)  
+5. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
 
 ## Exit criteria for Sprint 1
 
