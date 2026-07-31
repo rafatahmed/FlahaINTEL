@@ -4,7 +4,7 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Extract Template Tests (4S-B)
- * Introduction: Threshold, comparison-note, and human review transition rules.
+ * Introduction: FlahaSOIL key alignment, test levels, comparison notes, human review.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
@@ -18,7 +18,7 @@ import {
 } from "./extractTemplate.js";
 
 describe("extract template 4S-B", () => {
-  it("accepts a valid THRESHOLD", () => {
+  it("normalizes EC alias to ecDsM and defaults soilTestLevels from PRELIMINARY+", () => {
     const r = validateExtractItem({
       title: "EC upper",
       extractKind: "THRESHOLD",
@@ -30,7 +30,9 @@ describe("extract template 4S-B", () => {
         doesNotAutoUpdateFlahaSOIL: true,
       },
     });
-    expect(r.extractKind).toBe("THRESHOLD");
+    expect(r.structured.parameter).toBe("ecDsM");
+    expect(r.structured.appliesFromLevel).toBe("PRELIMINARY");
+    expect(r.structured.soilTestLevels).toEqual(["PRELIMINARY", "MODERATE", "ADVANCED"]);
   });
 
   it("rejects THRESHOLD without product-safety flag", () => {
@@ -38,46 +40,67 @@ describe("extract template 4S-B", () => {
       validateExtractItem({
         title: "EC",
         extractKind: "THRESHOLD",
-        structured: { parameter: "EC", unit: "dS/m", operator: "<=", value: 1 },
+        structured: { parameter: "ecDsM", unit: "dS/m", operator: "<=", value: 1 },
       }),
     ).toThrow(ExtractTemplateError);
   });
 
-  it("accepts COMPARISON_NOTE for FlahaSOIL with auto-apply blocked", () => {
-    const r = validateExtractItem({
-      title: "EC deviation",
-      extractKind: "COMPARISON_NOTE",
-      structured: {
-        product: "FlahaSOIL",
-        parameter: "EC",
-        unit: "dS/m",
-        literatureValue: 2.5,
-        deviationSummary: "May differ from product band.",
-        recommendedHumanAction: "review-in-PA",
-        autoApplyBlocked: true,
-        doesNotAutoUpdateFlahaSOIL: true,
-      },
-    });
-    expect(r.extractKind).toBe("COMPARISON_NOTE");
-  });
-
-  it("rejects comparison notes that allow auto-apply", () => {
+  it("rejects SAR comparison scoped only to PRELIMINARY", () => {
     expect(() =>
       validateExtractItem({
-        title: "bad",
+        title: "SAR",
         extractKind: "COMPARISON_NOTE",
         structured: {
           product: "FlahaSOIL",
-          parameter: "EC",
-          unit: "dS/m",
-          literatureValue: 2.5,
+          parameter: "sar",
+          unit: "ratio",
+          literatureValue: 6,
           deviationSummary: "x",
           recommendedHumanAction: "review-in-PA",
-          autoApplyBlocked: false,
+          autoApplyBlocked: true,
           doesNotAutoUpdateFlahaSOIL: true,
+          appliesFromLevel: "PRELIMINARY",
+          soilTestLevels: ["PRELIMINARY"],
         },
       }),
-    ).toThrow(/autoApplyBlocked|AUTO_APPLY/i);
+    ).toThrow(/APPLIES_FROM_LEVEL_TOO_LOW|expected from ADVANCED/);
+  });
+
+  it("accepts SAR comparison at ADVANCED", () => {
+    const r = validateExtractItem({
+      title: "SAR",
+      extractKind: "COMPARISON_NOTE",
+      structured: {
+        product: "FlahaSOIL",
+        parameter: "SAR",
+        unit: "ratio",
+        literatureValue: 6,
+        deviationSummary: "Illustrative SAR caution.",
+        recommendedHumanAction: "schedule-product-ticket",
+        autoApplyBlocked: true,
+        doesNotAutoUpdateFlahaSOIL: true,
+        soilTestLevels: ["ADVANCED"],
+        appliesFromLevel: "ADVANCED",
+      },
+    });
+    expect(r.structured.parameter).toBe("sar");
+    expect(r.structured.soilTestLevels).toEqual(["ADVANCED"]);
+  });
+
+  it("maps irrigation_water_EC to irrigationWaterEcDsM", () => {
+    const r = validateExtractItem({
+      title: "Water EC",
+      extractKind: "THRESHOLD",
+      structured: {
+        parameter: "irrigation_water_EC",
+        unit: "dS/m",
+        operator: "<=",
+        value: 1.5,
+        doesNotAutoUpdateFlahaSOIL: true,
+      },
+    });
+    expect(r.structured.parameter).toBe("irrigationWaterEcDsM");
+    expect(r.structured.parameterDomain).toBe("irrigation_water");
   });
 
   it("allows human DRAFT → READY_FOR_REVIEW → APPROVED", () => {

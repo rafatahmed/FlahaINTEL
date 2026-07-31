@@ -4,12 +4,21 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Knowledge Pack Extract Template (4S-B)
- * Introduction: Validates structured extract envelopes for soil packs and FlahaSOIL comparison notes.
+ * Introduction: Validates structured extracts aligned to FlahaSOIL keys and test levels.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
  * Last modified: 2026-07-31
  */
+import {
+  defaultSoilTestLevels,
+  getParameterSpec,
+  normalizeFlahaSoilParameter,
+  normalizeSoilTestLevel,
+  rankLevel,
+  SOIL_TEST_LEVELS,
+  type SoilTestLevel,
+} from "./flahaSoilParameters.js";
 
 export const EXTRACT_KINDS = [
   "THRESHOLD",
@@ -89,6 +98,111 @@ function requireTrue(obj: Record<string, unknown>, key: string, code: string): v
   }
 }
 
+function parseSoilTestLevels(raw: unknown): SoilTestLevel[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new ExtractTemplateError(
+      "SOIL_TEST_LEVELS_REQUIRED",
+      `structured.soilTestLevels is required (non-empty array of ${SOIL_TEST_LEVELS.join(", ")}).`,
+    );
+  }
+  const out: SoilTestLevel[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string") {
+      throw new ExtractTemplateError("SOIL_TEST_LEVELS_INVALID", "soilTestLevels entries must be strings.");
+    }
+    const level = normalizeSoilTestLevel(item);
+    if (!level) {
+      throw new ExtractTemplateError(
+        "SOIL_TEST_LEVELS_INVALID",
+        `Unknown soil test level "${item}". Use ${SOIL_TEST_LEVELS.join(", ")}.`,
+      );
+    }
+    if (!out.includes(level)) out.push(level);
+  }
+  out.sort((a, b) => rankLevel(a) - rankLevel(b));
+  return out;
+}
+
+function parseAppliesFromLevel(raw: unknown, soilTestLevels: SoilTestLevel[]): SoilTestLevel {
+  if (raw == null || raw === "") {
+    // Infer lowest level in soilTestLevels
+    return soilTestLevels[0]!;
+  }
+  if (typeof raw !== "string") {
+    throw new ExtractTemplateError("APPLIES_FROM_LEVEL_INVALID", "appliesFromLevel must be a string.");
+  }
+  const level = normalizeSoilTestLevel(raw);
+  if (!level) {
+    throw new ExtractTemplateError(
+      "APPLIES_FROM_LEVEL_INVALID",
+      `Unknown appliesFromLevel "${raw}". Use ${SOIL_TEST_LEVELS.join(", ")}.`,
+    );
+  }
+  // Every listed soilTestLevels entry must be >= appliesFromLevel
+  for (const l of soilTestLevels) {
+    if (rankLevel(l) < rankLevel(level)) {
+      throw new ExtractTemplateError(
+        "SOIL_TEST_LEVELS_INCONSISTENT",
+        `soilTestLevels includes ${l} which is below appliesFromLevel ${level}.`,
+      );
+    }
+  }
+  return level;
+}
+
+/**
+ * Normalize parameter aliases (EC → ecDsM) and attach level metadata.
+ * Mutates structured in place for canonical storage.
+ */
+function alignFlahaSoilParameter(
+  structured: Record<string, unknown>,
+  opts: { requireKnownParameter: boolean },
+): void {
+  const rawParam = requireString(structured, "parameter", "PARAMETER_REQUIRED");
+  const canonical = normalizeFlahaSoilParameter(rawParam);
+  if (!canonical) {
+    if (opts.requireKnownParameter) {
+      throw new ExtractTemplateError(
+        "PARAMETER_UNKNOWN",
+        `parameter "${rawParam}" is not a known FlahaSOIL key/alias. See docs/knowledge/flahasoil-recon-webapp-and-report.md.`,
+      );
+    }
+    return;
+  }
+  structured.parameter = canonical;
+  const spec = getParameterSpec(canonical);
+  if (spec?.unit && structured.unit == null) {
+    structured.unit = spec.unit;
+  }
+  if (spec?.domain) {
+    structured.parameterDomain = spec.domain;
+  }
+
+  // Level applicability
+  let soilTestLevels: SoilTestLevel[];
+  if (structured.soilTestLevels == null) {
+    // Default from parameter matrix when omitted
+    const from = spec?.appliesFromLevel ?? "PRELIMINARY";
+    soilTestLevels = defaultSoilTestLevels(from);
+    structured.soilTestLevels = soilTestLevels;
+    structured.appliesFromLevel = structured.appliesFromLevel ?? from;
+  } else {
+    soilTestLevels = parseSoilTestLevels(structured.soilTestLevels);
+    structured.soilTestLevels = soilTestLevels;
+  }
+
+  const appliesFrom = parseAppliesFromLevel(structured.appliesFromLevel, soilTestLevels);
+  structured.appliesFromLevel = appliesFrom;
+
+  // Soft check: if parameter matrix says ADVANCED-only, warn by rejecting under-scope
+  if (spec && rankLevel(appliesFrom) < rankLevel(spec.appliesFromLevel)) {
+    throw new ExtractTemplateError(
+      "APPLIES_FROM_LEVEL_TOO_LOW",
+      `parameter ${canonical} is expected from ${spec.appliesFromLevel}+ in FlahaSOIL; appliesFromLevel cannot be ${appliesFrom}.`,
+    );
+  }
+}
+
 export function normalizeExtractKind(raw: string): ExtractKind {
   const kind = raw.trim().toUpperCase().replace(/[\s-]+/g, "_");
   if (!(EXTRACT_KINDS as readonly string[]).includes(kind)) {
@@ -123,7 +237,7 @@ export function validateExtractItem(input: {
 
   switch (extractKind) {
     case "THRESHOLD": {
-      requireString(structured, "parameter", "THRESHOLD_PARAMETER_REQUIRED");
+      alignFlahaSoilParameter(structured, { requireKnownParameter: true });
       requireString(structured, "unit", "THRESHOLD_UNIT_REQUIRED");
       const op = requireString(structured, "operator", "THRESHOLD_OPERATOR_REQUIRED");
       if (!THRESHOLD_OPS.has(op)) {
@@ -145,6 +259,9 @@ export function validateExtractItem(input: {
     }
     case "METHOD": {
       requireString(structured, "method", "METHOD_ID_REQUIRED");
+      if (structured.parameter != null && String(structured.parameter).trim()) {
+        alignFlahaSoilParameter(structured, { requireKnownParameter: true });
+      }
       break;
     }
     case "COMPARISON_NOTE": {
@@ -155,7 +272,7 @@ export function validateExtractItem(input: {
           "4S-B comparison notes must set product to FlahaSOIL (CALC/FAST later).",
         );
       }
-      requireString(structured, "parameter", "COMPARISON_PARAMETER_REQUIRED");
+      alignFlahaSoilParameter(structured, { requireKnownParameter: true });
       requireString(structured, "unit", "COMPARISON_UNIT_REQUIRED");
       requireString(structured, "deviationSummary", "COMPARISON_DEVIATION_REQUIRED");
       const action = requireString(structured, "recommendedHumanAction", "COMPARISON_ACTION_REQUIRED");
@@ -189,7 +306,6 @@ export function validateExtractItem(input: {
       break;
   }
 
-  // Soft defaults for optional arrays
   if (structured.regionTags != null && !Array.isArray(structured.regionTags)) {
     throw new ExtractTemplateError("INVALID_STRUCTURED", "regionTags must be an array when set.");
   }

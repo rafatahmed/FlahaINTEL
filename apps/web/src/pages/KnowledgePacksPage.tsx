@@ -289,9 +289,24 @@ export function KnowledgePacksPage() {
                         {JSON.stringify(item.structured, null, 2)}
                       </Box>
                     )}
+                    {item.structured && (
+                      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 1 }}>
+                        {typeof item.structured.parameter === "string" && (
+                          <Chip size="small" variant="outlined" label={`param:${item.structured.parameter}`} />
+                        )}
+                        {typeof item.structured.appliesFromLevel === "string" && (
+                          <Chip size="small" variant="outlined" label={`from:${item.structured.appliesFromLevel}`} />
+                        )}
+                        {Array.isArray(item.structured.soilTestLevels) &&
+                          (item.structured.soilTestLevels as string[]).map((lv) => (
+                            <Chip key={lv} size="small" color="info" variant="outlined" label={lv} />
+                          ))}
+                      </Box>
+                    )}
                     {isComparison && (
                       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                         autoApplyBlocked / doesNotAutoUpdateFlahaSOIL — product code never changes from this note.
+                        Scope notes to FlahaSOIL test levels (PRELIMINARY / MODERATE / ADVANCED).
                       </Typography>
                     )}
                   </CardContent>
