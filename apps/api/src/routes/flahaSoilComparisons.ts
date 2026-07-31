@@ -3,8 +3,8 @@
  * Precision Agriculture Division
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
- * Title: FlahaSOIL Comparison API Routes (4S-D)
- * Introduction: Human-only comparison / deviation cases against FlahaSOIL observations.
+ * Title: FlahaSOIL Comparison API Routes (4S-D / D2)
+ * Introduction: Human comparison cases + report upload / optional SOIL API import.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
@@ -12,16 +12,20 @@
  */
 import type { FlahaSoilComparisonStatus, PrismaClient } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
+import multipart from "@fastify/multipart";
 import { AppError } from "../errors.js";
 import {
   ComparisonWorkflowError,
   ComparisonWorkflowService,
 } from "../knowledgePack/comparisonWorkflow.js";
+import { fetchFlahaSoilReportJson, getFlahaSoilApiConfig } from "../knowledgePack/flahaSoilApiClient.js";
+import { ReportImportError, ReportImportService } from "../knowledgePack/reportImportService.js";
 import { assertPermission, resolveProductActor } from "../product/auth.js";
 import { isProductError } from "../product/errors.js";
+import { getProductionConfig } from "../production/config.js";
 
 function mapError(error: unknown): never {
-  if (error instanceof ComparisonWorkflowError) {
+  if (error instanceof ComparisonWorkflowError || error instanceof ReportImportError) {
     const status =
       error.code.includes("NOT_FOUND")
         ? 404
@@ -36,7 +40,12 @@ function mapError(error: unknown): never {
 
 export function flahaSoilComparisonRoutes(prisma: PrismaClient): FastifyPluginAsync {
   const workflow = new ComparisonWorkflowService(prisma);
+  const importer = new ReportImportService(prisma);
   return async (app) => {
+    const prod = getProductionConfig();
+    await app.register(multipart, {
+      limits: { files: 1, fields: 10, fileSize: Math.min(15_000_000, prod.maxUploadBytes), parts: 15 },
+    });
     app.get("/flahasoil-comparisons", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);
@@ -153,6 +162,100 @@ export function flahaSoilComparisonRoutes(prisma: PrismaClient): FastifyPluginAs
             autoApplyBlocked: true,
             doesNotAutoUpdateFlahaSOIL: true,
           },
+        };
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /**
+     * Upload FlahaSOIL PDF or JSON report → parse → DRAFT comparison cases.
+     * Multipart field name: file
+     */
+    app.post("/flahasoil-comparisons/import-report", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "submit");
+        const file = await request.file();
+        if (!file) throw new AppError(400, "FILE_REQUIRED", "multipart file field is required.");
+        const chunks: Buffer[] = [];
+        for await (const chunk of file.file) {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        const buffer = Buffer.concat(chunks);
+        const name = file.filename || "report";
+        const isJson =
+          name.toLowerCase().endsWith(".json") ||
+          (file.mimetype || "").includes("json");
+        if (isJson) {
+          let body: unknown;
+          try {
+            body = JSON.parse(buffer.toString("utf8"));
+          } catch {
+            throw new AppError(400, "INVALID_JSON", "Could not parse JSON report body.");
+          }
+          return await importer.importJson({
+            tenantId: actor.tenantId,
+            userId: actor.userId,
+            body,
+            sourceLabel: name,
+          });
+        }
+        return await importer.importPdfBuffer({
+          tenantId: actor.tenantId,
+          userId: actor.userId,
+          buffer,
+          fileName: name,
+        });
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Optional direct read from FlahaSOIL API (when configured). Read-only. */
+    app.post("/flahasoil-comparisons/import-from-soil-api", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "submit");
+        const body = request.body as { soilTestId?: string };
+        if (!body.soilTestId?.trim()) {
+          throw new AppError(400, "SOIL_TEST_ID_REQUIRED", "soilTestId is required.");
+        }
+        if (!getFlahaSoilApiConfig()) {
+          throw new AppError(
+            503,
+            "SOIL_API_NOT_CONFIGURED",
+            "Set FLAHASOIL_API_BASE_URL (and FLAHASOIL_API_TOKEN) for direct SOIL import, or upload a PDF/JSON report.",
+          );
+        }
+        const json = await fetchFlahaSoilReportJson(body.soilTestId.trim());
+        return await importer.importJson({
+          tenantId: actor.tenantId,
+          userId: actor.userId,
+          body: json,
+          sourceLabel: `soil-api:${body.soilTestId.trim()}`,
+        });
+      } catch (e) {
+        if (e instanceof AppError) throw e;
+        mapError(e instanceof Error ? new ReportImportError("SOIL_API_FAILED", e.message) : e);
+      }
+    });
+
+    app.get("/flahasoil-comparisons/bridge-status", async (request) => {
+      try {
+        await resolveProductActor(prisma, request);
+        const cfg = getFlahaSoilApiConfig();
+        return {
+          upload: { enabled: true, accept: ["application/pdf", "application/json"] },
+          soilApi: {
+            configured: Boolean(cfg),
+            baseUrl: cfg?.baseUrl || null,
+            note: cfg
+              ? "Read-only GET /api/v2/soil-tests/:id/report"
+              : "Not configured — use PDF/JSON upload",
+          },
+          writeToFlahaSoil: false,
+          doesNotAutoUpdateFlahaSOIL: true,
         };
       } catch (e) {
         mapError(e);

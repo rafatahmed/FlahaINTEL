@@ -1,0 +1,166 @@
+FLAHASOIL · SOIL INTELLIGENCE PLATFORM
+Phase10S Browser Smoke — ADVANCED report
+From soil test data to explainable agronomic intelligence — scientific, traceable, and
+versioned for professional decisions.
+SAMPLE & PROJECT PREPARED FOR / BY
+Phase10S Smoke Client not specified
+Sample: cmq3m7a9o000lfx3q159uxbmr Demo Owner · AGRONOMIST
+Phase10S Browser Smoke Flaha Agri Tech · Precision Agriculture (Flaha PA)
+REPORT CONTROL
+REPORT NUMBER REPORT DATE
+FLH-2026-001 24 July 2026
+TEST LEVEL SAMPLE ID
+ADVANCED cmq3m7a9o000lfx3q159uxbmr
+COORDINATES LOCATION
+— Phase10S Browser Smoke
+SCIENTIFIC TRACEABLE ACTIONABLE PROFESSIONAL
+Peer methods Versioned snapshot Clear findings Client-ready
+FlahaSOIL · Soil Intelligence Report
+Report
+Phase10S Smoke · cmq3m7a9o000lfx3q159uxbmr · FLH-2026-001
+Test level: ADVANCED Report: FLH-2026-001 Sample: cmq3m7a9o000lfx3q159uxbmr Phase10S Browser Smoke
+Executive summary
+Fair overall soil condition
+• USDA texture class: Sandy Loam.
+• Salinity severity: None.
+• Sodicity severity: None.
+• Organic matter: Adequate.
+• Water holding capacity: Low.
+Results
+Values below are taken from the frozen report snapshot. Status bars show interpretation severity where a classification is available (low ’ high
+management pressure for risk rows; agronomic status for interpretation rows).
+Status bar: low · r.low · good · r.high · high
+GROUP PARAMETER UNIT RESULT TARGET / CLASS STATUS NOTE
+PHYSICAL USDA texture class — Sandy Loam Classified from sand / silt / clay
+Sand / silt / clay % 60 / 25 / 15 Sum H 100%
+Organic matter % 2.50 Context-dependent
+Field capacity (FC) % v/v 18.3 Model estimate (Saxton–Rawls)
+Wilting point (WP) % v/v 8.9 Model estimate
+Plant-available water (PAW) % v/v 9.4 FC (cid:18) WP
+Bulk density g/cm³ 1.59 Estimated or default
+Saturated conductivity (Ksat) mm/h 82.8 Texture-dependent
+Drainage class — Good Interpreted
+Water holding class — Low Interpreted
+CHEMICAL pH (H‚O) — 7.20 Typically 6.5–7.5 for many crops
+Electrical conductivity (ECe) dS/m 1.00 Lower is generally safer for most
+crops
+CEC cmol(+)/kg 18.0 Lab or derived
+Exchangeable Ca cmol(+)/kg 11.00 Exchange complex
+Exchangeable Mg cmol(+)/kg 3.00 Exchange complex
+Exchangeable K cmol(+)/kg 0.60 Exchange complex
+Exchangeable Na cmol(+)/kg 0.40 Sodicity indicator
+Nitrogen (N) mg/kg 25.0 Method-dependent
+Phosphorus (P) mg/kg 18.0 Method-dependent
+No salinity action
+RISK Salinity severity dS/m 1.00 · None Low required at this
+stage.
+SAR 0.15 · ESP No sodicity ac-
+Sodicity severity — Low tion required at
+2.2% · None
+this stage.
+INTERPRETA-
+pH — Neutral Agronomic classification
+TION
+Salinity — Low Agronomic classification
+CEC — Moderate Agronomic classification
+Base saturation — High Agronomic classification
+Cation balance — Balanced Agronomic classification
+FlahaSOIL · Flaha Agri Tech · Precision Agriculture · FLH-2026-001 Page 2 of 6
+Scientific estimates and classifications are advisory. Confirm management decisions with local agronomic
+standards and laboratory methods.
+FlahaSOIL · Soil Intelligence Report
+Report
+Phase10S Smoke · cmq3m7a9o000lfx3q159uxbmr · FLH-2026-001
+GROUP PARAMETER UNIT RESULT TARGET / CLASS STATUS NOTE
+Sodium risk — Low Agronomic classification
+Water holding — Low Agronomic classification
+Drainage — Good Agronomic classification
+Organic matter — Adequate Agronomic classification
+Compaction risk — Low Agronomic classification
+SALINITY & SODICITY STATUS
+ECe (Salinity) 1.00 dS/m (None)
+SAR / ESP (Sodicity) 0.15 / 2.22% (None)
+FlahaSOIL · Flaha Agri Tech · Precision Agriculture · FLH-2026-001 Page 3 of 6
+Scientific estimates and classifications are advisory. Confirm management decisions with local agronomic
+standards and laboratory methods.
+FlahaSOIL · Soil Intelligence Report
+Report
+Phase10S Smoke · cmq3m7a9o000lfx3q159uxbmr · FLH-2026-001
+Agronomic recommendations
+Recommendations are advisory and based on the evidence submitted for this test. They do not replace crop-specific standards, local regulation, or
+professional judgment. Split large amendments across seasons where appropriate.
+Medium term
+Re-test soil annually
+Establish an annual soil-testing cadence to track salinity, nutrient drawdown, and structural changes over time.
+Suitability summary
+Turfgrass: Suitable
+• Texture class: sandy loam
+Landscape: Suitable
+• Texture class: sandy loam
+Agriculture: Suitable
+• Texture class: sandy loam
+Irrigation: Suitable
+• Texture class: sandy loam
+EVIDENCE COMPLETENESS
+ADVANCED test level Partial
+Required-field coverage 50%
+ADVANCED test level — Partial evidence: 13 of 26 expected field(s) submitted.
+FlahaSOIL · Flaha Agri Tech · Precision Agriculture · FLH-2026-001 Page 4 of 6
+Scientific estimates and classifications are advisory. Confirm management decisions with local agronomic
+standards and laboratory methods.
+FlahaSOIL · Soil Intelligence Report
+Report
+Phase10S Smoke · cmq3m7a9o000lfx3q159uxbmr · FLH-2026-001
+Scientific figures
+Figures below are either embedded chart snapshots from the interactive report (print-safe white background) or compact data cards when a snapshot
+was not available.
+FIGURE: TEXTURE TRIANGLE FIGURE: WATER RETENTION
+USDA texture class is derived from sand, silt and clay percentages. Parti- Plant-available water is the moisture between field capacity and wilting point.
+cle-size distribution governs water holding, drainage and workability. Curves based on pedotransfer functions are planning estimates, not lab mois-
+ture-release measurements.
+FIGURE: BASE SATURATION FIGURE: CATION / STRUCTURE BALANCE
+Exchange complex composition reflects nutrient buffering and cation balance Structure diagnostics use relative cation shares. Actual field structure also
+on the CEC. depends on moisture, traffic and organic matter.
+Cation balance note
+Bear/Albrecht (BCSR) cation balance is a diagnostic visualisation only. Per Kopittke & Menzies (2007, SSSAJ 71:259–265), the basic cation
+saturation ratio concept lacks consistent peer-reviewed support for predicting crop yield once sufficiency-level supplies of Ca, Mg, and K are met.
+Treat the triangle as a balance indicator, not a yield model; interpret alongside absolute sufficiency, pH, OM, texture, and crop demand.
+FlahaSOIL · Flaha Agri Tech · Precision Agriculture · FLH-2026-001 Page 5 of 6
+Scientific estimates and classifications are advisory. Confirm management decisions with local agronomic
+standards and laboratory methods.
+FlahaSOIL · Soil Intelligence Report
+Report
+Phase10S Smoke · cmq3m7a9o000lfx3q159uxbmr · FLH-2026-001
+Methods & provenance
+The table below separates measured / entered values from calculated and model-estimated quantities. This annex supports auditability of the versioned
+report snapshot.
+PARAMETER RESULT UNIT METHOD PROVENANCE
+Sand / silt / clay 60 / 25 / 15 % Lab / entered input Reported
+Organic matter 2.50 % Lab / entered input Reported
+USDA texture class Sandy Loam — USDA texture triangle Classified
+Field capacity 18.3 % v/v Saxton & Rawls (2006) pedotransfer Model estimate
+Wilting point 8.9 % v/v Saxton & Rawls (2006) pedotransfer Model estimate
+Plant-available water 9.4 % v/v FC (cid:18) WP Calculated
+Bulk density 1.59 g/cm³ Engine estimate / default Estimated
+pH 7.20 — Lab / entered input Reported
+ECe 1.00 dS/m Lab / entered input Reported
+CEC 18.0 cmol(+)/kg Laboratory measurement Reported
+Calculation summary
+Calculation engine version: v2.0.0. Test level: ADVANCED. Chemistry mode: LAB.
+Evidence: ADVANCED · Partial · 50% —ADVANCED test level — Partial evidence: 13 of 26 expected field(s) submitted.
+Responsibility & scope
+Report FLH-2026-001 · Prepared under Demo Owner (AGRONOMIST).
+FlahaSOIL provides scientific soil analysis and agronomic interpretation from the evidence submitted. Outputs may include model estimates (e.g. Saxton &
+Rawls water retention). Recommendations are advisory and do not replace local regulation, crop-specific standards, or professional judgment. Flaha Agri
+Tech / Flaha PA.
+Evidence & methodology notes
+• Water retention values (field capacity, wilting point, conductivity) may be pedotransfer estimates (Saxton & Rawls), not laboratory moisture-release
+curves.
+• Internal method checks use reference samples; this is not third-party laboratory certification of every sample.
+• Electrical conductivity methods differ (e.g. ECe vs EC 1:5) and are not directly interchangeable without conversion context.
+• Nutrient and cation interpretation is method-, crop-, and region-dependent.
+• Missing laboratory inputs reduce analytical confidence; estimated values must not be treated as measurements.
+• Cation-ratio (BCSR) visualisations are diagnostic aids only, not standalone fertiliser prescriptions.
+FlahaSOIL · Flaha Agri Tech · Precision Agriculture · FLH-2026-001 Page 6 of 6
+Scientific estimates and classifications are advisory. Confirm management decisions with local agronomic
+standards and laboratory methods.

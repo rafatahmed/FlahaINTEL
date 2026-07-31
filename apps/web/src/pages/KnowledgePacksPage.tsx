@@ -86,6 +86,8 @@ export function KnowledgePacksPage() {
   } | null>(null);
   const [cases, setCases] = useState<Array<Record<string, unknown>>>([]);
   const [caseBusy, setCaseBusy] = useState(false);
+  const [bridge, setBridge] = useState<{ soilApi: { configured: boolean; note: string } } | null>(null);
+  const [soilTestId, setSoilTestId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,6 +140,10 @@ export function KnowledgePacksPage() {
     void loadCases();
   }, [loadCases]);
 
+  useEffect(() => {
+    void api.flahaSoilBridgeStatus().then(setBridge).catch(() => setBridge(null));
+  }, []);
+
   const selected = packs.find((p) => p.id === selectedId);
   const comparisonCount = (selected?.items || []).filter((i) => i.extractKind === "COMPARISON_NOTE").length;
 
@@ -159,6 +165,42 @@ export function KnowledgePacksPage() {
       setError(e instanceof Error ? e.message : "Review failed.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function importReport(file: File) {
+    setCaseBusy(true);
+    setInfo("");
+    try {
+      const res = await api.importFlahaSoilReport(file);
+      setInfo(
+        `Imported ${file.name}: ${res.casesCreated} comparison case(s) created (DRAFT). Report ${String((res.parsed as { reportNumber?: string })?.reportNumber || "—")} · level ${String((res.parsed as { testLevel?: string })?.testLevel || "—")}. Human review next — FlahaSOIL not updated.`,
+      );
+      await loadCases();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Report import failed.");
+    } finally {
+      setCaseBusy(false);
+    }
+  }
+
+  async function importFromSoilApi() {
+    if (!soilTestId.trim()) return;
+    setCaseBusy(true);
+    setInfo("");
+    try {
+      const res = (await api.importFlahaSoilFromApi(soilTestId.trim())) as {
+        casesCreated?: number;
+        parsed?: { reportNumber?: string };
+      };
+      setInfo(
+        `SOIL API import: ${res.casesCreated ?? 0} case(s). Report ${res.parsed?.reportNumber || "—"}. Read-only from SOIL.`,
+      );
+      await loadCases();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "SOIL API import failed.");
+    } finally {
+      setCaseBusy(false);
     }
   }
 
@@ -324,6 +366,51 @@ export function KnowledgePacksPage() {
                 )}
               </tbody>
             </table>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Import FlahaSOIL report (capture path)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Upload a FlahaSOIL PDF/JSON test report. INTEL parses parameters, matches the threshold bank, and opens{" "}
+            <strong>DRAFT</strong> comparison cases. Direct SOIL API:{" "}
+            {bridge?.soilApi.configured ? bridge.soilApi.note : "not configured — set FLAHASOIL_API_BASE_URL later"}.
+            Write to FlahaSOIL engines: <strong>never</strong>.
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1 }}>
+            <Button variant="contained" component="label" disabled={caseBusy} size="small">
+              Upload PDF / JSON
+              <input
+                type="file"
+                hidden
+                accept=".pdf,.json,application/pdf,application/json"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) void importReport(f);
+                }}
+              />
+            </Button>
+            <TextField
+              size="small"
+              label="FlahaSOIL soilTestId"
+              value={soilTestId}
+              onChange={(e) => setSoilTestId(e.target.value)}
+              sx={{ minWidth: 220 }}
+              disabled={!bridge?.soilApi.configured}
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={caseBusy || !bridge?.soilApi.configured || !soilTestId.trim()}
+              onClick={() => void importFromSoilApi()}
+            >
+              Import from SOIL API
+            </Button>
           </Box>
         </CardContent>
       </Card>

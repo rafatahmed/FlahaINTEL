@@ -341,4 +341,62 @@ export const api = {
       `/api/flahasoil-comparisons/${id}/transition`,
       { method: "POST", body: JSON.stringify(body) },
     ),
+  flahaSoilBridgeStatus: () =>
+    request<{
+      upload: { enabled: boolean; accept: string[] };
+      soilApi: { configured: boolean; baseUrl: string | null; note: string };
+      writeToFlahaSoil: boolean;
+    }>("/api/flahasoil-comparisons/bridge-status"),
+  importFlahaSoilReport: async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const headers = new Headers();
+    const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3003";
+    let userId = "";
+    let tenantId = "";
+    let token = "";
+    try {
+      const raw = localStorage.getItem("flaha.product.auth");
+      if (raw) {
+        const a = JSON.parse(raw) as { userId?: string; tenantId?: string; token?: string };
+        userId = a.userId || "";
+        tenantId = a.tenantId || "";
+        token = a.token || "";
+      }
+    } catch {
+      /* ignore */
+    }
+    if (userId) headers.set("X-Flaha-User-Id", userId);
+    if (tenantId) headers.set("X-Flaha-Tenant-Id", tenantId);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    headers.set("X-Flaha-Correlation-Id", `web-import-${Date.now()}`);
+    const response = await fetch(`${API_URL}/api/flahasoil-comparisons/import-report`, {
+      method: "POST",
+      headers,
+      body: form,
+      credentials: "include",
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: { code?: string; message?: string };
+    };
+    if (!response.ok) {
+      throw new ApiError(
+        body.error?.code ?? "REQUEST_FAILED",
+        body.error?.message ?? "Report import failed.",
+        response.status,
+      );
+    }
+    return body as {
+      casesCreated: number;
+      parsed: Record<string, unknown>;
+      cases: Array<Record<string, unknown>>;
+      skipped: Array<Record<string, unknown>>;
+      governance: Record<string, unknown>;
+    };
+  },
+  importFlahaSoilFromApi: (soilTestId: string) =>
+    request<Record<string, unknown>>("/api/flahasoil-comparisons/import-from-soil-api", {
+      method: "POST",
+      body: JSON.stringify({ soilTestId }),
+    }),
 };
