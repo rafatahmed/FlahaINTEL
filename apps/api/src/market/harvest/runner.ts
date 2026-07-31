@@ -108,9 +108,11 @@ async function harvestMahaseel(
   if (!pdfUrl) throw new MarketValidationError("MAHASEEL_PDF_NOT_FOUND", "No PDF link on Mahaseel prices page.");
   const buf = await fetchBuffer(pdfUrl);
   let text = "";
+  let creationDate: string | null = null;
   try {
-    const { extractPdfText } = await import("./extractPdfText.js");
+    const { extractPdfCreationDateIso, extractPdfText } = await import("./extractPdfText.js");
     text = await extractPdfText(buf);
+    creationDate = extractPdfCreationDateIso(buf);
   } catch (e) {
     throw new MarketValidationError(
       "MAHASEEL_PDF_PARSE_FAILED",
@@ -120,9 +122,12 @@ async function harvestMahaseel(
   if (!text.trim()) {
     throw new MarketValidationError("MAHASEEL_PDF_EMPTY", `PDF at ${pdfUrl} produced no extractable text.`);
   }
-  const { rows } = parseMahaseelPriceLines(text, pdfUrl);
-  const observedOn = rows[0]!.observedOn;
-  const sourceBatchId = `mahaseel-${observedOn}-${Date.now()}`;
+  const parsed = parseMahaseelPriceLines(text, pdfUrl, {
+    periodFallback: creationDate,
+    expandDays: true,
+  });
+  const { rows, periodFrom, periodTo, days, periodSource } = parsed;
+  const sourceBatchId = `mahaseel-${periodFrom}_${periodTo}-${Date.now()}`;
   const result = await markets.recordPriceBatch({
     tenantId: ctx.tenantId,
     createdById: ctx.userId,
@@ -134,7 +139,11 @@ async function harvestMahaseel(
   return {
     channelCode: channel.code,
     count: result.count,
-    observedOn,
+    observedOn: periodTo,
+    periodFrom,
+    periodTo,
+    days,
+    periodSource,
     sourceBatchId,
     cadence: result.cadence,
     reviewPolicy: result.reviewPolicy,

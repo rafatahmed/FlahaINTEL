@@ -68,6 +68,17 @@ describe("market validation (4M-0)", () => {
     expect(() => requireAnyPrice({ priceModeNative: 25 })).not.toThrow();
   });
 
+  it("parses unpadded day-first dates (Mahaseel 8/6/2026)", async () => {
+    const { parseObservedOn, toIsoDate, eachIsoDayInclusive } = await import("./validation.js");
+    expect(toIsoDate(parseObservedOn("8/6/2026"))).toBe("2026-06-08");
+    expect(toIsoDate(parseObservedOn("10/6/2026"))).toBe("2026-06-10");
+    expect(eachIsoDayInclusive("2026-06-08", "2026-06-10")).toEqual([
+      "2026-06-08",
+      "2026-06-09",
+      "2026-06-10",
+    ]);
+  });
+
   it("converts qrsh to JOD (1 qrsh = 0.01 JOD)", () => {
     expect(qrshToJod(50)).toBe(0.5);
     expect(qrshToJod(25)).toBe(0.25);

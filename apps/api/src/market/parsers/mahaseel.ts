@@ -5,8 +5,8 @@
  *
  * Title: Mahaseel Period PDF Text Parser
  * Introduction:
- * Parses Mahaseel multi-line PDF text (EN and AR layouts) into English-first price rows.
- * Arabic bulletins are mapped to stable EN commodity codes so they do not duplicate EN series.
+ * Parses Mahaseel multi-line PDF text (EN and AR) into English-first price rows.
+ * Multi-day "from…to…" bulletins expand to one observation per inclusive day.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
@@ -15,54 +15,98 @@
 import { resolveMahaseelNames } from "../mahaseelCommodityMap.js";
 import type { PriceRowInput } from "../service.js";
 import { MarketValidationError, parseObservedOn, toIsoDate } from "../validation.js";
+import {
+  expandMahaseelRowsAcrossDays,
+  MAHASEEL_MAX_PERIOD_DAYS,
+  periodFallbackFromFilename,
+} from "./mahaseelExpand.js";
 
-export type MahaseelPeriod = { periodFrom: string; periodTo: string; observedOn: string; source: string };
-
-export type MahaseelParseOptions = {
-  /** ISO date (YYYY-MM-DD) used when no from–to header is found (e.g. PDF CreationDate). */
-  periodFallback?: string | null;
+export type MahaseelPeriod = {
+  periodFrom: string;
+  periodTo: string;
+  /** Primary display day (period end); expansion uses all days in range. */
+  observedOn: string;
+  source: string;
+  dayCount: number;
 };
 
-/** English: from 05/01/2023 to 08/01/2023 */
-const EN_PERIOD =
-  /from\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\s+to\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i;
+export type MahaseelParseOptions = {
+  /** ISO date when no from–to in text (PDF CreationDate). */
+  periodFallback?: string | null;
+  /** Original filename for secondary date guess. */
+  filename?: string | null;
+  /** Landed/intake calendar day as last-resort fallback. */
+  landedOn?: string | null;
+  /** Expand multi-day periods into one row set per day (default true). */
+  expandDays?: boolean;
+  maxPeriodDays?: number;
+};
 
-/** Arabic-ish: من 05/01/2023 إلى 08/01/2023 */
+/** English: from 8/6/2026 to 10/6/2026 or from 05/01/2023 to 08/01/2023 */
+const EN_PERIOD =
+  /from\s+(\d{1,2}[\/\-.\s]\d{1,2}[\/\-.\s]\d{2,4})\s+to\s+(\d{1,2}[\/\-.\s]\d{1,2}[\/\-.\s]\d{2,4})/i;
+
 const AR_PERIOD =
-  /(?:من|من\s+تاريخ)\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\s+(?:إلى|الى|إلي|الي)\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
+  /(?:من|من\s+تاريخ)\s+(\d{1,2}[\/\-.\s]\d{1,2}[\/\-.\s]\d{2,4})\s+(?:إلى|الى|إلي|الي)\s+(\d{1,2}[\/\-.\s]\d{1,2}[\/\-.\s]\d{2,4})/;
 
 const LOOSE_TWO_DATES =
-  /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\s*(?:to|–|-|—|إلى|الى)\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i;
+  /(\d{1,2}[\/\-.\s]\d{1,2}[\/\-.\s]\d{2,4})\s*(?:to|–|-|—|إلى|الى)\s*(\d{1,2}[\/\-.\s]\d{1,2}[\/\-.\s]\d{2,4})/i;
+
+function normalizeDateToken(raw: string): string {
+  return raw.trim().replace(/\s+/g, "");
+}
+
+function periodFromTokens(a: string, b: string, source: string): MahaseelPeriod {
+  const periodFrom = toIsoDate(parseObservedOn(normalizeDateToken(a)));
+  const periodTo = toIsoDate(parseObservedOn(normalizeDateToken(b)));
+  if (periodFrom > periodTo) {
+    throw new MarketValidationError(
+      "INVALID_DATE_RANGE",
+      `Mahaseel period from ${periodFrom} is after to ${periodTo}.`,
+    );
+  }
+  // dayCount computed after expand; provisional 1 until expand
+  return { periodFrom, periodTo, observedOn: periodTo, source, dayCount: 1 };
+}
 
 export function parseMahaseelPeriod(text: string, opts?: MahaseelParseOptions): MahaseelPeriod {
   const en = text.match(EN_PERIOD);
-  if (en) {
-    const periodFrom = toIsoDate(parseObservedOn(en[1]!));
-    const periodTo = toIsoDate(parseObservedOn(en[2]!));
-    return { periodFrom, periodTo, observedOn: periodTo, source: "en_from_to" };
-  }
+  if (en) return periodFromTokens(en[1]!, en[2]!, "en_from_to");
+
   const ar = text.match(AR_PERIOD);
-  if (ar) {
-    const periodFrom = toIsoDate(parseObservedOn(ar[1]!));
-    const periodTo = toIsoDate(parseObservedOn(ar[2]!));
-    return { periodFrom, periodTo, observedOn: periodTo, source: "ar_from_to" };
-  }
+  if (ar) return periodFromTokens(ar[1]!, ar[2]!, "ar_from_to");
+
   const loose = text.match(LOOSE_TWO_DATES);
-  if (loose) {
-    const periodFrom = toIsoDate(parseObservedOn(loose[1]!));
-    const periodTo = toIsoDate(parseObservedOn(loose[2]!));
-    return { periodFrom, periodTo, observedOn: periodTo, source: "loose_from_to" };
+  if (loose) return periodFromTokens(loose[1]!, loose[2]!, "loose_from_to");
+
+  // Single-day phrases: "on 8/6/2026" / "dated 08/06/2026"
+  const single = text.match(
+    /(?:on|dated|date|as\s+of)\s+(\d{1,2}[\/\-.\s]\d{1,2}[\/\-.\s]\d{2,4})/i,
+  );
+  if (single) {
+    const day = toIsoDate(parseObservedOn(normalizeDateToken(single[1]!)));
+    return { periodFrom: day, periodTo: day, observedOn: day, source: "en_single_day", dayCount: 1 };
   }
 
-  const fb = opts?.periodFallback?.trim();
-  if (fb) {
-    const day = toIsoDate(parseObservedOn(fb));
-    return { periodFrom: day, periodTo: day, observedOn: day, source: "period_fallback" };
+  const fallbacks: Array<{ value: string | null | undefined; source: string }> = [
+    { value: opts?.periodFallback, source: "period_fallback_creation" },
+    { value: periodFallbackFromFilename(opts?.filename), source: "period_fallback_filename" },
+    { value: opts?.landedOn, source: "period_fallback_landed" },
+  ];
+  for (const fb of fallbacks) {
+    const v = fb.value?.trim();
+    if (!v) continue;
+    try {
+      const day = toIsoDate(parseObservedOn(v));
+      return { periodFrom: day, periodTo: day, observedOn: day, source: fb.source, dayCount: 1 };
+    } catch {
+      /* try next */
+    }
   }
 
   throw new MarketValidationError(
     "MAHASEEL_PERIOD_NOT_FOUND",
-    "Could not find Mahaseel from–to period in text (and no period fallback).",
+    "Could not find Mahaseel from–to period in text, PDF CreationDate, filename, or land date. Prefer PDFs with “from D/M/YYYY to D/M/YYYY”.",
   );
 }
 
@@ -70,27 +114,30 @@ const GRADE_TOKEN = String.raw`(\d+|Long|Normal|طويلة|عادية)`;
 const GRADE_METHOD = new RegExp(`^${GRADE_TOKEN}\\s+(.+?)\\s*$`, "i");
 const PRICE_ONLY = /^(\d+(?:\.\d+)?)\s*$/;
 const HEADER =
-  /vegetable\s+grade|price\s*\(kg\)|mahaseel pricing|نوع\s*الزراعة|السعر|التسويق|التسعيرة|خضرا|خضرو|كجم|لاي\s*ر|c1-internal/i;
+  /vegetable\s+grade|price\s*\(kg\)|mahaseel pricing|نوع\s*الزراعة|السعر|التسويق|التسعيرة|خضرا|خضرو|كجم|لاي\s*ر|c1-internal|remark:/i;
 
 const METHOD_HINT =
-  /wired|protected|open|field|سلكي|محمي|أرض|ارض|مفتوح|أيمحم|يمحم|محش|مكدوس|long|normal/i;
+  /wired|protected|open|field|ground|سلكي|محمي|أرض|ارض|مفتوح|أيمحم|يمحم|محش|مكدوس|long|normal|pickled/i;
 
 /**
- * PDF text is multi-line (EN):
- *   Tomato
- *   1 Wired
- *   3.50
- * AR (common Mahaseel Arabic bulletin):
- *   طماطم  1 سلكي
- *   2.80
+ * Parse Mahaseel PDF text into price rows.
+ * Multi-day periods expand to one observation per inclusive day (same prices).
  */
 export function parseMahaseelPriceLines(
   text: string,
   evidenceUrl: string,
   opts?: MahaseelParseOptions,
-): { periodFrom: string; periodTo: string; rows: PriceRowInput[]; periodSource: string } {
-  const { periodFrom, periodTo, observedOn, source: periodSource } = parseMahaseelPeriod(text, opts);
-  const rows: PriceRowInput[] = [];
+): {
+  periodFrom: string;
+  periodTo: string;
+  rows: PriceRowInput[];
+  periodSource: string;
+  days: string[];
+  templateRowCount: number;
+} {
+  const period = parseMahaseelPeriod(text, opts);
+  const { periodFrom, periodTo, source: periodSource } = period;
+  const templateRows: PriceRowInput[] = [];
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.replace(/\s+/g, " ").trim())
@@ -112,8 +159,9 @@ export function parseMahaseelPriceLines(
       cultivationMethod: method,
     });
 
-    rows.push({
-      observedOn,
+    // Template uses period end as observedOn; expand replaces with each day.
+    templateRows.push({
+      observedOn: periodTo,
       periodFrom,
       periodTo,
       commodityName: resolved.commodityName,
@@ -198,8 +246,34 @@ export function parseMahaseelPriceLines(
     }
   }
 
-  if (!rows.length) {
+  if (!templateRows.length) {
     throw new MarketValidationError("MAHASEEL_NO_ROWS", "No Mahaseel price rows parsed from text.");
   }
-  return { periodFrom, periodTo, rows, periodSource };
+
+  const expand = opts?.expandDays !== false;
+  if (!expand) {
+    return {
+      periodFrom,
+      periodTo,
+      rows: templateRows,
+      periodSource,
+      days: [periodTo],
+      templateRowCount: templateRows.length,
+    };
+  }
+
+  const { days, rows } = expandMahaseelRowsAcrossDays(
+    templateRows,
+    periodFrom,
+    periodTo,
+    opts?.maxPeriodDays ?? MAHASEEL_MAX_PERIOD_DAYS,
+  );
+  return {
+    periodFrom,
+    periodTo,
+    rows,
+    periodSource,
+    days,
+    templateRowCount: templateRows.length,
+  };
 }

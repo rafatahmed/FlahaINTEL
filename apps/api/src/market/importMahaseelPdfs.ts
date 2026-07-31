@@ -29,7 +29,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
-import { extractPdfText } from "./harvest/extractPdfText.js";
+import { extractPdfCreationDateIso, extractPdfText } from "./harvest/extractPdfText.js";
 import {
   periodKey,
   planMahaseelImport,
@@ -213,7 +213,12 @@ try {
         continue;
       }
       const evidenceUrl = fileEvidenceUrl(file);
-      const { periodFrom, periodTo, rows } = parseMahaseelPriceLines(text, evidenceUrl);
+      const { periodFrom, periodTo, rows, periodSource, days, templateRowCount } =
+        parseMahaseelPriceLines(text, evidenceUrl, {
+          periodFallback: extractPdfCreationDateIso(buf),
+          filename: path.basename(file),
+          expandDays: true,
+        });
       scanned.push({
         file,
         contentHash: hash,
@@ -222,7 +227,7 @@ try {
         rowCount: rows.length,
       });
       console.log(
-        `SCAN ${short}: ${rows.length} rows · ${periodFrom} → ${periodTo} · hash ${hash.slice(0, 12)}…`,
+        `SCAN ${short}: ${templateRowCount} items × ${days.length}d = ${rows.length} rows · ${periodFrom} → ${periodTo} · ${periodSource} · hash ${hash.slice(0, 12)}…`,
       );
     } catch (e) {
       const msg =
@@ -305,7 +310,11 @@ try {
       const buf = await readFile(item.file);
       const text = await extractPdfText(buf);
       const evidenceUrl = fileEvidenceUrl(item.file);
-      const { rows } = parseMahaseelPriceLines(text, evidenceUrl);
+      const { rows } = parseMahaseelPriceLines(text, evidenceUrl, {
+        periodFallback: extractPdfCreationDateIso(buf),
+        filename: path.basename(item.file),
+        expandDays: true,
+      });
       const sourceBatchId = batchIdForPeriod(item.periodTo, item.contentHash);
 
       const result = await markets.recordPriceBatch({

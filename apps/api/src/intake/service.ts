@@ -423,24 +423,33 @@ export class EvidenceIntakeService {
       throw new IntakeError("PDF_EMPTY", "Mahaseel PDF produced no extractable text (scan/image-only?).");
     }
     const evidenceUrl = `intake://${row.id}/${row.originalFilename || "file.pdf"}`;
-    // Arabic Mahaseel PDFs often omit EN "from…to…"; use PDF CreationDate as single-day fallback.
+    // Fallbacks when bulletin has no from–to: CreationDate → filename → land day.
     const periodFallback = extractPdfCreationDateIso(buf);
+    const landedOn = row.createdAt
+      ? new Date(row.createdAt).toISOString().slice(0, 10)
+      : null;
     let periodFrom: string;
     let periodTo: string;
     let periodSource: string;
+    let days: string[];
+    let templateRowCount: number;
     let parsedRows: ReturnType<typeof parseMahaseelPriceLines>["rows"];
     try {
-      const parsed = parseMahaseelPriceLines(text, evidenceUrl, { periodFallback });
+      const parsed = parseMahaseelPriceLines(text, evidenceUrl, {
+        periodFallback,
+        filename: row.originalFilename,
+        landedOn,
+        expandDays: true,
+      });
       periodFrom = parsed.periodFrom;
       periodTo = parsed.periodTo;
       periodSource = parsed.periodSource;
+      days = parsed.days;
+      templateRowCount = parsed.templateRowCount;
       parsedRows = parsed.rows;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      throw new IntakeError(
-        "MAHASEEL_PARSE",
-        `${msg}${periodFallback ? "" : " PDF has no CreationDate fallback either."}`,
-      );
+      throw new IntakeError("MAHASEEL_PARSE", msg);
     }
     const rows = parsedRows.map((r) => ({
       ...r,
@@ -452,49 +461,74 @@ export class EvidenceIntakeService {
       where: { code: "qa-mahaseel-local-vegetables" },
     });
     if (!channel) throw new IntakeError("CHANNEL_MISSING", "Mahaseel channel not seeded.");
-    const existing = await this.db.marketPriceObservation.count({
-      where: {
-        channelId: channel.id,
-        periodFrom: new Date(`${periodFrom}T00:00:00.000Z`),
-        periodTo: new Date(`${periodTo}T00:00:00.000Z`),
-      },
-    });
-    if (existing > 0) {
+
+    // Skip only days already fully present; multi-day bulletin = same price each day.
+    const daysInDb = new Set(
+      (
+        await this.db.marketPriceObservation.findMany({
+          where: {
+            channelId: channel.id,
+            observedOn: {
+              gte: new Date(`${periodFrom}T00:00:00.000Z`),
+              lte: new Date(`${periodTo}T00:00:00.000Z`),
+            },
+          },
+          select: { observedOn: true },
+          distinct: ["observedOn"],
+        })
+      ).map((r) => r.observedOn.toISOString().slice(0, 10)),
+    );
+    const daysToWrite = days.filter((d) => !daysInDb.has(d));
+    if (!daysToWrite.length) {
       return {
         kind: "MARKET_MAHASEEL_PDF",
         skipped: true,
-        reason: "period_already_in_database",
+        reason: "all_days_already_in_database",
         periodKey: periodKey(periodFrom, periodTo),
         periodSource,
-        existingRows: existing,
+        days,
+        daysInDb: [...daysInDb],
+        templateRowCount,
+        existingRows: daysInDb.size,
         inputArtifactId: artifactId,
         intakeId: row.id,
       };
     }
 
-    const sourceBatchId = `intake-mahaseel-${periodTo}-${row.contentSha256?.slice(0, 12) || row.id.slice(0, 8)}`;
+    const rowsToWrite = rows.filter((r) => daysToWrite.includes(r.observedOn));
+    const sourceBatchId = `intake-mahaseel-${periodFrom}_${periodTo}-${row.contentSha256?.slice(0, 12) || row.id.slice(0, 8)}`;
     const result = await this.markets.recordPriceBatch({
       tenantId: actor.tenantId,
       createdById: actor.userId,
       channelCode: "qa-mahaseel-local-vegetables",
       sourceBatchId,
       correlationId: row.correlationId,
-      rows,
+      rows: rowsToWrite,
     });
+
+    const fallbackNote = periodSource.startsWith("period_fallback")
+      ? `Period from ${periodSource.replace("period_fallback_", "")} (no from–to in PDF text).`
+      : undefined;
+    const multiDayNote =
+      days.length > 1
+        ? `Bulletin ${periodFrom}→${periodTo} expanded to ${days.length} days (same prices each day).`
+        : undefined;
+
     return {
       kind: "MARKET_MAHASEEL_PDF",
       periodFrom,
       periodTo,
       periodSource,
+      days,
+      daysImported: daysToWrite,
+      daysSkipped: days.filter((d) => daysInDb.has(d)),
+      templateRowCount,
       recorded: result.count,
       channelCode: "qa-mahaseel-local-vegetables",
       sourceBatchId,
       inputArtifactId: artifactId,
       intakeId: row.id,
-      note:
-        periodSource === "period_fallback"
-          ? "Period inferred from PDF CreationDate (Arabic bulletin had no from–to text)."
-          : undefined,
+      note: [multiDayNote, fallbackNote].filter(Boolean).join(" ") || undefined,
       deepLink: { nav: "markets", channelCode: "qa-mahaseel-local-vegetables" },
     };
   }

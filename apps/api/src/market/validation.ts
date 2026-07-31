@@ -209,21 +209,64 @@ export function priceContentFingerprint(parts: {
   return createHash("sha256").update(material, "utf8").digest("hex");
 }
 
+/**
+ * Parse a calendar day to UTC midnight Date.
+ * Accepts:
+ * - YYYY-MM-DD (ISO)
+ * - D/M/YYYY or DD/MM/YYYY (Mahaseel / MENA day-first; e.g. 8/6/2026 → 2026-06-08)
+ * - D/M/YY or DD/MM/YY (year 2000–2099)
+ */
 export function parseObservedOn(value: string): Date {
-  // Accept YYYY-MM-DD or DD-MM-YYYY / DD/MM/YYYY
   const iso = value.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
     const d = new Date(`${iso}T00:00:00.000Z`);
-    if (Number.isNaN(d.getTime())) throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn is not a valid date.");
+    if (Number.isNaN(d.getTime())) {
+      throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn is not a valid date.");
+    }
     return d;
   }
-  const m = iso.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
-  if (m) {
-    const d = new Date(`${m[3]}-${m[2]}-${m[1]}T00:00:00.000Z`);
-    if (Number.isNaN(d.getTime())) throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn is not a valid date.");
+  // Day-first: 8/6/2026, 08/06/2026, 8-6-2026
+  const dmy = iso.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2}|\d{4})$/);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const month = Number(dmy[2]);
+    let year = Number(dmy[3]);
+    if (year < 100) year += 2000;
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1990 || year > 2100) {
+      throw new MarketValidationError("INVALID_OBSERVED_ON", `observedOn out of range: ${iso}`);
+    }
+    const mm = String(month).padStart(2, "0");
+    const dd = String(day).padStart(2, "0");
+    const d = new Date(`${year}-${mm}-${dd}T00:00:00.000Z`);
+    if (Number.isNaN(d.getTime()) || d.getUTCDate() !== day || d.getUTCMonth() + 1 !== month) {
+      throw new MarketValidationError("INVALID_OBSERVED_ON", `observedOn is not a valid calendar day: ${iso}`);
+    }
     return d;
   }
-  throw new MarketValidationError("INVALID_OBSERVED_ON", "observedOn must be YYYY-MM-DD or DD-MM-YYYY.");
+  throw new MarketValidationError(
+    "INVALID_OBSERVED_ON",
+    "observedOn must be YYYY-MM-DD or D/M/YYYY (day-first, e.g. 8/6/2026).",
+  );
+}
+
+/** Inclusive list of ISO days from → to (UTC). Caps length for safety. */
+export function eachIsoDayInclusive(fromIso: string, toIso: string, maxDays = 14): string[] {
+  const start = parseObservedOn(fromIso);
+  const end = parseObservedOn(toIso);
+  if (end.getTime() < start.getTime()) {
+    throw new MarketValidationError("INVALID_DATE_RANGE", "periodFrom must be on or before periodTo.");
+  }
+  const days: string[] = [];
+  for (let t = start.getTime(); t <= end.getTime(); t += 86_400_000) {
+    days.push(toIsoDate(new Date(t)));
+    if (days.length > maxDays) {
+      throw new MarketValidationError(
+        "PERIOD_TOO_LONG",
+        `Period spans more than ${maxDays} days (${fromIso} → ${toIso}); Mahaseel bulletins are typically 1–3 days.`,
+      );
+    }
+  }
+  return days;
 }
 
 export function toIsoDate(d: Date): string {
