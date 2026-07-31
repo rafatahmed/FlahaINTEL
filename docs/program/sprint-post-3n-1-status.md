@@ -64,15 +64,18 @@ npm run knowledge:seed-samples
 # npm run ops:register-market-harvest-task
 ```
 
+| 4I-B | Product handoff envelope (CALC/FAST/SOIL) | **DONE** | `flaha-intel-product-handoff-v1` + API/CLI/UI + audit |
+| 4B-A | Product feed policies | **DONE** | Per-target themes; cross-product guards |
+| 4B-B | PA dashboard scorecard | **DONE** | `/api/pa-dashboard` + Dashboard card |
+
 ## Next (systemic order)
 
 1. **Host hygiene:** free C: toward ≥5–15% when practical (readiness still DEGRADED on disk)  
 2. **Grow market series:** keep scheduled harvest + optional historical import until channels hit **MEETS_TARGET** (≥365d)  
-3. **Use the spine:** land Mahaseel EN PDFs (preferred) or AR via EN map; re-promote only when needed  
-4. **4I-B** handoff export envelope (after owner uses 4I-A DRAFT packs) · **4B** product feed policies  
+3. **Approve sample packs** (human) then **Export handoff** from Knowledge for CALC/FAST/SOIL  
+4. **Use the spine:** land Mahaseel EN PDFs (preferred) or AR via EN map  
 5. **FKP:** frozen-thin only (MCP later when a named consumer exists)  
-6. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
-7. Already done this package: 4S-B/C/D/D2, 4M-D/E/F, Evidence Intake spine, Markets workbench harden, Calc/Fast separation
+6. **Do not** open YouTube/X until markets + soil packs are used end-to-end
 
 ## Exit criteria for Sprint 1
 

@@ -281,6 +281,40 @@ export function KnowledgePacksPage(props?: {
     }
   }
 
+  /** 4I-B: download read-only product handoff envelope (APPROVED only). */
+  async function exportHandoff() {
+    if (!selected) return;
+    setBusy(true);
+    setError("");
+    setInfo("");
+    try {
+      const target =
+        selected.theme === "IRRIGATION"
+          ? "FlahaCALC"
+          : selected.theme === "NUTRITION"
+            ? "FlahaFAST"
+            : selected.theme === "SOIL"
+              ? "FlahaSOIL"
+              : undefined;
+      const res = await api.knowledgePackHandoff(selected.id, target ? { targetProduct: target } : {});
+      const env = res.envelope;
+      const blob = new Blob([`${JSON.stringify(env, null, 2)}\n`], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `handoff-${String(target || "product")}-${selected.code || selected.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setInfo(
+        `Handoff exported · ${String(target)} · exportId ${res.exportId.slice(0, 8)}… · sha ${res.sha256.slice(0, 12)}… · autoApplyBlocked=${String((env as { autoApplyBlocked?: boolean }).autoApplyBlocked)}`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Handoff export failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function importReport(file: File) {
     setCaseBusy(true);
     setInfo("");
@@ -746,7 +780,24 @@ export function KnowledgePacksPage(props?: {
                                   {a.label}
                                 </Button>
                               ))}
+                              {selected.reviewState === "APPROVED" &&
+                                ["IRRIGATION", "NUTRITION", "SOIL"].includes(selected.theme || "") && (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="secondary"
+                                  disabled={busy}
+                                  onClick={() => void exportHandoff()}
+                                >
+                                  Export handoff ({primaryProductForTheme(selected.theme)})
+                                </Button>
+                              )}
                             </Box>
+                            {selected.reviewState !== "APPROVED" && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                                4I-B handoff export requires <strong>APPROVED</strong> packs only.
+                              </Typography>
+                            )}
                           </CardContent>
                         </Card>
 

@@ -17,7 +17,7 @@ Last modified: 2026-07-31
 
 ## Status
 
-**CHARTERED** · Implement after 4I-A catalog + samples are approved for use
+**IMPLEMENTED** (2026-07-31) · Export envelope + API/CLI/UI + audit; feed policies via **4B-A**
 
 ## Product separation (LOCKED)
 
@@ -67,11 +67,12 @@ No DRAFT or READY_FOR_REVIEW content in production handoff exports.
 
 ## Acceptance (when built)
 
-- [ ] Envelope schema documented + validated in tests  
-- [ ] Export only APPROVED packs  
-- [ ] Targets field includes `FlahaCALC` and/or `FlahaFAST`  
-- [ ] UI or CLI download works on local tenant  
-- [ ] Explicit documentation: product code changes remain separate process  
+- [x] Envelope schema documented + validated in tests (`productHandoff/envelope.test.ts`)  
+- [x] Export only APPROVED packs  
+- [x] Targets field is **exactly one** of `FlahaCALC` | `FlahaFAST` | `FlahaSOIL`  
+- [x] UI download (Knowledge pack detail) + CLI `knowledge:export-handoff`  
+- [x] Explicit documentation: product code changes remain separate process  
+- [x] Audit table `ProductHandoffExport` (who / when / sha256 / full envelope)
 
 ## Depends on
 

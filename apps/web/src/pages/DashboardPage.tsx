@@ -26,6 +26,7 @@ export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
     intakesOpen: number;
     marketChannels: number;
   } | null>(null);
+  const [pa, setPa] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -36,13 +37,15 @@ export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
         setData(dash);
         setError("");
         // Parallel intelligence counters (best-effort)
-        const [packs, prices, soil, intakes, channels] = await Promise.all([
+        const [packs, prices, soil, intakes, channels, paDash] = await Promise.all([
           api.knowledgePacks({ reviewState: "READY_FOR_REVIEW" }).catch(() => ({ packs: [] })),
           api.marketReviewSummary({}).catch(() => ({ summary: {} as Record<string, number> })),
           api.flahaSoilComparisons({ status: "READY_FOR_REVIEW" }).catch(() => ({ cases: [] })),
           api.intakeList({ limit: 50 }).catch(() => ({ intakes: [] })),
           api.marketChannels().catch(() => ({ channels: [] })),
+          api.paDashboard().catch(() => null),
         ]);
+        setPa(paDash);
         const openIntakes = ((intakes.intakes || []) as Array<Record<string, unknown>>).filter((i) =>
           ["LANDED", "CLASSIFIED", "FAILED"].includes(String(i.status)),
         ).length;
@@ -188,6 +191,67 @@ export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
             </Typography>
           )}
         </Alert>
+      )}
+
+      {/* 4B-B PA scorecard */}
+      {pa && (
+        <Card variant="outlined">
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+              PA scorecard (4B-B) — pack health · market freshness · handoff readiness
+            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.5,
+                gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" },
+                mb: 1.5,
+              }}
+            >
+              {(() => {
+                const packs = (pa.packs || {}) as Record<string, number>;
+                const markets = (pa.markets || {}) as Record<string, number>;
+                const handoff = (pa.handoff || {}) as { exportsLast7d?: number };
+                return [
+                  { label: "Packs APPROVED", value: packs.approved ?? 0 },
+                  { label: "Packs ready", value: packs.readyForReview ?? 0 },
+                  { label: "Prices pending", value: markets.pendingReview ?? 0 },
+                  { label: "Handoffs (7d)", value: handoff.exportsLast7d ?? 0 },
+                ].map((c) => (
+                  <Box key={c.label}>
+                    <Typography variant="caption" color="text.secondary">
+                      {c.label}
+                    </Typography>
+                    <Typography variant="h5">{c.value}</Typography>
+                  </Box>
+                ));
+              })()}
+            </Box>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1 }}>
+              {(((pa.handoff as { byTarget?: Array<Record<string, unknown>> })?.byTarget) || []).map(
+                (t) => (
+                  <Chip
+                    key={String(t.targetProduct)}
+                    size="small"
+                    color={t.canExport ? "success" : "default"}
+                    variant={t.canExport ? "filled" : "outlined"}
+                    label={`${String(t.targetProduct)}: ${String(t.approvedPackCount ?? 0)} approved${t.canExport ? " · export ready" : ""}`}
+                    onClick={() => go("knowledge")}
+                  />
+                ),
+              )}
+            </Box>
+            {Boolean((pa.markets as { staleChannelCount?: number })?.staleChannelCount) && (
+              <Alert severity="warning" sx={{ mb: 1 }}>
+                {(pa.markets as { staleChannelCount: number }).staleChannelCount} market channel(s) look
+                stale — check Markets harvest.
+              </Alert>
+            )}
+            <Typography variant="caption" color="text.secondary">
+              Feed policies enforce one product per handoff (CALC ≠ FAST ≠ SOIL). Auto-apply always blocked.
+            </Typography>
+          </CardContent>
+        </Card>
       )}
 
       <Typography variant="overline" color="text.secondary">

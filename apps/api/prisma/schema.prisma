@@ -623,6 +623,8 @@ model UserAccount {
   flahaSoilComparisonsCreated FlahaSoilComparisonCase[] @relation("FlahaSoilComparisonCreator")
   flahaSoilComparisonsReviewed FlahaSoilComparisonCase[] @relation("FlahaSoilComparisonReviewer")
   evidenceIntakesCreated EvidenceIntake[] @relation("EvidenceIntakeCreator")
+  productFeedPoliciesUpdated ProductFeedPolicy[] @relation("ProductFeedPolicyUpdater")
+  productHandoffExports ProductHandoffExport[] @relation("ProductHandoffExporter")
 
   @@index([active])
 }
@@ -644,6 +646,8 @@ model Tenant {
   knowledgePacks KnowledgePack[]
   flahaSoilComparisons FlahaSoilComparisonCase[]
   evidenceIntakes EvidenceIntake[]
+  productFeedPolicies ProductFeedPolicy[]
+  productHandoffExports ProductHandoffExport[]
 
   @@index([active])
 }
@@ -1287,4 +1291,50 @@ model EvidenceIntake {
   @@index([contentSha256])
   @@index([createdById])
   @@index([correlationId])
+}
+
+/// Gate 4B-A: which pack themes may feed a sister product (admin-governed).
+/// Targets are FlahaCALC | FlahaFAST | FlahaSOIL (string, not freeform).
+model ProductFeedPolicy {
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenantId              String   @db.Uuid
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /// FlahaCALC | FlahaFAST | FlahaSOIL
+  targetProduct         String
+  /// KnowledgePackTheme values allowed into handoff for this product.
+  allowedThemes         String[] @default([])
+  requireApprovedPacks  Boolean  @default(true)
+  allowMarketContext    Boolean  @default(false)
+  allowComparisonNotes  Boolean  @default(false)
+  enabled               Boolean  @default(true)
+  notes                 String?
+  updatedById           String?  @db.Uuid
+  updatedBy             UserAccount? @relation("ProductFeedPolicyUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([tenantId, targetProduct])
+  @@index([tenantId, enabled])
+}
+
+/// Gate 4I-B: audit + re-download of read-only product handoff envelopes.
+model ProductHandoffExport {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @db.Uuid
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  exportedById     String   @db.Uuid
+  exportedBy       UserAccount @relation("ProductHandoffExporter", fields: [exportedById], references: [id], onDelete: Restrict)
+  /// Single primary target (never CALC+FAST merged).
+  targetProduct    String
+  envelopeVersion  String
+  envelopeSha256   String   @db.Char(64)
+  packCodes        String[] @default([])
+  packIds          String[] @default([])
+  /// Full envelope JSON for re-download and audit.
+  envelope         Json
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, targetProduct, createdAt])
+  @@index([exportedById])
 }

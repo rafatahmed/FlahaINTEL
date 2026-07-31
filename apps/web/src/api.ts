@@ -396,6 +396,52 @@ export const api = {
     return request<{ packs: Array<Record<string, unknown>> }>(`/api/knowledge-packs${query(f)}`);
   },
   knowledgePack: (id: string) => request<{ pack: Record<string, unknown> }>(`/api/knowledge-packs/${id}`),
+  /** 4I-B: export APPROVED pack as product handoff envelope. */
+  knowledgePackHandoff: (id: string, body: { targetProduct?: string } = {}) =>
+    request<{
+      exportId: string;
+      sha256: string;
+      envelope: Record<string, unknown>;
+      governance: Record<string, unknown>;
+    }>(`/api/knowledge-packs/${id}/handoff`, { method: "POST", body: JSON.stringify(body) }),
+  productHandoffExport: (body: {
+    targetProduct: string;
+    packIds?: string[];
+    packCodes?: string[];
+  }) =>
+    request<{
+      exportId: string;
+      sha256: string;
+      envelope: Record<string, unknown>;
+      governance: Record<string, unknown>;
+    }>("/api/product-handoff/export", { method: "POST", body: JSON.stringify(body) }),
+  productHandoffExports: (limit?: number) =>
+    request<{ exports: Array<Record<string, unknown>> }>(
+      `/api/product-handoff/exports${query({ limit })}`,
+    ),
+  productHandoffExportGet: (id: string) =>
+    request<{ export: Record<string, unknown>; envelope: Record<string, unknown> }>(
+      `/api/product-handoff/exports/${id}`,
+    ),
+  productFeedPolicies: () =>
+    request<{ policies: Array<Record<string, unknown>> }>("/api/product-feed-policies"),
+  updateProductFeedPolicy: (
+    target: string,
+    body: {
+      allowedThemes?: string[];
+      requireApprovedPacks?: boolean;
+      allowMarketContext?: boolean;
+      allowComparisonNotes?: boolean;
+      enabled?: boolean;
+      notes?: string | null;
+    },
+  ) =>
+    request<{ policy: Record<string, unknown> }>(`/api/product-feed-policies/${target}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  /** 4B-B PA scorecard */
+  paDashboard: () => request<Record<string, unknown>>("/api/pa-dashboard"),
   knowledgeComparisonNotes: (reviewState?: string) =>
     request<{ count: number; notes: Array<Record<string, unknown>> }>(
       `/api/knowledge-packs/comparison-notes${query({ reviewState })}`,

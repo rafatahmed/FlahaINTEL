@@ -75,7 +75,7 @@ export const PRODUCT_LANES: ProductLaneDef[] = [
       "Soil lab chemistry panels (→ FlahaSOIL)",
       "Commodity market prices (→ Markets)",
     ],
-    tools: ["Irrigation packs only", "Human review", "Handoff later (CALC-only envelope)"],
+    tools: ["Irrigation packs only", "Human review", "4I-B CALC-only handoff export"],
     sampleCodes: ["irrigation-calc-kc-etc-backbone-v1", "irrigation-water-saving-notes-v1"],
     neverAutoUpdateFlag: "doesNotAutoUpdateFlahaCALC",
   },
