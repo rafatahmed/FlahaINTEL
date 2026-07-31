@@ -67,28 +67,29 @@ const DEFAULT_POLICIES: Array<{
 export class ProductHandoffService {
   constructor(private readonly db: PrismaClient) {}
 
-  /** Ensure default 4B-A policies exist for tenant (idempotent). */
-  async ensureDefaultPolicies(tenantId: string, updatedById?: string) {
-    for (const def of DEFAULT_POLICIES) {
-      await this.db.productFeedPolicy.upsert({
-        where: {
-          tenantId_targetProduct: { tenantId, targetProduct: def.targetProduct },
-        },
-        create: {
-          tenantId,
-          targetProduct: def.targetProduct,
-          allowedThemes: def.allowedThemes,
-          requireApprovedPacks: true,
-          allowMarketContext: def.allowMarketContext,
-          allowComparisonNotes: def.allowComparisonNotes,
-          enabled: true,
-          notes: def.notes,
-          updatedById: updatedById ?? null,
-        },
-        update: {},
-      });
-    }
-    return this.listPolicies(tenantId);
+  /** Ensure default 4B-A policies exist for tenant (idempotent). Does not re-enter listPolicies. */
+  async ensureDefaultPolicies(tenantId: string, updatedById?: string): Promise<void> {
+    await Promise.all(
+      DEFAULT_POLICIES.map((def) =>
+        this.db.productFeedPolicy.upsert({
+          where: {
+            tenantId_targetProduct: { tenantId, targetProduct: def.targetProduct },
+          },
+          create: {
+            tenantId,
+            targetProduct: def.targetProduct,
+            allowedThemes: def.allowedThemes,
+            requireApprovedPacks: true,
+            allowMarketContext: def.allowMarketContext,
+            allowComparisonNotes: def.allowComparisonNotes,
+            enabled: true,
+            notes: def.notes,
+            updatedById: updatedById ?? null,
+          },
+          update: {},
+        }),
+      ),
+    );
   }
 
   async listPolicies(tenantId: string) {
@@ -196,7 +197,8 @@ export class ProductHandoffService {
       );
     }
     const target = params.targetProduct;
-    const policies = await this.ensureDefaultPolicies(params.tenantId, params.exportedById);
+    await this.ensureDefaultPolicies(params.tenantId, params.exportedById);
+    const policies = await this.db.productFeedPolicy.findMany({ where: { tenantId: params.tenantId } });
     const policy = policies.find((p) => p.targetProduct === target);
     if (!policy || !policy.enabled) {
       throw new ProductHandoffError(

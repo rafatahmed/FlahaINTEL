@@ -31,12 +31,16 @@ export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       try {
+        // Core dashboard first — never block shell on secondary scorecards.
         const dash = await api.dashboard();
+        if (cancelled) return;
         setData(dash);
         setError("");
-        // Parallel intelligence counters (best-effort)
+        setLoading(false);
+
         const [packs, prices, soil, intakes, channels, paDash] = await Promise.all([
           api.knowledgePacks({ reviewState: "READY_FOR_REVIEW" }).catch(() => ({ packs: [] })),
           api.marketReviewSummary({}).catch(() => ({ summary: {} as Record<string, number> })),
@@ -45,6 +49,7 @@ export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
           api.marketChannels().catch(() => ({ channels: [] })),
           api.paDashboard().catch(() => null),
         ]);
+        if (cancelled) return;
         setPa(paDash);
         const openIntakes = ((intakes.intakes || []) as Array<Record<string, unknown>>).filter((i) =>
           ["LANDED", "CLASSIFIED", "FAILED"].includes(String(i.status)),
@@ -59,11 +64,15 @@ export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
           marketChannels: (channels.channels || []).length,
         });
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Dashboard failed.");
-      } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Dashboard failed.");
+          setLoading(false);
+        }
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) return <BrandedState label="Loading dashboard…" loading />;
