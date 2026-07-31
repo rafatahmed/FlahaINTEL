@@ -71,17 +71,19 @@ npm run knowledge:seed-samples
 | 4R-A | Research topic index (desk) | **DONE (4R-A.1)** | Materialized topics + `/api/research/*` + Knowledge Research tab |
 | 4R scope | Stage D multi-domain desk | **ACCEPTED** | `gate-4r-research-desk-scope.md` · APA/ASA–CSSA–SSSA |
 | 4R-L | Literature source records (L2) | **DONE (4R-L.1)** | `LiteratureSource` + APA + `/api/research/literature/*` + UI + index hook |
+| 4R-B | Research collections (L5) | **DONE (4R-B.1)** | Dossiers + APA bibliography export + Research Collections tab |
+| 4R-E | Evidence attach (thin) | **DONE (thin)** | `literatureSourceId` on pack items + attach-claim API/UI |
 | Markets analytics | Multi-year / monthly / histogram | **DONE** | `market-price-analytics.md` |
 
 ## Next (systemic order)
 
 1. ~~**Owner accept 4R-A frame** → implement 4R-A.1~~ **DONE**  
 2. ~~**Owner accept Stage D full scope**~~ **DONE**  
-3. ~~**4R-L.1 literature sources**~~ **DONE** — operate: `knowledge:register-literature` + approve + rebuild  
-4. **Operate:** real library JSON/PDF metadata in; harvest + historical fill; approve packs; handoff  
-5. **Optional 4R-A.2:** soil cases in index + pack topic chips  
-6. **Later 4R-X:** deep extract cards from literature (claims)  
-7. **Later 4R-B:** collections + APA bibliography export  
+3. ~~**4R-L.1 literature sources**~~ **DONE**  
+4. ~~**4R-B.1 collections + APA export**~~ **DONE**  
+5. **Operate:** register real multi-domain library; fill collections; approve packs; harvest/history; handoff  
+6. **Optional 4R-A.2:** soil cases in index + pack topic chips  
+7. **Later 4R-X:** richer extract templates / claim depth from literature  
 8. **Host hygiene:** free C: toward ≥5–15% when practical  
 9. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
 

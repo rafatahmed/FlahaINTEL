@@ -628,6 +628,7 @@ model UserAccount {
   researchIndexRebuilds ResearchIndexRebuild[] @relation("ResearchIndexRebuildActor")
   literatureSourcesOwned LiteratureSource[] @relation("LiteratureSourceOwner")
   literatureSourcesReviewed LiteratureSource[] @relation("LiteratureSourceReviewer")
+  researchCollectionsOwned ResearchCollection[] @relation("ResearchCollectionOwner")
 
   @@index([active])
 }
@@ -653,6 +654,7 @@ model Tenant {
   productHandoffExports ProductHandoffExport[]
   researchTopics ResearchTopic[]
   literatureSources LiteratureSource[]
+  researchCollections ResearchCollection[]
 
   @@index([active])
 }
@@ -1167,11 +1169,14 @@ model KnowledgePackItem {
   sourceUrl             String?
   evidenceArtifactId    String?       @db.Uuid
   governanceCandidateId String?       @db.Uuid
+  /// Gate 4R-E: optional link to citable literature source (evidence for claim).
+  literatureSourceId    String?       @db.Uuid
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
   @@unique([packId, sequence])
   @@index([packId])
+  @@index([literatureSourceId])
 }
 
 /// Gate 4S-D: human FlahaSOIL comparison / deviation case (never auto-writes product).
@@ -1394,6 +1399,59 @@ model LiteratureSource {
   @@index([tenantId, trustTier])
   @@index([tenantId, year])
   @@index([doi])
+}
+
+/// Gate 4R-B: named research collection / dossier for writing or product context.
+enum ResearchCollectionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model ResearchCollection {
+  id          String                    @id @default(uuid()) @db.Uuid
+  tenantId    String                    @db.Uuid
+  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  code        String
+  title       String
+  summary     String?
+  /// Optional focus tags (multi-domain desk).
+  domainTags  String[]                  @default([])
+  cropTags    String[]                  @default([])
+  regionTags  String[]                  @default([])
+  status      ResearchCollectionStatus  @default(DRAFT)
+  ownerUserId String                    @db.Uuid
+  owner       UserAccount               @relation("ResearchCollectionOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  members     ResearchCollectionMember[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+}
+
+/// Member of a collection: literature (primary), pack item, or topic pointer.
+model ResearchCollectionMember {
+  id                 String             @id @default(uuid()) @db.Uuid
+  collectionId       String             @db.Uuid
+  collection         ResearchCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  /// LITERATURE | PACK_ITEM | TOPIC
+  memberKind         String
+  sequence           Int                @default(0)
+  literatureSourceId String?            @db.Uuid
+  packId             String?            @db.Uuid
+  packItemId         String?            @db.Uuid
+  researchTopicId    String?            @db.Uuid
+  note               String?
+  createdAt          DateTime           @default(now())
+
+  @@index([collectionId, sequence])
+  @@index([literatureSourceId])
+  @@index([packItemId])
+  @@index([researchTopicId])
+  @@unique([collectionId, literatureSourceId])
+  @@unique([collectionId, packItemId])
+  @@unique([collectionId, researchTopicId])
 }
 
 /// Gate 4R-A: materialized research topic (facet bundle over approved content).

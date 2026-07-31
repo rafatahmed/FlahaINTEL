@@ -96,19 +96,20 @@ Charter: [`gate-4r-a-research-topic-index.md`](gates/gate-4r-a-research-topic-in
 ## Recommended program order
 
 1. ~~**Owner accept** full scope~~ **DONE** (`gate-4r-research-desk-scope.md`)  
-2. ~~**4R-L.1** literature records~~ **DONE** (`gate-4r-l-literature-source-records.md`)  
-3. **Operate** register real multi-domain sources → SOURCE_APPROVED → rebuild index  
-4. Extend **4R-A** UX / facets as library grows  
-5. Scale extracts (**4R-X**) where claims are needed  
-6. **4R-B** collections + APA export when writers need dossiers  
+2. ~~**4R-L.1** literature records~~ **DONE**  
+3. ~~**4R-B.1** collections + APA bibliography~~ **DONE** (`gate-4r-b-research-collections.md`)  
+4. ~~**4R-E thin** attach-claim from literature~~ **DONE**  
+5. **Operate** real library → collections → draft claims → human approve packs  
+6. Scale extracts (**4R-X**) where richer claim templates are needed  
 
 **Parallel:** historical market fill remains Markets operate; it does not replace Stage D literature.
 
-### Operator (4R-L)
+### Operator (Research desk)
 
 ```powershell
-npm run knowledge:register-literature
 npm run knowledge:register-literature -- --approve
 npm run knowledge:rebuild-research-index
-# Knowledge → Research → Literature | Topics
+# Knowledge → Research → Literature | Collections | Topics
+# Collections: create dossier → add literature → Copy APA bibliography
+# Literature: Draft claim on pack (creates DRAFT REFERENCE item with APA evidence)
 ```

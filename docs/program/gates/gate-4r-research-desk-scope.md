@@ -21,7 +21,9 @@ Last modified: 2026-08-01
 
 **SCOPE ACCEPTED** (2026-08-01) · Owner accept → implement along gate map  
 **Not** limited to one domain, paper, or product.  
-**4R-L.1** literature records: see `gate-4r-l-literature-source-records.md`.
+**4R-L.1** literature records: `gate-4r-l-literature-source-records.md`  
+**4R-B.1** collections + APA export: `gate-4r-b-research-collections.md`  
+**4R-E thin** attach-claim: pack item `literatureSourceId` + API.
 
 Related short pointer: `docs/program/research-desk-frame.md`  
 Related slice already built: `docs/program/gates/gate-4r-a-research-topic-index.md` (4R-A.1 = approved **pack** facet index only)

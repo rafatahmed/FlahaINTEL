@@ -633,6 +633,69 @@ export const api = {
       `/api/research/literature/${id}/review`,
       { method: "POST", body: JSON.stringify(body) },
     ),
+  researchLiteratureAttachClaim: (
+    id: string,
+    body: { packCode?: string; itemTitle?: string; bodyText?: string; extractKind?: string } = {},
+  ) =>
+    request<{
+      packId: string;
+      packCode: string;
+      packReviewState: string;
+      item: Record<string, unknown>;
+      governance: Record<string, unknown>;
+    }>(`/api/research/literature/${id}/attach-claim`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  /** 4R-B research collections */
+  researchCollections: (filters: { status?: string; q?: string } = {}) =>
+    request<{ collections: Array<Record<string, unknown>> }>(
+      `/api/research/collections${query(filters)}`,
+    ),
+  researchCollection: (id: string) =>
+    request<{ collection: Record<string, unknown> & { members?: Array<Record<string, unknown>> } }>(
+      `/api/research/collections/${id}`,
+    ),
+  researchCollectionCreate: (body: {
+    code: string;
+    title: string;
+    summary?: string;
+    domainTags?: string[];
+    cropTags?: string[];
+    regionTags?: string[];
+  }) =>
+    request<{ collection: Record<string, unknown> }>("/api/research/collections", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  researchCollectionUpdate: (
+    id: string,
+    body: { title?: string; summary?: string; status?: string; domainTags?: string[] },
+  ) =>
+    request<{ collection: Record<string, unknown> }>(`/api/research/collections/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  researchCollectionAddMember: (id: string, body: { literatureSourceId: string; note?: string }) =>
+    request<{ member: Record<string, unknown> }>(`/api/research/collections/${id}/members`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  researchCollectionRemoveMember: (id: string, memberId: string) =>
+    request<{ removed: boolean }>(`/api/research/collections/${id}/members/${memberId}`, {
+      method: "DELETE",
+    }),
+  researchCollectionBibliography: (id: string) =>
+    request<{
+      collectionId: string;
+      collectionTitle: string;
+      count: number;
+      incompleteCount: number;
+      references: string[];
+      text: string;
+      citationStandard: string;
+    }>(`/api/research/collections/${id}/bibliography`),
   knowledgeComparisonNotes: (reviewState?: string) =>
     request<{ count: number; notes: Array<Record<string, unknown>> }>(
       `/api/knowledge-packs/comparison-notes${query({ reviewState })}`,

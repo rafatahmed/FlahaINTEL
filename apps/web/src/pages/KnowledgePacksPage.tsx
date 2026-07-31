@@ -204,8 +204,10 @@ export function KnowledgePacksPage(props?: {
   const [researchSelectedId, setResearchSelectedId] = useState("");
   const [researchDetail, setResearchDetail] = useState<Record<string, unknown> | null>(null);
   const [researchBusy, setResearchBusy] = useState(false);
-  /** Research desk sub-view: topic index (4R-A) vs literature library (4R-L) */
-  const [researchView, setResearchView] = useState<"topics" | "literature">("literature");
+  /** Research desk: literature (4R-L) | collections (4R-B) | topics (4R-A) */
+  const [researchView, setResearchView] = useState<"topics" | "literature" | "collections">(
+    "literature",
+  );
   const [litSources, setLitSources] = useState<Array<Record<string, unknown>>>([]);
   const [litTotal, setLitTotal] = useState(0);
   const [litFacets, setLitFacets] = useState<{
@@ -219,6 +221,13 @@ export function KnowledgePacksPage(props?: {
   const [litIncludeCatalog, setLitIncludeCatalog] = useState(true);
   const [litSelectedId, setLitSelectedId] = useState("");
   const [litDetail, setLitDetail] = useState<Record<string, unknown> | null>(null);
+  const [collections, setCollections] = useState<Array<Record<string, unknown>>>([]);
+  const [colSelectedId, setColSelectedId] = useState("");
+  const [colDetail, setColDetail] = useState<Record<string, unknown> | null>(null);
+  const [colBiblio, setColBiblio] = useState<string>("");
+  const [colNewCode, setColNewCode] = useState("");
+  const [colNewTitle, setColNewTitle] = useState("");
+  const [colAddTargetId, setColAddTargetId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -312,11 +321,38 @@ export function KnowledgePacksPage(props?: {
     }
   }, [litDomain, litQ, litIncludeCatalog]);
 
+  const loadCollections = useCallback(async () => {
+    try {
+      const res = await api.researchCollections();
+      setCollections(res.collections || []);
+    } catch {
+      setCollections([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (lane !== "research") return;
+    // Keep collection list available for “Add to collection” on Literature detail.
+    void loadCollections();
     if (researchView === "topics") void loadResearch();
-    else void loadLiterature();
-  }, [lane, researchView, loadResearch, loadLiterature]);
+    else if (researchView === "literature") void loadLiterature();
+  }, [lane, researchView, loadResearch, loadLiterature, loadCollections]);
+
+  useEffect(() => {
+    if (!colSelectedId) {
+      setColDetail(null);
+      setColBiblio("");
+      return;
+    }
+    void api
+      .researchCollection(colSelectedId)
+      .then((r) => setColDetail(r.collection))
+      .catch(() => setColDetail(null));
+    void api
+      .researchCollectionBibliography(colSelectedId)
+      .then((b) => setColBiblio(b.text || (b.references || []).join("\n\n")))
+      .catch(() => setColBiblio(""));
+  }, [colSelectedId]);
 
   useEffect(() => {
     if (!researchSelectedId) {
@@ -370,6 +406,84 @@ export function KnowledgePacksPage(props?: {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Literature review failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function createCollection() {
+    if (!colNewCode.trim() || !colNewTitle.trim()) {
+      setError("Collection code and title are required.");
+      return;
+    }
+    setResearchBusy(true);
+    setInfo("");
+    try {
+      const res = await api.researchCollectionCreate({
+        code: colNewCode.trim(),
+        title: colNewTitle.trim(),
+      });
+      setInfo(`Collection created: ${String(res.collection.code)}`);
+      setColNewCode("");
+      setColNewTitle("");
+      await loadCollections();
+      setColSelectedId(String(res.collection.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Create collection failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function addLitToCollection(literatureSourceId: string, collectionId: string) {
+    if (!collectionId) {
+      setError("Select a target collection first.");
+      return;
+    }
+    setResearchBusy(true);
+    try {
+      await api.researchCollectionAddMember(collectionId, { literatureSourceId });
+      setInfo("Added literature to collection.");
+      if (colSelectedId === collectionId) {
+        const r = await api.researchCollection(collectionId);
+        setColDetail(r.collection);
+        const b = await api.researchCollectionBibliography(collectionId);
+        setColBiblio(b.text || "");
+      }
+      await loadCollections();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Add to collection failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function attachClaimFromLit(literatureSourceId: string) {
+    setResearchBusy(true);
+    setInfo("");
+    try {
+      const res = await api.researchLiteratureAttachClaim(literatureSourceId, {});
+      setInfo(
+        `Draft claim item on pack ${res.packCode} (${res.packReviewState}). Human-edit then approve pack — not product write.`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Attach claim failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function removeCollectionMember(collectionId: string, memberId: string) {
+    setResearchBusy(true);
+    try {
+      await api.researchCollectionRemoveMember(collectionId, memberId);
+      const r = await api.researchCollection(collectionId);
+      setColDetail(r.collection);
+      const b = await api.researchCollectionBibliography(collectionId);
+      setColBiblio(b.text || "");
+      await loadCollections();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Remove member failed.");
     } finally {
       setResearchBusy(false);
     }
@@ -610,10 +724,11 @@ export function KnowledgePacksPage(props?: {
 
           <Tabs
             value={researchView}
-            onChange={(_, v: "topics" | "literature") => setResearchView(v)}
+            onChange={(_, v: "topics" | "literature" | "collections") => setResearchView(v)}
             sx={{ borderBottom: 1, borderColor: "divider", minHeight: 40 }}
           >
             <Tab value="literature" label={`Literature (${litFacets?.sourceCount ?? litTotal ?? "—"})`} />
+            <Tab value="collections" label={`Collections (${collections.length})`} />
             <Tab value="topics" label={`Topics (${researchFacets?.topicCount ?? researchTotal ?? "—"})`} />
           </Tabs>
 
@@ -745,7 +860,7 @@ export function KnowledgePacksPage(props?: {
                           </Typography>
                         )}
                         <Divider />
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
                           {String(litDetail.reviewState) === "CATALOGUED" && (
                             <Button
                               size="small"
@@ -777,11 +892,199 @@ export function KnowledgePacksPage(props?: {
                                 Reject
                               </Button>
                             )}
+                          <FormControl size="small" sx={{ minWidth: 160 }}>
+                            <InputLabel>Add to collection</InputLabel>
+                            <Select
+                              label="Add to collection"
+                              value={colAddTargetId}
+                              onChange={(e) => setColAddTargetId(e.target.value)}
+                            >
+                              <MenuItem value="">—</MenuItem>
+                              {collections.map((c) => (
+                                <MenuItem key={String(c.id)} value={String(c.id)}>
+                                  {String(c.title)}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={researchBusy || !colAddTargetId}
+                            onClick={() => void addLitToCollection(String(litDetail.id), colAddTargetId)}
+                          >
+                            Add to collection
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={researchBusy}
+                            onClick={() => void attachClaimFromLit(String(litDetail.id))}
+                          >
+                            Draft claim on pack
+                          </Button>
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                          Approving a <strong>source</strong> does not create a scientific claim pack and does not
-                          write FlahaSOIL/CALC/FAST.
+                          Approving a <strong>source</strong> does not create a scientific claim.{" "}
+                          <strong>Draft claim</strong> creates a DRAFT pack item with APA evidence (4R-E) — still
+                          human-approved, never product write.
                         </Typography>
+                      </Stack>
+                    )}
+                  </CardContent>
+                </Card>
+              </Box>
+            </Stack>
+          )}
+
+          {researchView === "collections" && (
+            <Stack spacing={2}>
+              <Alert severity="success">
+                <strong>Collections (4R-B):</strong> named dossiers for writing/reports. Add literature members →
+                export <strong>APA 7th</strong> reference list (ASA/CSSA/SSSA desk default). Not product engines.
+              </Alert>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
+                <TextField
+                  size="small"
+                  label="New code"
+                  value={colNewCode}
+                  onChange={(e) => setColNewCode(e.target.value)}
+                  placeholder="qa-tomato-moisture-2026"
+                />
+                <TextField
+                  size="small"
+                  label="New title"
+                  value={colNewTitle}
+                  onChange={(e) => setColNewTitle(e.target.value)}
+                  sx={{ minWidth: 240 }}
+                />
+                <Button
+                  size="small"
+                  variant="contained"
+                  disabled={researchBusy}
+                  onClick={() => void createCollection()}
+                >
+                  Create collection
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => void loadCollections()}>
+                  Refresh
+                </Button>
+              </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: { xs: "1fr", md: "minmax(260px, 1fr) 1.4fr" },
+                  alignItems: "start",
+                }}
+              >
+                <Card variant="outlined">
+                  <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                    <List dense disablePadding sx={{ maxHeight: 520, overflow: "auto" }}>
+                      {collections.length === 0 ? (
+                        <Box sx={{ p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            No collections yet. Create one, then add literature from the Literature tab.
+                          </Typography>
+                        </Box>
+                      ) : (
+                        collections.map((c) => (
+                          <ListItemButton
+                            key={String(c.id)}
+                            selected={colSelectedId === String(c.id)}
+                            onClick={() => setColSelectedId(String(c.id))}
+                            sx={{ borderBottom: 1, borderColor: "divider" }}
+                          >
+                            <ListItemText
+                              primary={
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {String(c.title)}
+                                </Typography>
+                              }
+                              secondary={`${String(c.code)} · ${String(c.status)} · ${String(c.memberCount ?? 0)} members`}
+                            />
+                          </ListItemButton>
+                        ))
+                      )}
+                    </List>
+                  </CardContent>
+                </Card>
+                <Card variant="outlined">
+                  <CardContent>
+                    {!colDetail ? (
+                      <Typography color="text.secondary" variant="body2">
+                        Select a collection to manage members and copy APA bibliography.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1.5}>
+                        <Typography variant="h6">{String(colDetail.title)}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          <code>{String(colDetail.code)}</code> · {String(colDetail.status)}
+                        </Typography>
+                        {Boolean(colDetail.summary) && (
+                          <Typography variant="body2">{String(colDetail.summary)}</Typography>
+                        )}
+                        <Divider />
+                        <Typography variant="subtitle2">Members</Typography>
+                        {((colDetail.members as Array<Record<string, unknown>>) || []).length === 0 ? (
+                          <Typography variant="body2" color="text.secondary">
+                            Empty — open Literature, select a source, choose this collection, Add to collection.
+                          </Typography>
+                        ) : (
+                          ((colDetail.members as Array<Record<string, unknown>>) || []).map((m) => {
+                            const lit = m.literature as Record<string, unknown> | null;
+                            return (
+                              <Card key={String(m.id)} variant="outlined">
+                                <CardContent sx={{ py: 1, "&:last-child": { pb: 1 } }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {lit ? String(lit.title) : String(m.memberKind)}
+                                  </Typography>
+                                  {lit && (
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                      {String(lit.year ?? "n.d.")} · {String(lit.reviewState)} ·{" "}
+                                      {String(lit.code)}
+                                    </Typography>
+                                  )}
+                                  <Button
+                                    size="small"
+                                    color="error"
+                                    disabled={researchBusy}
+                                    onClick={() =>
+                                      void removeCollectionMember(String(colDetail.id), String(m.id))
+                                    }
+                                  >
+                                    Remove
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            );
+                          })
+                        )}
+                        <Divider />
+                        <Typography variant="subtitle2">APA 7th bibliography</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Desk default ASA/CSSA/SSSA · APA 7th. Paste into manuscript as unnumbered hanging-indent
+                          list.
+                        </Typography>
+                        <TextField
+                          multiline
+                          minRows={6}
+                          fullWidth
+                          value={colBiblio}
+                          InputProps={{ readOnly: true }}
+                          sx={{ fontFamily: "Georgia, serif", "& textarea": { fontSize: 13 } }}
+                        />
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={!colBiblio}
+                          onClick={() => {
+                            void navigator.clipboard?.writeText(colBiblio);
+                            setInfo("Bibliography copied to clipboard.");
+                          }}
+                        >
+                          Copy bibliography
+                        </Button>
                       </Stack>
                     )}
                   </CardContent>

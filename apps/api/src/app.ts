@@ -28,6 +28,7 @@ import { intakeRoutes } from "./routes/intake.js";
 import { productHandoffRoutes } from "./routes/productHandoff.js";
 import { researchRoutes } from "./routes/research.js";
 import { literatureRoutes } from "./routes/literature.js";
+import { collectionRoutes } from "./routes/collections.js";
 import { RssScheduler } from "./scheduler.js";
 
 export interface AppDependencies {
@@ -91,6 +92,7 @@ export function buildApp(dependencies: AppDependencies = {}) {
   app.register(productHandoffRoutes(prisma), { prefix: "/api" });
   app.register(researchRoutes(prisma), { prefix: "/api" });
   app.register(literatureRoutes(prisma), { prefix: "/api" });
+  app.register(collectionRoutes(prisma), { prefix: "/api" });
   app.addHook("onReady", async () => {
     // Ensure artifact root + .metadata exist before any intake seal/promote.
     try {
