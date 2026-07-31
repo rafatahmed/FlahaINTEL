@@ -14,6 +14,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { AppError } from "../errors.js";
 import { listJoAmmanCommodityMap } from "../market/joAmmanCommodityMap.js";
+import { buildMarketAnalystPacks } from "../market/marketAnalystPack.js";
 import { MarketService } from "../market/service.js";
 import { MarketValidationError } from "../market/validation.js";
 import { assertPermission, resolveProductActor } from "../product/auth.js";
@@ -70,6 +71,31 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           countryCode: q.countryCode,
         });
         return report;
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Gate 4M-E: rebuild MARKET_CONTEXT analyst packs from live observations. */
+    app.post("/markets/analyst-packs/rebuild", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "submit");
+        const body = (request.body || {}) as { channelCode?: string; topCommodities?: number };
+        const result = await buildMarketAnalystPacks(prisma, {
+          tenantId: actor.tenantId,
+          ownerUserId: actor.userId,
+          channelCode: body.channelCode,
+          topCommodities: body.topCommodities,
+        });
+        return {
+          ...result,
+          governance: {
+            packsAreDraftUntilHumanReview: true,
+            doesNotAutoUpdateFlahaSOIL: true,
+            doesNotAutoAdviseFarmers: true,
+          },
+        };
       } catch (e) {
         mapError(e);
       }

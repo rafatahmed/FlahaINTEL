@@ -15,6 +15,7 @@
     "markets:seed-channels": "npm run markets:seed-channels --workspace=@flaha-intel/api",
     "markets:harvest": "npm run markets:harvest --workspace=@flaha-intel/api --",
     "markets:retention": "npm run markets:retention --workspace=@flaha-intel/api --",
+    "markets:build-analyst-packs": "npm run markets:build-analyst-packs --workspace=@flaha-intel/api --",
     "knowledge:seed-threshold-bank": "npm run knowledge:seed-threshold-bank --workspace=@flaha-intel/api",
     "knowledge:seed-comparison-cases": "npm run knowledge:seed-comparison-cases --workspace=@flaha-intel/api",
     "governance:backfill-sources": "npm run governance:backfill-sources --workspace=@flaha-intel/api",

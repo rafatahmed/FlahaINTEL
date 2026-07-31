@@ -24,6 +24,7 @@
     "markets:backfill-jo-names": "node --env-file=../../.env --import tsx src/market/backfillJoAmmanNames.ts",
     "markets:harvest": "node --env-file=../../.env --import tsx src/market/harvest/cli.ts",
     "markets:retention": "node --env-file=../../.env --import tsx src/market/retentionReport.ts",
+    "markets:build-analyst-packs": "node --env-file=../../.env --import tsx src/market/buildAnalystPacksCli.ts",
     "knowledge:seed-samples": "node --env-file=../../.env --import tsx src/knowledgePack/seedSamples.ts",
     "knowledge:seed-threshold-bank": "node --env-file=../../.env --import tsx src/knowledgePack/seedThresholdBank.ts",
     "knowledge:seed-comparison-cases": "node --env-file=../../.env --import tsx src/knowledgePack/seedComparisonCases.ts",

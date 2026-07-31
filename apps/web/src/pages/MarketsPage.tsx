@@ -13,6 +13,7 @@
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -133,6 +134,9 @@ export function MarketsPage() {
     summary: Record<string, number>;
     channels: Array<Record<string, unknown>>;
   } | null>(null);
+  const [analystBusy, setAnalystBusy] = useState(false);
+  const [analystMsg, setAnalystMsg] = useState("");
+  const [analystPacks, setAnalystPacks] = useState<Array<Record<string, unknown>>>([]);
 
   const layout = channelLayout(channelCode);
 
@@ -152,6 +156,12 @@ export function MarketsPage() {
           setRetention(await api.marketRetention({ targetDays: 365 }));
         } catch {
           setRetention(null);
+        }
+        try {
+          const kp = await api.knowledgePacks({ theme: "MARKET_CONTEXT" });
+          setAnalystPacks((kp.packs || []) as Array<Record<string, unknown>>);
+        } catch {
+          setAnalystPacks([]);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load channels.");
@@ -332,6 +342,60 @@ export function MarketsPage() {
           ))}
         </Box>
       )}
+
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Market analyst packs (4M-E)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Rebuild governed MARKET_CONTEXT packs from live prices (freshness, top commodities, cadence, retention).
+            Packs are DRAFT until human review on Knowledge. Never auto-advises farmers or writes FlahaSOIL.
+          </Typography>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={analystBusy}
+            onClick={() => {
+              void (async () => {
+                setAnalystBusy(true);
+                setAnalystMsg("");
+                try {
+                  const res = await api.rebuildMarketAnalystPacks(
+                    channelCode ? { channelCode } : {},
+                  );
+                  setAnalystMsg(
+                    `Built ${res.built} pack(s). Open Knowledge → theme MARKET_CONTEXT to review/approve.`,
+                  );
+                  const kp = await api.knowledgePacks({ theme: "MARKET_CONTEXT" });
+                  setAnalystPacks((kp.packs || []) as Array<Record<string, unknown>>);
+                } catch (e) {
+                  setAnalystMsg(e instanceof Error ? e.message : "Rebuild failed.");
+                } finally {
+                  setAnalystBusy(false);
+                }
+              })();
+            }}
+          >
+            {analystBusy ? "Building…" : channelCode ? `Rebuild pack for ${channelCode}` : "Rebuild all analyst packs"}
+          </Button>
+          {analystMsg && (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              {analystMsg}
+            </Typography>
+          )}
+          {analystPacks.length > 0 && (
+            <Box sx={{ mt: 1.5 }}>
+              {analystPacks.map((p) => (
+                <Typography key={String(p.id)} variant="body2">
+                  <Chip size="small" label={String(p.reviewState || "DRAFT")} sx={{ mr: 1 }} />
+                  {String(p.code)} — {String(p.title)}
+                </Typography>
+              ))}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
 
       {retention && (
         <Card>

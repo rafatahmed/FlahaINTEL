@@ -287,6 +287,13 @@ export const api = {
       channels: Array<Record<string, unknown>>;
       schedule?: Record<string, string>;
     }>(`/api/markets/retention${query(filters)}`),
+  rebuildMarketAnalystPacks: (body: { channelCode?: string; topCommodities?: number } = {}) =>
+    request<{
+      gate: string;
+      built: number;
+      packs: Array<Record<string, unknown>>;
+      governance: Record<string, unknown>;
+    }>("/api/markets/analyst-packs/rebuild", { method: "POST", body: JSON.stringify(body) }),
   joAmmanCommodityMap: () =>
     request<{ channelCode: string; count: number; entries: Array<{ ar: string; en: string; code: string }> }>(
       "/api/markets/commodity-map/jo-amman",

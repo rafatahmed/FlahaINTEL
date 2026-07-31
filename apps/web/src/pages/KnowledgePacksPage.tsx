@@ -485,6 +485,7 @@ export function KnowledgePacksPage() {
             <MenuItem value="">All</MenuItem>
             <MenuItem value="SOIL">Soil</MenuItem>
             <MenuItem value="IRRIGATION">Irrigation</MenuItem>
+            <MenuItem value="MARKET_CONTEXT">Market context</MenuItem>
             <MenuItem value="NUTRITION">Nutrition</MenuItem>
             <MenuItem value="OTHER">Other</MenuItem>
           </Select>
