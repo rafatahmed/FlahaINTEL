@@ -52,7 +52,13 @@ export function JobsPage() {
   return (
     <Stack spacing={2}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="h5">Jobs</Typography>
+        <Box>
+          <Typography variant="h5">Jobs</Typography>
+          <Typography variant="body2" color="text.secondary">
+            <strong>Muscles</strong> — durable pipeline stages (acquire / extract / normalize). Market harvest and
+            historical import may not always appear here; check Submit intakes and Markets for those.
+          </Typography>
+        </Box>
         <Button onClick={() => void load()}>Refresh</Button>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}

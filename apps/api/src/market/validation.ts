@@ -94,8 +94,17 @@ export function requireEvidence(input: { evidenceUrl?: string | null; evidenceAr
     } catch {
       throw new MarketValidationError("INVALID_EVIDENCE_URL", "evidenceUrl must be a valid absolute URL.");
     }
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-      throw new MarketValidationError("INVALID_EVIDENCE_URL", "evidenceUrl must be http(s).");
+    // Live harvest: http(s). Submit spine: intake:. Historical archive CLI: file:.
+    const schemeOk =
+      parsed.protocol === "https:" ||
+      parsed.protocol === "http:" ||
+      parsed.protocol === "intake:" ||
+      parsed.protocol === "file:";
+    if (!schemeOk) {
+      throw new MarketValidationError(
+        "INVALID_EVIDENCE_URL",
+        "evidenceUrl must be http(s), intake:, or file:.",
+      );
     }
   }
 }

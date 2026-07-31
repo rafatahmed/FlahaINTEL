@@ -9,7 +9,7 @@ Defines repository-wide operating instructions for automated coding agents.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-30
+Last modified: 2026-07-31
 -->
 
 # FlahaINTEL Agent Instructions
@@ -39,6 +39,26 @@ Metaphor:
 
 Do not expand beyond the currently approved milestone unless explicitly instructed.  
 When a new milestone is approved, preserve the verified foundation, map the work to the final product lock (O1–O5 / Backbone|Eyes|Muscles|Brain), and update this file.
+
+## Sister system: Flaha Knowledge Platform (LOCKED posture)
+
+**Decision label:** `INTEL-primary · FKP-frozen-thin · MCP-on-named-consumer`  
+**Owner-approved operate lock:** `docs/program/flaha-system-vision-and-operate-lock.md`  
+**Binding matrix:** `docs/program/flaha-intel-vs-knowledge-platform-matrix.md`
+
+| System | Owns | Does not own |
+|--------|------|----------------|
+| **FlahaINTEL** (this repo) **PRIMARY** | Ops intelligence: markets, RSS/ingest, jobs, artifacts, knowledge **packs**, handoff envelopes, PA UI | Long-form methodology CMS; Flaha-wide MCP host |
+| **flaha-knowledge-platform** **FROZEN-THIN** | Governed documents (policy/standard/methodology), registry/inventory; **future** MCP | Markets, packs, ArtifactStore, product engine writes; peer feature roadmaps |
+
+**Operate rules for agents in this repo:**
+
+1. Default all new PA value work **here** (INTEL) unless the user explicitly names FKP thin work.  
+2. Do not re-home full methodologies as a second wiki; optional `fkpDocId` when citing elevated standards.  
+3. Never auto-apply into FlahaSOIL, FlahaCALC, or FlahaFAST (three separate products: soil · irrigation/weather · nutrients). INTEL must work if FKP is down.  
+4. Do not implement Flaha-wide science MCP in this repo.  
+5. Priority order: operate stack → 4I-B handoff / real pack use → market series depth → only then extended eyes.  
+6. **Submit / intake:** land once → classify → promote (`docs/program/evidence-intake-spine.md`). Do not add parallel per-model upload silos; extend promoters under `apps/api/src/intake/`.
 
 ## Source file ownership headers
 

@@ -287,7 +287,7 @@
       "code": "irrigation-water-saving-notes-v1",
       "theme": "IRRIGATION",
       "title": "Irrigation and water-saving context (sample)",
-      "summary": "Universal irrigation practice notes for PA advice paths (FlahaCALC / FlahaFAST later). Place tags only where climate/rules differ.",
+      "summary": "Universal irrigation practice notes for PA advice paths — primary handoff product FlahaCALC (ETc/Kc/efficiency). Place tags only where climate/rules differ.",
       "language": "en",
       "cropTags": [
         "tomato",
@@ -337,16 +337,17 @@
           "sourceUrl": "https://example.invalid/literature/irrigation-ec-note"
         },
         {
-          "title": "Equation note placeholder for FlahaCALC/FAST",
+          "title": "Equation note for FlahaCALC (irrigation only)",
           "extractKind": "EQUATION",
-          "bodyText": "ETc = Kc × ETo backbone for irrigation advice. Pack stores identity only.",
+          "bodyText": "ETc = Kc × ETo backbone for irrigation / weather advice (FlahaCALC). Not a FlahaFAST nutrient equation.",
           "structured": {
             "equationId": "ETc_Kc_ETo",
             "form": "ETc = Kc * ETo",
             "productHandoff": [
-              "FlahaCALC",
-              "FlahaFAST"
+              "FlahaCALC"
             ],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
             "doesNotAutoUpdateFlahaSOIL": true
           }
         }

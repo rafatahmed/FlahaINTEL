@@ -34,6 +34,11 @@ export class FilesystemArtifactStore {
     const rootStats = await stat(this.root);
     if (!rootStats.isDirectory()) throw new ArtifactStateError("Artifact root is not a directory.");
     await assertNoLinkedComponents(this.root, this.root);
+    // FilesystemArtifactRepository needs .metadata; store.initialize is the single bootstrap call for API/CLIs.
+    const repo = this.repository as { initialize?: () => Promise<void> };
+    if (typeof repo.initialize === "function") {
+      await repo.initialize();
+    }
     this.initialized = true;
   }
 

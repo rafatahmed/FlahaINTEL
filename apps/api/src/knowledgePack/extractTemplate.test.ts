@@ -3,8 +3,8 @@
  * Precision Agriculture Division
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
- * Title: Extract Template Tests (4S-B)
- * Introduction: FlahaSOIL key alignment, test levels, comparison notes, human review.
+ * Title: Extract Template Tests (4S-B / 4I)
+ * Introduction: FlahaSOIL and FlahaCALC/FAST key alignment, comparison notes, human review.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
@@ -110,5 +110,39 @@ describe("extract template 4S-B", () => {
 
   it("forbids auto-style jump DRAFT → APPROVED", () => {
     expect(() => assertPackReviewTransition("DRAFT", "APPROVED")).toThrow(ExtractTemplateError);
+  });
+
+  it("accepts FlahaCALC kcMid THRESHOLD via 4I catalog", () => {
+    const r = validateExtractItem({
+      title: "Tomato mid Kc",
+      extractKind: "THRESHOLD",
+      structured: {
+        parameter: "kc_mid",
+        operator: "=",
+        value: 1.15,
+        doesNotAutoUpdateFlahaSOIL: true,
+      },
+    });
+    expect(r.structured.parameter).toBe("kcMid");
+    expect(r.structured.parameterCatalog).toBe("FlahaCALC_FAST");
+    expect(r.structured.unit).toBe("1");
+    expect(r.structured.parameterDomain).toBe("crop_kc");
+  });
+
+  it("accepts FlahaFAST solutionEc THRESHOLD via 4I catalog", () => {
+    const r = validateExtractItem({
+      title: "Solution EC max",
+      extractKind: "THRESHOLD",
+      structured: {
+        parameter: "solutionEc",
+        unit: "dS/m",
+        operator: "<=",
+        value: 3,
+        doesNotAutoUpdateFlahaSOIL: true,
+      },
+    });
+    expect(r.structured.parameter).toBe("solutionEc");
+    expect(r.structured.parameterCatalog).toBe("FlahaCALC_FAST");
+    expect(r.structured.parameterDomain).toBe("water_quality_fast");
   });
 });

@@ -1,0 +1,272 @@
+{
+  "principle": "Two separate products: IRRIGATION theme → FlahaCALC (irrigation & weather); NUTRITION theme → FlahaFAST (nutrient management). Never merge into one product identity.",
+  "handoffRule": "Each pack targets one primary product. Human handoff only. Never auto-update FlahaCALC, FlahaFAST, or FlahaSOIL engines.",
+  "recon": "docs/knowledge/flahacalc-flahafast-recon.md",
+  "packs": [
+    {
+      "code": "irrigation-calc-kc-etc-backbone-v1",
+      "theme": "IRRIGATION",
+      "title": "FlahaCALC irrigation backbone — Kc × ETo (sample)",
+      "summary": "Equation and catalogue-aligned notes for ETc and net/gross irrigation. Values are illustrative literature / FAO-56 table identity — not live Calc DB writes.",
+      "language": "en",
+      "cropTags": ["tomato", "wheat", "date-palm", "lettuce"],
+      "regionTags": ["QA", "JO", "global"],
+      "climateTags": ["arid", "semi-arid", "greenhouse"],
+      "reviewStateHint": "DRAFT",
+      "items": [
+        {
+          "title": "ETc = Kc × ETo",
+          "extractKind": "EQUATION",
+          "bodyText": "Crop water demand backbone used by FlahaCalc irrigation requirement path.",
+          "structured": {
+            "equationId": "ETc_Kc_ETo",
+            "form": "ETc = Kc * ETo",
+            "parameter": "equationId",
+            "productHandoff": ["FlahaCALC"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Net irrigation after effective rainfall",
+          "extractKind": "EQUATION",
+          "bodyText": "Net depth = max(0, ETc − Pe). Quick estimate may use Pe ≈ 0.8×P; project water balance uses storage-limited Pe.",
+          "structured": {
+            "equationId": "Net_I_ETc_Pe",
+            "form": "netIrrigationMm = max(0, etcMm - effectiveRainfallMm)",
+            "productHandoff": ["FlahaCALC"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Gross irrigation and application efficiency",
+          "extractKind": "EQUATION",
+          "bodyText": "Gross = Net / Ea. Catalogue system efficiencies (e.g. drip 0.90) are defaults, not verified field performance.",
+          "structured": {
+            "equationId": "Gross_I_Net_Ea",
+            "form": "grossIrrigationMm = netIrrigationMm / applicationEfficiency",
+            "productHandoff": ["FlahaCALC"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Tomato mid-season Kc (FAO-56 table identity)",
+          "extractKind": "THRESHOLD",
+          "bodyText": "Illustrative identity match to FlahaCalc cropDatabase Tomato kc_mid = 1.15 (FAO-56 Table 12). Literature reviews may differ by climate and management.",
+          "structured": {
+            "parameter": "kcMid",
+            "unit": "1",
+            "operator": "=",
+            "value": 1.15,
+            "crop": "Tomato",
+            "cropName": "Tomato",
+            "context": "FAO-56 Table 12 identity for Calc crop table comparison",
+            "confidence": "literature-note",
+            "productHandoff": ["FlahaCALC"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Drip catalogue efficiency (Calc systems table)",
+          "extractKind": "THRESHOLD",
+          "bodyText": "FlahaCalc catalogue lists Drip Irrigation efficiency 0.90. Field uniformity checks still required (see water-saving METHOD notes).",
+          "structured": {
+            "parameter": "applicationEfficiency",
+            "unit": "1",
+            "operator": "=",
+            "value": 0.9,
+            "context": "catalogue Drip Irrigation — not verified field Ea",
+            "irrigationSystemName": "Drip Irrigation",
+            "confidence": "product-catalogue-note",
+            "productHandoff": ["FlahaCALC"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Runtime requires verified application rate",
+          "extractKind": "METHOD",
+          "bodyText": "FlahaCalc only treats runtime as operational when verifiedApplicationRateMmPerH is set; catalogue rates are illustrative only.",
+          "structured": {
+            "method": "verified_application_rate_for_runtime",
+            "parameter": "applicationRateMmPerH",
+            "productHandoff": ["FlahaCALC"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Do not merge Calc FAO soil table with FlahaSOIL PAW silently",
+          "extractKind": "NOTE",
+          "bodyText": "Calc water balance defaults use FAO-56 Table 19 θFC/θWP by USDA texture; FlahaSOIL may estimate retention via Saxton–Rawls. Comparison notes only (4S-D).",
+          "structured": {
+            "parameter": "fieldCapacity",
+            "topic": "model_identity_caution",
+            "productHandoff": ["FlahaCALC", "FlahaSOIL"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Reference — FAO Irrigation & Drainage Paper 56",
+          "extractKind": "REFERENCE",
+          "bodyText": "Kc, stage lengths, depletion fraction p, and soil water characteristics tables underpin FlahaCalc crop and soil parameter files.",
+          "structured": {
+            "citation": "FAO Irrigation and Drainage Paper 56",
+            "productHandoff": ["FlahaCALC"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        }
+      ]
+    },
+    {
+      "code": "nutrition-fast-water-targets-v1",
+      "theme": "NUTRITION",
+      "title": "FlahaFAST water quality and nutrient target context (sample)",
+      "summary": "Hydroponic EC/pH and element-target identities for FlahaFast. Illustrative literature-style notes — never auto-write salt matrices or formulations.",
+      "language": "en",
+      "cropTags": ["tomato", "lettuce", "leafy-greens", "fruiting-vegetables"],
+      "regionTags": ["QA", "JO", "global"],
+      "climateTags": ["greenhouse", "hydroponic"],
+      "reviewStateHint": "DRAFT",
+      "items": [
+        {
+          "title": "Fruiting vegetables solution EC band (product-style)",
+          "extractKind": "THRESHOLD",
+          "bodyText": "FlahaFast CropRecommendationService lists Fruiting vegetables EC min/optimal/max ≈ 1.5 / 2.0 / 3.0. Treat as product-default context, not a global law.",
+          "structured": {
+            "parameter": "solutionEc",
+            "unit": "dS/m",
+            "operator": "<=",
+            "value": 3.0,
+            "cropTypeBucket": "Fruiting vegetables",
+            "context": "Fast CROP_EC_RANGES max — human review before any product change",
+            "confidence": "product-default-note",
+            "productHandoff": ["FlahaFAST"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Leafy greens solution pH band (product-style)",
+          "extractKind": "THRESHOLD",
+          "bodyText": "Fast default Leafy greens pH range ≈ 5.8–6.5 (optimal 6.0).",
+          "structured": {
+            "parameter": "solutionPh",
+            "unit": "pH",
+            "operator": "<=",
+            "value": 6.5,
+            "cropTypeBucket": "Leafy greens",
+            "context": "Fast CROP_PH_RANGES max",
+            "confidence": "product-default-note",
+            "productHandoff": ["FlahaFAST"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Tomato vegetative K target identity (illustrative)",
+          "extractKind": "THRESHOLD",
+          "bodyText": "Example nutrient identity: fruiting crop vegetative K often high priority in Fast preferences. Numeric targets must be paired with growth stage and unit ppm.",
+          "structured": {
+            "parameter": "targetElementPpm",
+            "elementSymbol": "K",
+            "unit": "ppm",
+            "operator": ">=",
+            "value": 200,
+            "crop": "Tomatoes",
+            "growthStageNutrient": "vegetative",
+            "cropTypeBucket": "Fruiting vegetables",
+            "context": "illustrative — verify against Fast profile before product work",
+            "confidence": "literature-note",
+            "productHandoff": ["FlahaFAST"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Source water ions subtract from fertilizer targets",
+          "extractKind": "METHOD",
+          "bodyText": "FlahaFast water profiles carry element concentrations (ppm or mmol/L) plus EC/pH. Formulation math must account for water contribution — do not ignore source water when comparing literature recipes.",
+          "structured": {
+            "method": "water_profile_contribution",
+            "parameter": "waterElementPpm",
+            "productHandoff": ["FlahaFAST"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "HydroBuddy matrix / DOF note",
+          "extractKind": "EQUATION",
+          "bodyText": "Stoichiometry uses element–salt matrix solve (HydroBuddy lineage). Default DOF element is often S — pack stores identity only.",
+          "structured": {
+            "equationId": "HydroBuddy_stoichiometry_matrix",
+            "form": "solve salt masses for target element vector (DOF element excluded)",
+            "productHandoff": ["FlahaFAST"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Irrigation water EC vs soil ECe",
+          "extractKind": "NOTE",
+          "bodyText": "solutionEc / irrigationWaterEcDsM is not soil ECe (FlahaSOIL). Never auto-map without method and medium context.",
+          "structured": {
+            "parameter": "irrigationWaterEcDsM",
+            "topic": "medium_method_caution",
+            "productHandoff": ["FlahaFAST"],
+            "crossProductCaution": ["FlahaSOIL soil ECe is a different medium — compare only with method context"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        },
+        {
+          "title": "Reference — HydroBuddy technical lineage",
+          "extractKind": "REFERENCE",
+          "bodyText": "FlahaFast calculation engine documents HydroBuddy Pascal algorithm compatibility for matrix construction and unit conversion (kg per m³ → g).",
+          "structured": {
+            "citation": "FlahaFast docs/HYDROBUDDY_TECHNICAL_REFERENCE.md",
+            "productHandoff": ["FlahaFAST"],
+            "doesNotAutoUpdateFlahaCALC": true,
+            "doesNotAutoUpdateFlahaFAST": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "autoApplyBlocked": true
+          }
+        }
+      ]
+    }
+  ]
+}

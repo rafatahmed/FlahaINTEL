@@ -51,6 +51,14 @@ describe("market validation (4M-0)", () => {
     expect(() => requireEvidence({})).toThrow(/EVIDENCE_REQUIRED|evidence/);
     expect(() => requireEvidence({ evidenceUrl: "https://www.moci.gov.qa/en/example" })).not.toThrow();
     expect(() => requireEvidence({ evidenceArtifactId: "00000000-0000-4000-8000-000000000001" })).not.toThrow();
+    expect(() =>
+      requireEvidence({
+        evidenceUrl: "intake://83025a30-6283-4d9b-a1b6-395f95b7105e/file.pdf",
+        evidenceArtifactId: "00000000-0000-4000-8000-000000000001",
+      }),
+    ).not.toThrow();
+    expect(() => requireEvidence({ evidenceUrl: "file:///C:/archive/mahaseel.pdf" })).not.toThrow();
+    expect(() => requireEvidence({ evidenceUrl: "ftp://bad.example/x" })).toThrow(/INVALID_EVIDENCE|http/);
   });
 
   it("requires a non-negative price", () => {

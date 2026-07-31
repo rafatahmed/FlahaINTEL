@@ -23,6 +23,9 @@
     "markets:seed-channels": "node --env-file=../../.env --import tsx src/market/seedChannelsFromRegistry.ts",
     "markets:backfill-jo-names": "node --env-file=../../.env --import tsx src/market/backfillJoAmmanNames.ts",
     "markets:harvest": "node --env-file=../../.env --import tsx src/market/harvest/cli.ts",
+    "ops:artifact-hygiene": "node --env-file=../../.env --import tsx src/intake/artifactHygieneCli.ts",
+    "markets:import-mahaseel-pdfs": "node --env-file=../../.env --import tsx src/market/importMahaseelPdfs.ts",
+    "markets:import-jo-amman-excel": "node --env-file=../../.env --import tsx src/market/importJoAmmanExcel.ts",
     "markets:retention": "node --env-file=../../.env --import tsx src/market/retentionReport.ts",
     "markets:build-analyst-packs": "node --env-file=../../.env --import tsx src/market/buildAnalystPacksCli.ts",
     "knowledge:seed-samples": "node --env-file=../../.env --import tsx src/knowledgePack/seedSamples.ts",
@@ -56,7 +59,8 @@
     "@prisma/client": "6.19.0",
     "fastify": "5.10.0",
     "pdf-parse": "1.1.1",
-    "rss-parser": "3.13.0"
+    "rss-parser": "3.13.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "22.15.30",

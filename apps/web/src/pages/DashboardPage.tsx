@@ -4,27 +4,57 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Operational Dashboard
- * Introduction: Real backend dashboard for submissions, jobs, governance, and readiness.
+ * Introduction: Whole-intelligence scorecard — eyes, muscles, backbone, brain, product feeds.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-07-31
  */
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardActionArea, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { BrandedState } from "../components/BrandedState";
+import type { NavKey } from "../layout/AppShell";
 
-export function DashboardPage() {
+export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [intel, setIntel] = useState<{
+    pendingGovernance: number;
+    packsReady: number;
+    pricesPending: number;
+    soilCasesReady: number;
+    intakesOpen: number;
+    marketChannels: number;
+  } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void (async () => {
       try {
-        setData(await api.dashboard());
+        const dash = await api.dashboard();
+        setData(dash);
         setError("");
+        // Parallel intelligence counters (best-effort)
+        const [packs, prices, soil, intakes, channels] = await Promise.all([
+          api.knowledgePacks({ reviewState: "READY_FOR_REVIEW" }).catch(() => ({ packs: [] })),
+          api.marketReviewSummary({}).catch(() => ({ summary: {} as Record<string, number> })),
+          api.flahaSoilComparisons({ status: "READY_FOR_REVIEW" }).catch(() => ({ cases: [] })),
+          api.intakeList({ limit: 50 }).catch(() => ({ intakes: [] })),
+          api.marketChannels().catch(() => ({ channels: [] })),
+        ]);
+        const openIntakes = ((intakes.intakes || []) as Array<Record<string, unknown>>).filter((i) =>
+          ["LANDED", "CLASSIFIED", "FAILED"].includes(String(i.status)),
+        ).length;
+        const counts = (dash.counts || {}) as { pendingGovernance?: number };
+        setIntel({
+          pendingGovernance: counts.pendingGovernance ?? 0,
+          packsReady: (packs.packs || []).length,
+          pricesPending: prices.summary?.pendingReview ?? 0,
+          soilCasesReady: (soil.cases || []).length,
+          intakesOpen: openIntakes,
+          marketChannels: (channels.channels || []).length,
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Dashboard failed.");
       } finally {
@@ -37,7 +67,11 @@ export function DashboardPage() {
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!data) return <BrandedState label="No dashboard data." />;
 
-  const counts = (data.counts || {}) as { pendingGovernance?: number; promotionEligible?: number; jobStates?: Record<string, number> };
+  const counts = (data.counts || {}) as {
+    pendingGovernance?: number;
+    promotionEligible?: number;
+    jobStates?: Record<string, number>;
+  };
   const submissions = (data.recentSubmissions || []) as Array<Record<string, unknown>>;
   const jobs = (data.recentJobs || []) as Array<Record<string, unknown>>;
   const failures = (data.recentFailures || []) as Array<Record<string, unknown>>;
@@ -51,9 +85,87 @@ export function DashboardPage() {
   );
   const notConfigured = (readiness?.components || []).filter((c) => c.state === "NOT_CONFIGURED");
 
+  const go = (key: NavKey) => props.onNavigate?.(key);
+
+  const mapCards: Array<{
+    layer: string;
+    title: string;
+    purpose: string;
+    nav: NavKey;
+    metric?: string | number;
+  }> = [
+    {
+      layer: "Eyes",
+      title: "Sources",
+      purpose: "Recurring RSS we watch on a schedule",
+      nav: "sources",
+      metric: sources.length,
+    },
+    {
+      layer: "Eyes",
+      title: "Submit",
+      purpose: "Human intake: land → classify → promote",
+      nav: "submit",
+      metric: intel?.intakesOpen ?? "—",
+    },
+    {
+      layer: "Eyes",
+      title: "Markets",
+      purpose: "Official prices, trends, retention",
+      nav: "markets",
+      metric: intel?.marketChannels ?? "—",
+    },
+    {
+      layer: "Muscles",
+      title: "Jobs",
+      purpose: "Pipeline execution (acquire / extract / normalize)",
+      nav: "jobs",
+      metric: counts.jobStates?.FAILED ?? 0,
+    },
+    {
+      layer: "Backbone",
+      title: "Artifacts",
+      purpose: "Immutable evidence blobs (proof)",
+      nav: "artifacts",
+    },
+    {
+      layer: "Structure",
+      title: "Content",
+      purpose: "Normalized candidates queue",
+      nav: "content",
+      metric: intel?.pendingGovernance ?? counts.pendingGovernance ?? 0,
+    },
+    {
+      layer: "Brain",
+      title: "Review inbox",
+      purpose: "Unified human decisions (all queues)",
+      nav: "review",
+      metric:
+        (intel?.pendingGovernance ?? 0) +
+        (intel?.packsReady ?? 0) +
+        (intel?.pricesPending ?? 0) +
+        (intel?.soilCasesReady ?? 0) +
+        (intel?.intakesOpen ?? 0),
+    },
+    {
+      layer: "Feeds",
+      title: "Knowledge",
+      purpose: "Packs for SOIL · CALC · FAST · Markets",
+      nav: "knowledge",
+      metric: intel?.packsReady ?? "—",
+    },
+  ];
+
   return (
     <Stack spacing={2}>
-      <Typography variant="h5">Dashboard</Typography>
+      <Box>
+        <Typography variant="h5">Dashboard</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Whole FlahaINTEL intelligence: Eyes → Muscles → Backbone → Brain → product feeds (FlahaSOIL · FlahaCALC
+          irrigation/weather · FlahaFAST nutrients — separate products).
+        </Typography>
+      </Box>
+
       {readiness?.overall && readiness.overall !== "READY" && (
         <Alert severity={readiness.overall === "UNAVAILABLE" ? "error" : "warning"}>
           <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
@@ -67,61 +179,154 @@ export function DashboardPage() {
           ))}
           {readiness.overall === "UNAVAILABLE" && badComponents.some((c) => c.component === "DiskCapacity") && (
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Free space on the API disk is below the block threshold (default 5%). Free disk on C: (empty Recycle Bin,
-              remove large Downloads/temp, clear npm cache), then refresh. See Settings → System readiness.
+              Free space on the API disk is below the block threshold. Free disk on C:, then refresh.
             </Typography>
           )}
           {notConfigured.some((c) => c.component === "WorkerLoops") && (
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Worker loops are not running (jobs stay READY). Start acquisition/extraction/normalization workers when you need pipeline progress — optional for market harvest/dashboard inspect.
+              Worker loops are not running (pipeline jobs stay READY). Optional for market harvest alone.
             </Typography>
           )}
         </Alert>
       )}
-      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" } }}>
-        {[
-          { label: "Pending governance", value: counts.pendingGovernance ?? 0 },
-          { label: "Promotion eligible", value: counts.promotionEligible ?? 0 },
-          { label: "System", value: readiness?.overall ?? "—" },
-          { label: "Jobs FAILED", value: counts.jobStates?.FAILED ?? 0 },
-        ].map((card) => (
-          <Card key={card.label}><CardContent>
-            <Typography variant="overline" color="text.secondary">{card.label}</Typography>
-            <Typography variant="h5">{String(card.value)}</Typography>
-          </CardContent></Card>
+
+      <Typography variant="overline" color="text.secondary">
+        Intelligence map — click to open
+      </Typography>
+      <Box
+        sx={{
+          display: "grid",
+          gap: 1.5,
+          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
+        }}
+      >
+        {mapCards.map((card) => (
+          <Card key={card.title} variant="outlined" sx={{ height: "100%" }}>
+            <CardActionArea onClick={() => go(card.nav)} sx={{ height: "100%", alignItems: "stretch" }}>
+              <CardContent>
+                <Chip size="small" label={card.layer} sx={{ mb: 0.5 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {card.title}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", minHeight: 36 }}>
+                  {card.purpose}
+                </Typography>
+                {card.metric !== undefined && (
+                  <Typography variant="h5" sx={{ mt: 1, fontWeight: 700 }}>
+                    {String(card.metric)}
+                  </Typography>
+                )}
+              </CardContent>
+            </CardActionArea>
+          </Card>
         ))}
       </Box>
 
-      <Card><CardContent>
-        <Typography variant="h6" gutterBottom>Recent submissions</Typography>
-        {submissions.length === 0 ? <Typography color="text.secondary">No submissions yet.</Typography> : submissions.map((s) => (
-          <Box key={String(s.id)} sx={{ display: "flex", gap: 1, py: 0.5, alignItems: "center" }}>
-            <Chip size="small" label={String(s.overallStatus)} />
-            <Typography variant="body2">{String(s.titlePreview || s.id)}</Typography>
-            <Typography variant="caption" color="text.secondary">{String(s.currentStage)}</Typography>
-          </Box>
+      <Typography variant="overline" color="text.secondary">
+        Attention counters
+      </Typography>
+      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" } }}>
+        {[
+          {
+            label: "Candidates (governance)",
+            value: intel?.pendingGovernance ?? counts.pendingGovernance ?? 0,
+            nav: "review" as NavKey,
+          },
+          { label: "Packs ready for review", value: intel?.packsReady ?? 0, nav: "review" as NavKey },
+          { label: "Prices pending review", value: intel?.pricesPending ?? 0, nav: "review" as NavKey },
+          { label: "Soil cases ready", value: intel?.soilCasesReady ?? 0, nav: "review" as NavKey },
+          { label: "Intakes open/failed", value: intel?.intakesOpen ?? 0, nav: "submit" as NavKey },
+          { label: "Promotion eligible", value: counts.promotionEligible ?? 0, nav: "governance" as NavKey },
+          { label: "System", value: readiness?.overall ?? "—", nav: "settings" as NavKey },
+          { label: "Jobs FAILED", value: counts.jobStates?.FAILED ?? 0, nav: "jobs" as NavKey },
+        ].map((card) => (
+          <Card key={card.label} variant="outlined">
+            <CardActionArea onClick={() => go(card.nav)}>
+              <CardContent>
+                <Typography variant="overline" color="text.secondary">
+                  {card.label}
+                </Typography>
+                <Typography variant="h5">{String(card.value)}</Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
         ))}
-      </CardContent></Card>
+      </Box>
 
-      <Card><CardContent>
-        <Typography variant="h6" gutterBottom>Recent jobs</Typography>
-        {jobs.slice(0, 8).map((j) => (
-          <Box key={String(j.id)} sx={{ display: "flex", gap: 1, py: 0.5, alignItems: "center" }}>
-            <Chip size="small" label={String(j.state)} color={j.state === "SUCCEEDED" ? "success" : j.state === "FAILED" ? "error" : "default"} />
-            <Typography variant="body2">{String(j.requestedCapability)}</Typography>
-            <Typography variant="caption" color="text.secondary">{String(j.jobType)}</Typography>
-          </Box>
-        ))}
-      </CardContent></Card>
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Button variant="contained" size="small" onClick={() => go("review")}>
+          Open Review inbox
+        </Button>
+        <Button variant="outlined" size="small" onClick={() => go("submit")}>
+          Submit evidence
+        </Button>
+        <Button variant="outlined" size="small" onClick={() => go("markets")}>
+          Markets
+        </Button>
+        <Button variant="outlined" size="small" onClick={() => go("knowledge")}>
+          Knowledge
+        </Button>
+      </Box>
 
-      <Card><CardContent>
-        <Typography variant="h6" gutterBottom>Source health</Typography>
-        {sources.map((s) => (
-          <Typography key={String(s.id)} variant="body2">
-            {String(s.name)} · {s.enabled ? "enabled" : "disabled"} · {s.lastError ? `error: ${String(s.lastError).slice(0, 80)}` : "ok"}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Recent submissions
           </Typography>
-        ))}
-      </CardContent></Card>
+          {submissions.length === 0 ? (
+            <Typography color="text.secondary">No submissions yet.</Typography>
+          ) : (
+            submissions.map((s) => (
+              <Box key={String(s.id)} sx={{ display: "flex", gap: 1, py: 0.5, alignItems: "center" }}>
+                <Chip size="small" label={String(s.overallStatus)} />
+                <Typography variant="body2">{String(s.titlePreview || s.id)}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {String(s.currentStage)}
+                </Typography>
+              </Box>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Recent jobs
+          </Typography>
+          {jobs.slice(0, 8).map((j) => (
+            <Box key={String(j.id)} sx={{ display: "flex", gap: 1, py: 0.5, alignItems: "center" }}>
+              <Chip
+                size="small"
+                label={String(j.state)}
+                color={j.state === "SUCCEEDED" ? "success" : j.state === "FAILED" ? "error" : "default"}
+              />
+              <Typography variant="body2">{String(j.requestedCapability)}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {String(j.jobType)}
+              </Typography>
+            </Box>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Source health (RSS eyes)
+          </Typography>
+          {sources.length === 0 ? (
+            <Typography color="text.secondary">No sources loaded.</Typography>
+          ) : (
+            sources.map((s) => (
+              <Typography key={String(s.id)} variant="body2">
+                {String(s.name)} · {s.enabled ? "enabled" : "disabled"} ·{" "}
+                {s.lastError ? `error: ${String(s.lastError).slice(0, 80)}` : "ok"}
+              </Typography>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
       {failures.length > 0 && (
         <Alert severity="warning">

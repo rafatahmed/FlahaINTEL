@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-30
+ * Last modified: 2026-07-31
  */
 import type { PrismaClient, SourceAuthorityType } from "@prisma/client";
 import { Prisma } from "@prisma/client";
@@ -19,6 +19,13 @@ import {
   type ChannelReviewMode,
   type PriceReviewDecisionSource,
 } from "./reviewPolicy.js";
+import {
+  dedupeTrendPointsByDay,
+  marketSeriesKey,
+  marketVariantShortLabel,
+  MAX_TREND_POINTS_PER_SERIES,
+  MAX_TREND_SERIES,
+} from "./seriesIdentity.js";
 import {
   assertFilterSpan,
   channelCode,
@@ -508,13 +515,22 @@ export class MarketService {
     reviewDecisionSource?: PriceReviewDecisionSource;
     limit?: number;
   }) {
-    if (params.from && params.to && params.channelCode) {
-      await this.assertChannelFilterWindow(params.channelCode, params.from, params.to);
-    } else if (params.from && params.to) {
-      // Default worldwide filter max 3 days when channel not specified
-      assertFilterSpan(params.from, params.to, 3);
+    if (params.from && params.to) {
+      if (params.from > params.to) {
+        throw new MarketValidationError("INVALID_DATE_RANGE", "from must be on or before to (YYYY-MM-DD).");
+      }
+      if (params.channelCode) {
+        // Channel-scoped workbench may request wide history (up to 365d).
+        assertFilterSpan(params.from, params.to, 365);
+      } else {
+        assertFilterSpan(params.from, params.to, 3);
+      }
+    } else if (params.from || params.to) {
+      // Partial bounds allowed for workbench; validate format only.
+      if (params.from) parseObservedOn(params.from);
+      if (params.to) parseObservedOn(params.to);
     }
-    const limit = Math.min(Math.max(params.limit ?? 100, 1), 500);
+    const limit = Math.min(Math.max(params.limit ?? 100, 1), 1000);
     return this.db.marketPriceObservation.findMany({
       where: {
         tenantId: params.tenantId,
@@ -572,9 +588,8 @@ export class MarketService {
   }
 
   /**
-   * Simple trend series for one commodity on one channel (for charts / advice).
-   * Returns chronological points; prefers unitPrice, else priceMode, else packPrice.
-   * For Mahaseel, pass grade + cultivationMethod (or packDescription) so series are not mixed.
+   * Single-series trend (one grade/method or pack). Prefer priceTrendBundle for workbench overlays.
+   * Dedupes same-day points; filters by grade+method identity (not pack alone when both set).
    */
   async priceTrend(params: {
     tenantId: string;
@@ -591,16 +606,21 @@ export class MarketService {
     const channel = await this.db.marketChannel.findUnique({ where: { code: params.channelCode } });
     if (!channel) throw new MarketValidationError("CHANNEL_NOT_FOUND", `Unknown channel ${params.channelCode}.`);
     if (params.from && params.to) {
+      if (params.from > params.to) {
+        throw new MarketValidationError("INVALID_DATE_RANGE", "from must be on or before to (YYYY-MM-DD).");
+      }
       assertFilterSpan(params.from, params.to, Math.max(channel.filterMaxSpanDays, 365));
+    } else if (params.from || params.to) {
+      if (params.from) parseObservedOn(params.from);
+      if (params.to) parseObservedOn(params.to);
     }
     const code = normalizeCommodityCode(params.commodityCode);
     const grade = params.grade?.trim() || undefined;
     const cultivationMethod = params.cultivationMethod?.trim() || undefined;
+    // Prefer grade+method filters; packDescription only when no grade/method identity.
     const packDescription =
-      params.packDescription?.trim() ||
-      (grade && cultivationMethod
-        ? `grade-${grade}-${cultivationMethod}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-        : undefined);
+      grade || cultivationMethod ? undefined : params.packDescription?.trim() || undefined;
+    const take = Math.min(Math.max(params.limit ?? MAX_TREND_POINTS_PER_SERIES, 1), 2000);
     const rows = await this.db.marketPriceObservation.findMany({
       where: {
         tenantId: params.tenantId,
@@ -615,9 +635,26 @@ export class MarketService {
           lte: params.to ? parseObservedOn(params.to) : undefined,
         },
       },
-      orderBy: { observedOn: "asc" },
-      take: Math.min(Math.max(params.limit ?? 400, 1), 2000),
+      orderBy: [{ observedOn: "asc" }, { updatedAt: "asc" }],
+      take,
     });
+    const rawPoints = rows.map((r) => ({
+      observedOn: toIsoDate(r.observedOn),
+      periodFrom: r.periodFrom ? toIsoDate(r.periodFrom) : null,
+      periodTo: r.periodTo ? toIsoDate(r.periodTo) : null,
+      unitPrice: r.unitPrice?.toNumber() ?? null,
+      priceMode: r.priceMode?.toNumber() ?? null,
+      packPrice: r.packPrice?.toNumber() ?? null,
+      priceHigh: r.priceHigh?.toNumber() ?? null,
+      priceLow: r.priceLow?.toNumber() ?? null,
+      currency: r.currency,
+      quantityTons: r.quantityTons?.toNumber() ?? null,
+      grade: r.grade,
+      cultivationMethod: r.cultivationMethod,
+      reviewState: r.reviewState,
+      value: r.unitPrice?.toNumber() ?? r.priceMode?.toNumber() ?? r.packPrice?.toNumber() ?? null,
+    }));
+    const points = dedupeTrendPointsByDay(rawPoints);
     return {
       channelCode: channel.code,
       countryCode: channel.countryCode,
@@ -625,25 +662,149 @@ export class MarketService {
       grade: grade ?? null,
       cultivationMethod: cultivationMethod ?? null,
       packDescription: packDescription ?? null,
-      points: rows.map((r) => ({
+      seriesKey: marketSeriesKey({
+        commodityCode: code,
+        grade,
+        cultivationMethod,
+        packDescription,
+      }),
+      pointCount: points.length,
+      points,
+    };
+  }
+
+  /**
+   * Multi-series trend for one commodity (all grade/method variants) in one DB read.
+   * Workbench uses this so chart series stay synchronized with the master list.
+   */
+  async priceTrendBundle(params: {
+    tenantId: string;
+    channelCode: string;
+    commodityCode: string;
+    from?: string;
+    to?: string;
+    originLabel?: string;
+    /** Optional: only this seriesKey (code|grade|method). */
+    seriesKey?: string;
+    limitPerSeries?: number;
+  }) {
+    const channel = await this.db.marketChannel.findUnique({ where: { code: params.channelCode } });
+    if (!channel) throw new MarketValidationError("CHANNEL_NOT_FOUND", `Unknown channel ${params.channelCode}.`);
+    if (params.from && params.to) {
+      if (params.from > params.to) {
+        throw new MarketValidationError("INVALID_DATE_RANGE", "from must be on or before to (YYYY-MM-DD).");
+      }
+      assertFilterSpan(params.from, params.to, Math.max(channel.filterMaxSpanDays, 365));
+    } else if (params.from || params.to) {
+      if (params.from) parseObservedOn(params.from);
+      if (params.to) parseObservedOn(params.to);
+    }
+
+    const code = normalizeCommodityCode(params.commodityCode);
+    const take = Math.min(Math.max(params.limitPerSeries ?? MAX_TREND_POINTS_PER_SERIES, 1) * MAX_TREND_SERIES, 4000);
+    const rows = await this.db.marketPriceObservation.findMany({
+      where: {
+        tenantId: params.tenantId,
+        channelId: channel.id,
+        commodityCode: code,
+        originLabel: params.originLabel?.trim().toUpperCase() || undefined,
+        observedOn: {
+          gte: params.from ? parseObservedOn(params.from) : undefined,
+          lte: params.to ? parseObservedOn(params.to) : undefined,
+        },
+      },
+      orderBy: [{ observedOn: "asc" }, { grade: "asc" }, { cultivationMethod: "asc" }, { updatedAt: "asc" }],
+      take,
+    });
+
+    type Acc = {
+      key: string;
+      grade: string | null;
+      cultivationMethod: string | null;
+      packDescription: string | null;
+      shortLabel: string;
+      commodityName: string;
+      points: Array<{
+        observedOn: string;
+        value: number | null;
+        unitPrice: number | null;
+        priceMode: number | null;
+        packPrice: number | null;
+        currency: string;
+        grade: string | null;
+        cultivationMethod: string | null;
+        reviewState: string;
+        periodFrom: string | null;
+        periodTo: string | null;
+      }>;
+    };
+
+    const byKey = new Map<string, Acc>();
+    for (const r of rows) {
+      const key = marketSeriesKey({
+        commodityCode: code,
+        grade: r.grade,
+        cultivationMethod: r.cultivationMethod,
+        packDescription: r.packDescription,
+      });
+      if (params.seriesKey && key !== params.seriesKey) continue;
+      let acc = byKey.get(key);
+      if (!acc) {
+        acc = {
+          key,
+          grade: r.grade,
+          cultivationMethod: r.cultivationMethod,
+          packDescription: r.packDescription,
+          shortLabel: marketVariantShortLabel({
+            commodityCode: code,
+            grade: r.grade,
+            cultivationMethod: r.cultivationMethod,
+            packDescription: r.packDescription,
+          }),
+          commodityName: r.commodityNameEn || r.commodityName,
+          points: [],
+        };
+        byKey.set(key, acc);
+      }
+      acc.points.push({
         observedOn: toIsoDate(r.observedOn),
-        periodFrom: r.periodFrom ? toIsoDate(r.periodFrom) : null,
-        periodTo: r.periodTo ? toIsoDate(r.periodTo) : null,
+        value: r.unitPrice?.toNumber() ?? r.priceMode?.toNumber() ?? r.packPrice?.toNumber() ?? null,
         unitPrice: r.unitPrice?.toNumber() ?? null,
         priceMode: r.priceMode?.toNumber() ?? null,
-        priceHigh: r.priceHigh?.toNumber() ?? null,
-        priceLow: r.priceLow?.toNumber() ?? null,
+        packPrice: r.packPrice?.toNumber() ?? null,
         currency: r.currency,
-        quantityTons: r.quantityTons?.toNumber() ?? null,
         grade: r.grade,
         cultivationMethod: r.cultivationMethod,
         reviewState: r.reviewState,
-        value:
-          r.unitPrice?.toNumber() ??
-          r.priceMode?.toNumber() ??
-          r.packPrice?.toNumber() ??
-          null,
-      })),
+        periodFrom: r.periodFrom ? toIsoDate(r.periodFrom) : null,
+        periodTo: r.periodTo ? toIsoDate(r.periodTo) : null,
+      });
+    }
+
+    let series = [...byKey.values()]
+      .map((s) => ({
+        seriesKey: s.key,
+        shortLabel: s.shortLabel,
+        label: `${s.commodityName} · ${s.shortLabel}`,
+        grade: s.grade,
+        cultivationMethod: s.cultivationMethod,
+        packDescription: s.packDescription,
+        points: dedupeTrendPointsByDay(s.points),
+      }))
+      .filter((s) => s.points.length > 0)
+      .sort((a, b) => a.shortLabel.localeCompare(b.shortLabel, undefined, { numeric: true }));
+
+    const truncated = series.length > MAX_TREND_SERIES;
+    if (truncated) series = series.slice(0, MAX_TREND_SERIES);
+
+    return {
+      channelCode: channel.code,
+      countryCode: channel.countryCode,
+      commodityCode: code,
+      seriesCount: series.length,
+      truncated,
+      maxSeries: MAX_TREND_SERIES,
+      series,
     };
   }
 

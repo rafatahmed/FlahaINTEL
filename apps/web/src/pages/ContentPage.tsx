@@ -10,7 +10,7 @@
  * Created date: 2026-07-16
  * Last modified: 2026-07-16
  */
-import { Alert, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { GovernanceCandidate } from "../types";
@@ -51,7 +51,14 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h5">Content</Typography>
+      <Box>
+        <Typography variant="h5">Content</Typography>
+        <Typography variant="body2" color="text.secondary">
+          <strong>Structure</strong> — normalized pipeline units / governance candidates. Open an item for preview,
+          then send to <strong>Governance</strong> (or use <strong>Review inbox</strong> for all queues). Not market
+          prices or Knowledge packs.
+        </Typography>
+      </Box>
       {error && <Alert severity="error">{error}</Alert>}
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2}>
         <Card sx={{ flex: 1 }}>

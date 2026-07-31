@@ -227,6 +227,71 @@ export const api = {
     request<Record<string, unknown>>("/api/submissions/website", { method: "POST", body: JSON.stringify(body) }),
   submitDocument: (form: FormData) =>
     request<Record<string, unknown>>("/api/submissions/document", { method: "POST", body: form }),
+
+  /** Evidence Intake Spine (central Submit) */
+  intakeMatrix: () =>
+    request<{
+      principle: string;
+      classes: Array<{ code: string; label: string; lane: string; promote: string; acceptHint: string }>;
+      flow: string[];
+      governance: Record<string, unknown>;
+    }>("/api/intake/matrix"),
+  intakeList: (filters: { status?: string; intakeClass?: string; limit?: number } = {}) =>
+    request<{ count: number; intakes: Array<Record<string, unknown>> }>(`/api/intake${query(filters)}`),
+  intakeGet: (id: string) => request<{ intake: Record<string, unknown> }>(`/api/intake/${id}`),
+  intakeLandWebsite: (body: Record<string, unknown>) =>
+    request<{ intake: Record<string, unknown> }>("/api/intake/land/website", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  intakeLandFile: async (form: FormData) => {
+    const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3003";
+    const headers = new Headers();
+    let userId = "";
+    let tenantId = "";
+    let token = "";
+    try {
+      const raw = localStorage.getItem("flaha.product.auth");
+      if (raw) {
+        const a = JSON.parse(raw) as { userId?: string; tenantId?: string; token?: string };
+        userId = a.userId || "";
+        tenantId = a.tenantId || "";
+        token = a.token || "";
+      }
+    } catch {
+      /* ignore */
+    }
+    if (userId) headers.set("X-Flaha-User-Id", userId);
+    if (tenantId) headers.set("X-Flaha-Tenant-Id", tenantId);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    headers.set("X-Flaha-Correlation-Id", `web-intake-${Date.now()}`);
+    const response = await fetch(`${API_URL}/api/intake/land/file`, {
+      method: "POST",
+      headers,
+      body: form,
+      credentials: "include",
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: { code?: string; message?: string };
+      intake?: Record<string, unknown>;
+    };
+    if (!response.ok) {
+      throw new ApiError(
+        body.error?.code ?? "REQUEST_FAILED",
+        body.error?.message ?? "Intake land failed.",
+        response.status,
+      );
+    }
+    return body as { intake: Record<string, unknown> };
+  },
+  intakeClassify: (id: string, body: { intakeClass: string; autoPromote?: boolean; notes?: string }) =>
+    request<{ intake: Record<string, unknown> }>(`/api/intake/${id}/classify`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  intakePromote: (id: string) =>
+    request<{ intake: Record<string, unknown> }>(`/api/intake/${id}/promote`, { method: "POST", body: "{}" }),
+
   advanceSubmission: (id: string) =>
     request<Record<string, unknown>>(`/api/submissions/${id}/advance`, { method: "POST", body: JSON.stringify({}) }),
   cancelSubmission: (id: string, reason?: string) =>
@@ -264,20 +329,48 @@ export const api = {
     commodityCode: string;
     grade?: string | null;
     cultivationMethod?: string | null;
+    seriesKey?: string;
+    pointCount?: number;
     points: Array<{
       observedOn: string;
       value: number | null;
       unitPrice: number | null;
       priceMode: number | null;
-      priceHigh: number | null;
-      priceLow: number | null;
+      priceHigh?: number | null;
+      priceLow?: number | null;
       currency: string;
-      quantityTons: number | null;
+      quantityTons?: number | null;
       grade?: string | null;
       cultivationMethod?: string | null;
       reviewState: string;
     }>;
   }>(`/api/markets/prices/trend${query(filters)}`),
+  /** One-shot multi-series trend for a commodity (all grade/method variants). */
+  marketPriceTrendBundle: (filters: {
+    channelCode: string;
+    commodityCode: string;
+    from?: string;
+    to?: string;
+    originLabel?: string;
+    seriesKey?: string;
+    limit?: number;
+  }) => request<{
+    channelCode: string;
+    countryCode: string;
+    commodityCode: string;
+    seriesCount: number;
+    truncated: boolean;
+    maxSeries: number;
+    series: Array<{
+      seriesKey: string;
+      shortLabel: string;
+      label: string;
+      grade: string | null;
+      cultivationMethod: string | null;
+      packDescription: string | null;
+      points: Array<{ observedOn: string; value: number; currency: string }>;
+    }>;
+  }>(`/api/markets/prices/trend-bundle${query(filters)}`),
   marketReviewSummary: (filters: { channelCode?: string; countryCode?: string } = {}) =>
     request<{ summary: Record<string, number> }>(`/api/markets/prices/review-summary${query(filters)}`),
   marketRetention: (filters: { targetDays?: number; countryCode?: string } = {}) =>

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-30
+ * Last modified: 2026-07-31
  */
 import type { PrismaClient } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
@@ -205,6 +205,33 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
           limit: q.limit ? Number(q.limit) : 400,
         });
         return trend;
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /**
+     * Multi-series trend for one commodity (all grade/method variants) — one read.
+     * Prefer this for Markets workbench so chart and master list stay synchronized.
+     */
+    app.get("/markets/prices/trend-bundle", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as Record<string, string | undefined>;
+        if (!q.channelCode || !q.commodityCode) {
+          throw new AppError(400, "TREND_PARAMS", "channelCode and commodityCode are required.");
+        }
+        return await markets.priceTrendBundle({
+          tenantId: actor.tenantId,
+          channelCode: q.channelCode,
+          commodityCode: q.commodityCode,
+          from: q.from,
+          to: q.to,
+          originLabel: q.originLabel,
+          seriesKey: q.seriesKey,
+          limitPerSeries: q.limit ? Number(q.limit) : undefined,
+        });
       } catch (e) {
         mapError(e);
       }

@@ -39,7 +39,15 @@ npm run bootstrap:rss-accepted
 npm run governance:backfill-sources
 ```
 
-6. Run apps:
+6. Run apps (Windows — recommended):
+
+```powershell
+.\start-flahaintel.ps1
+# or: npm run ops:start
+# stop:  .\start-flahaintel.ps1 -Stop   |  npm run ops:stop
+```
+
+Manual (two terminals):
 
 ```text
 npm run dev --workspace=@flaha-intel/api

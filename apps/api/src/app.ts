@@ -24,6 +24,7 @@ import { taxonomyRoutes } from "./routes/taxonomy.js";
 import { marketRoutes } from "./routes/markets.js";
 import { knowledgePackRoutes } from "./routes/knowledgePacks.js";
 import { flahaSoilComparisonRoutes } from "./routes/flahaSoilComparisons.js";
+import { intakeRoutes } from "./routes/intake.js";
 import { RssScheduler } from "./scheduler.js";
 
 export interface AppDependencies {
@@ -36,9 +37,9 @@ export interface AppDependencies {
 
 function defaultArtifactStore(): FilesystemArtifactStore {
   const root = getProductionConfig().artifactRoot;
+  // Repository .metadata is created by store.initialize() (and defensively on first persist).
   const repository = new FilesystemArtifactRepository(root);
-  const store = new FilesystemArtifactStore(root, repository);
-  return store;
+  return new FilesystemArtifactStore(root, repository);
 }
 
 export function buildApp(dependencies: AppDependencies = {}) {
@@ -83,8 +84,14 @@ export function buildApp(dependencies: AppDependencies = {}) {
   app.register(marketRoutes(prisma), { prefix: "/api" });
   app.register(knowledgePackRoutes(prisma), { prefix: "/api" });
   app.register(flahaSoilComparisonRoutes(prisma), { prefix: "/api" });
+  app.register(intakeRoutes(prisma, artifactStore), { prefix: "/api" });
   app.addHook("onReady", async () => {
-    await artifactStore.initialize().catch(() => undefined);
+    // Ensure artifact root + .metadata exist before any intake seal/promote.
+    try {
+      await artifactStore.initialize();
+    } catch (error) {
+      app.log.error({ err: error }, "Artifact store initialize failed; promote/seal paths will error until fixed.");
+    }
   });
   app.setNotFoundHandler((_request, reply) => {
     return reply.code(404).send(errorResponse("NOT_FOUND", "Route not found."));

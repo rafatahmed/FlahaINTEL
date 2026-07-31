@@ -8,5 +8,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run tests"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30"
   }
 }

@@ -15,6 +15,7 @@
  *   npm run markets:harvest -- --channel=qa-moci-daily-vegetables --force
  *   npm run markets:harvest -- --country=QA
  *   npm run markets:harvest -- --channel=jo-amman-central-market --amman-json=path.json --force
+ *   npm run markets:harvest -- --force --rebuild-analyst-packs
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -86,6 +87,10 @@ try {
     dayTotals = raw.dayTotals;
   }
 
+  const rebuildAnalystPacks = arg("rebuild-analyst-packs") === "true";
+
+  let harvestResults: Array<{ channelCode: string; skipped?: boolean; count?: number }> = [];
+
   if (channel) {
     const one = await harvestChannel(prisma, channel, {
       tenantId: tenant.id,
@@ -98,6 +103,7 @@ try {
       origin,
     });
     console.log(JSON.stringify(one, null, 2));
+    harvestResults = [one];
   } else {
     const many = await harvestDueChannels(prisma, {
       tenantId: tenant.id,
@@ -111,6 +117,29 @@ try {
       origin,
     });
     console.log(JSON.stringify({ results: many }, null, 2));
+    harvestResults = many;
+  }
+
+  if (rebuildAnalystPacks) {
+    const { buildMarketAnalystPacks } = await import("../marketAnalystPack.js");
+    const codes = [
+      ...new Set(
+        harvestResults
+          .filter((r) => !r.skipped && (r.count == null || r.count > 0))
+          .map((r) => r.channelCode),
+      ),
+    ];
+    if (!codes.length && channel) codes.push(channel);
+    const packResults = [];
+    for (const code of codes.length ? codes : [undefined]) {
+      const built = await buildMarketAnalystPacks(prisma, {
+        tenantId: tenant.id,
+        ownerUserId: user.id,
+        channelCode: code,
+      });
+      packResults.push(built);
+    }
+    console.log(JSON.stringify({ rebuildAnalystPacks: true, packResults }, null, 2));
   }
 } finally {
   await prisma.$disconnect();

@@ -9,13 +9,15 @@ Tracks systemic execution of the first post-Phase-3N sprint (backbone ops + prod
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-30
+Last modified: 2026-07-31
 -->
 
 # Post–3N Sprint 1 status
 
 **Program position:** Systemic package after Phase 3N (platform complete; product lock active).  
-**Sprint goal:** Backbone stays healthy; markets + soil packs advance without drift.
+**Sprint goal:** Backbone stays healthy; markets + soil packs advance without drift.  
+**System posture (OWNER LOCKED 2026-07-31):** `INTEL-primary · FKP-frozen-thin · MCP-on-named-consumer`  
+→ `docs/program/flaha-system-vision-and-operate-lock.md`
 
 ## Task board
 
@@ -31,7 +33,10 @@ Last modified: 2026-07-30
 | 4M-A | Qatar channels (MoCI + Mahaseel) | **DONE** (source + harvest) | Daily MoCI lists + 3-day Mahaseel PDF |
 | 4M-B | Jordan Amman central market | **DONE** (source + harvest) | Live ASP.NET + AR↔EN map |
 | 4M review | Auto-approve vs human review | **DONE** | `HUMAN_REQUIRED` / `AUTO_APPROVE_OFFICIAL` + batch review |
-| 4M UI | Markets page + simple trends | **DONE** | Grade/method for Mahaseel; high/mode/low for Amman |
+| 4M UI | Markets page + simple trends | **DONE** | Grouped workbench + multi-series trend-bundle (hardened) |
+| 4M-F | Historical Mahaseel PDF + JO Excel import | **DONE** | Dedupe layers; EN commodity map for AR bulletins |
+| Spine | Evidence Intake (Submit land→classify→promote) | **DONE** | Migration + API + UI; ArtifactStore .metadata seal fix |
+| 4I | Calc/Fast recon + sample packs | **DONE** (foundation) | Separate CALC vs FAST; DRAFT packs only |
 | 4S-A | Soil/irrigation pack schema | **DONE** | API + schema doc |
 | 4S samples | Soil/irrigation sample packs | **DONE** | `knowledge:seed-samples` (DRAFT) |
 | Host disk | Free space ≥15% | **OPEN** | ~6 GB free (~2%) → still DEGRADED; improve when possible |
@@ -61,15 +66,13 @@ npm run knowledge:seed-samples
 
 ## Next (systemic order)
 
-1. **Host hygiene:** free C: toward ≥5–15% when practical (optional for markets)  
-2. **4S-B:** **DONE** — template validation, human review API/UI, comparison pack samples  
-3. **4S-C:** **DONE** — literature threshold bank; human APPROVE for live  
-4. **4S-D:** **DONE** (foundation) — comparison cases vs FlahaSOIL observations / tickets  
-5. **4S-D2:** **DONE** — PDF/JSON report upload + optional read-only SOIL API import  
-6. Let scheduled harvest run nightly/daily to grow 365d series  
-7. **4M-E:** **DONE** — market analyst MARKET_CONTEXT packs from live prices  
-8. **4I** irrigation handoff · **4B** product feed policies  
-9. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
+1. **Host hygiene:** free C: toward ≥5–15% when practical (readiness still DEGRADED on disk)  
+2. **Grow market series:** keep scheduled harvest + optional historical import until channels hit **MEETS_TARGET** (≥365d)  
+3. **Use the spine:** land Mahaseel EN PDFs (preferred) or AR via EN map; re-promote only when needed  
+4. **4I-B** handoff export envelope (after owner uses 4I-A DRAFT packs) · **4B** product feed policies  
+5. **FKP:** frozen-thin only (MCP later when a named consumer exists)  
+6. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
+7. Already done this package: 4S-B/C/D/D2, 4M-D/E/F, Evidence Intake spine, Markets workbench harden, Calc/Fast separation
 
 ## Exit criteria for Sprint 1
 

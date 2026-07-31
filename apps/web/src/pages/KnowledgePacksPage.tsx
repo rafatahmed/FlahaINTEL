@@ -4,7 +4,9 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Knowledge Packs Page
- * Introduction: Browse 4S packs, comparison notes, and human-only review actions.
+ * Introduction:
+ * Systematic product-lane hub: FlahaSOIL | FlahaCALC (irrigation/weather) |
+ * FlahaFAST (nutrients) | Markets — never merge CALC with FAST.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
@@ -15,19 +17,33 @@ import {
   Box,
   Button,
   Card,
+  CardActionArea,
   CardContent,
   Chip,
+  Divider,
   FormControl,
   InputLabel,
+  List,
+  ListItemButton,
+  ListItemText,
   MenuItem,
   Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { BrandedState } from "../components/BrandedState";
+import {
+  laneById,
+  primaryProductForTheme,
+  productChipColor,
+  PRODUCT_LANES,
+  type ProductLaneId,
+} from "../knowledge/productLanes";
 
 type PackItem = {
   id: string;
@@ -37,6 +53,8 @@ type PackItem = {
   bodyText?: string | null;
   structured?: Record<string, unknown>;
   sourceUrl?: string | null;
+  evidenceArtifactId?: string | null;
+  governanceCandidateId?: string | null;
 };
 
 type Pack = {
@@ -53,20 +71,91 @@ type Pack = {
   items?: PackItem[];
 };
 
+type HubTab = "overview" | ProductLaneId;
+
 const NEXT_ACTIONS: Record<string, Array<{ state: string; label: string }>> = {
-  DRAFT: [{ state: "READY_FOR_REVIEW", label: "Submit for review" }, { state: "ARCHIVED", label: "Archive" }],
+  DRAFT: [
+    { state: "READY_FOR_REVIEW", label: "Submit for review" },
+    { state: "ARCHIVED", label: "Archive" },
+  ],
   READY_FOR_REVIEW: [
     { state: "APPROVED", label: "Approve (human)" },
     { state: "REJECTED", label: "Reject" },
     { state: "DRAFT", label: "Back to draft" },
   ],
-  APPROVED: [{ state: "READY_FOR_REVIEW", label: "Re-open review" }, { state: "ARCHIVED", label: "Archive" }],
-  REJECTED: [{ state: "DRAFT", label: "Revise (draft)" }, { state: "READY_FOR_REVIEW", label: "Re-submit" }],
+  APPROVED: [
+    { state: "READY_FOR_REVIEW", label: "Re-open review" },
+    { state: "ARCHIVED", label: "Archive" },
+  ],
+  REJECTED: [
+    { state: "DRAFT", label: "Revise (draft)" },
+    { state: "READY_FOR_REVIEW", label: "Re-submit" },
+  ],
   ARCHIVED: [{ state: "DRAFT", label: "Restore draft" }],
 };
 
-export function KnowledgePacksPage() {
-  const [theme, setTheme] = useState<string>("");
+const CASE_NEXT: Record<string, Array<{ status: string; label: string }>> = {
+  DRAFT: [{ status: "READY_FOR_REVIEW", label: "Submit case" }],
+  READY_FOR_REVIEW: [
+    { status: "APPROVED", label: "Approve case" },
+    { status: "REJECTED", label: "Reject" },
+  ],
+  APPROVED: [
+    { status: "PRODUCT_TICKET_OPEN", label: "Open product ticket" },
+    { status: "CLOSED", label: "Close" },
+  ],
+  PRODUCT_TICKET_OPEN: [{ status: "CLOSED", label: "Close" }],
+  REJECTED: [{ status: "DRAFT", label: "Back to draft" }],
+};
+
+function reviewChipColor(state?: string): "default" | "success" | "error" | "warning" {
+  if (state === "APPROVED") return "success";
+  if (state === "REJECTED") return "error";
+  if (state === "READY_FOR_REVIEW") return "warning";
+  return "default";
+}
+
+function packsForLane(packs: Pack[], laneId: ProductLaneId): Pack[] {
+  const themes = laneById(laneId).themes;
+  return packs.filter((p) => themes.includes(p.theme));
+}
+
+function countByReview(packs: Pack[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of packs) {
+    const s = p.reviewState || "DRAFT";
+    out[s] = (out[s] || 0) + 1;
+  }
+  return out;
+}
+
+function extractProductHints(item: PackItem): string[] {
+  const s = item.structured ?? {};
+  const tags = new Set<string>();
+  const handoff = s.productHandoff;
+  if (Array.isArray(handoff)) {
+    for (const p of handoff) if (typeof p === "string" && p.trim()) tags.add(p.trim());
+  }
+  if (typeof s.product === "string" && s.product.trim()) tags.add(s.product.trim());
+  if (s.doesNotAutoUpdateFlahaCALC === true) tags.add("FlahaCALC");
+  if (s.doesNotAutoUpdateFlahaFAST === true) tags.add("FlahaFAST");
+  if (s.doesNotAutoUpdateFlahaSOIL === true) tags.add("FlahaSOIL");
+  return [...tags];
+}
+
+export function KnowledgePacksPage(props?: {
+  initialLane?: HubTab;
+  initialSoilTool?: "packs" | "bank" | "cases" | "import";
+}) {
+  const [lane, setLane] = useState<HubTab>(props?.initialLane ?? "overview");
+  const [soilTool, setSoilTool] = useState<"packs" | "bank" | "cases" | "import">(
+    props?.initialSoilTool ?? "packs",
+  );
+
+  useEffect(() => {
+    if (props?.initialLane) setLane(props.initialLane);
+    if (props?.initialSoilTool) setSoilTool(props.initialSoilTool);
+  }, [props?.initialLane, props?.initialSoilTool]);
   const [extractKind, setExtractKind] = useState<string>("");
   const [packs, setPacks] = useState<Pack[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
@@ -86,26 +175,25 @@ export function KnowledgePacksPage() {
   } | null>(null);
   const [cases, setCases] = useState<Array<Record<string, unknown>>>([]);
   const [caseBusy, setCaseBusy] = useState(false);
-  const [bridge, setBridge] = useState<{ soilApi: { configured: boolean; note: string } } | null>(null);
+  const [bridge, setBridge] = useState<{ soilApi: { configured: boolean; note: string } } | null>(
+    null,
+  );
   const [soilTestId, setSoilTestId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.knowledgePacks({
-        theme: theme || undefined,
         extractKind: extractKind || undefined,
       });
-      const list = (res.packs || []) as Pack[];
-      setPacks(list);
-      setSelectedId((prev) => (list.some((p) => p.id === prev) ? prev : list[0]?.id || ""));
+      setPacks((res.packs || []) as Pack[]);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load knowledge packs.");
     } finally {
       setLoading(false);
     }
-  }, [theme, extractKind]);
+  }, [extractKind]);
 
   const loadBank = useCallback(async () => {
     try {
@@ -133,19 +221,41 @@ export function KnowledgePacksPage() {
   }, [load]);
 
   useEffect(() => {
-    void loadBank();
-  }, [loadBank]);
+    if (lane === "soil" && (soilTool === "bank" || soilTool === "packs")) void loadBank();
+  }, [lane, soilTool, loadBank]);
 
   useEffect(() => {
-    void loadCases();
-  }, [loadCases]);
+    if (lane === "soil" && (soilTool === "cases" || soilTool === "import")) void loadCases();
+  }, [lane, soilTool, loadCases]);
 
   useEffect(() => {
-    void api.flahaSoilBridgeStatus().then(setBridge).catch(() => setBridge(null));
+    void api
+      .flahaSoilBridgeStatus()
+      .then(setBridge)
+      .catch(() => setBridge(null));
   }, []);
 
-  const selected = packs.find((p) => p.id === selectedId);
-  const comparisonCount = (selected?.items || []).filter((i) => i.extractKind === "COMPARISON_NOTE").length;
+  const soilPacks = useMemo(() => packsForLane(packs, "soil"), [packs]);
+  const calcPacks = useMemo(() => packsForLane(packs, "calc"), [packs]);
+  const fastPacks = useMemo(() => packsForLane(packs, "fast"), [packs]);
+  const marketPacks = useMemo(() => packsForLane(packs, "markets"), [packs]);
+
+  const lanePacks = useMemo(() => {
+    if (lane === "overview") return packs;
+    return packsForLane(packs, lane);
+  }, [packs, lane]);
+
+  useEffect(() => {
+    if (lane === "overview") return;
+    setSelectedId((prev) => {
+      if (lanePacks.some((p) => p.id === prev)) return prev;
+      return lanePacks[0]?.id || "";
+    });
+  }, [lane, lanePacks]);
+
+  const selected =
+    lanePacks.find((p) => p.id === selectedId) ?? packs.find((p) => p.id === selectedId);
+  const activeLane = lane === "overview" ? null : laneById(lane);
 
   async function review(to: string) {
     if (!selected) return;
@@ -156,10 +266,13 @@ export function KnowledgePacksPage() {
         reviewState: to,
         note: note.trim() || undefined,
       });
-      setInfo(`Review → ${to}. Auto-approve: ${String(res.governance?.autoApprove)} · FlahaSOIL auto-update blocked.`);
+      const product = primaryProductForTheme(selected.theme);
+      setInfo(
+        `Review → ${to} · primary product ${product} · engines not updated. Auto-approve: ${String(res.governance?.autoApprove)}`,
+      );
       setNote("");
       await load();
-      await loadBank();
+      if (lane === "soil") await loadBank();
       setSelectedId(selected.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Review failed.");
@@ -174,9 +287,10 @@ export function KnowledgePacksPage() {
     try {
       const res = await api.importFlahaSoilReport(file);
       setInfo(
-        `Imported ${file.name}: ${res.casesCreated} comparison case(s) created (DRAFT). Report ${String((res.parsed as { reportNumber?: string })?.reportNumber || "—")} · level ${String((res.parsed as { testLevel?: string })?.testLevel || "—")}. Human review next — FlahaSOIL not updated.`,
+        `FlahaSOIL only: imported ${file.name}: ${res.casesCreated} case(s). FlahaCALC/FAST not touched.`,
       );
       await loadCases();
+      setSoilTool("cases");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Report import failed.");
     } finally {
@@ -193,10 +307,9 @@ export function KnowledgePacksPage() {
         casesCreated?: number;
         parsed?: { reportNumber?: string };
       };
-      setInfo(
-        `SOIL API import: ${res.casesCreated ?? 0} case(s). Report ${res.parsed?.reportNumber || "—"}. Read-only from SOIL.`,
-      );
+      setInfo(`FlahaSOIL API import: ${res.casesCreated ?? 0} case(s). Report ${res.parsed?.reportNumber || "—"}.`);
       await loadCases();
+      setSoilTool("cases");
     } catch (e) {
       setError(e instanceof Error ? e.message : "SOIL API import failed.");
     } finally {
@@ -208,7 +321,6 @@ export function KnowledgePacksPage() {
     setCaseBusy(true);
     setInfo("");
     try {
-      // Demo values from recon report FLH-2026-001 where known
       const demo: Record<string, number> = {
         ecDsM: 1.0,
         pH: 7.2,
@@ -218,13 +330,14 @@ export function KnowledgePacksPage() {
       await api.createFlahaSoilComparisonFromThreshold({
         packItemId,
         flahaSoilValue: demo[parameter] ?? null,
-        flahaSoilObservation: `Opened from threshold bank for ${parameter}. Optional demo observation from report FLH-2026-001 when available.`,
+        flahaSoilObservation: `Opened from threshold bank for ${parameter}.`,
         flahaSoilReportNumber: "FLH-2026-001",
         flahaSoilTestLevel: "ADVANCED",
         recommendedHumanAction: "review-in-PA",
       });
-      setInfo(`Comparison case opened for ${parameter} (DRAFT). Human workflow only — FlahaSOIL not updated.`);
+      setInfo(`FlahaSOIL comparison case opened for ${parameter} (DRAFT).`);
       await loadCases();
+      setSoilTool("cases");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to open comparison case.");
     } finally {
@@ -243,7 +356,7 @@ export function KnowledgePacksPage() {
         body.productTicketRef = note.trim() || `SOIL-TICKET-${id.slice(0, 8)}`;
       }
       await api.transitionFlahaSoilComparison(id, body);
-      setInfo(`Case → ${status}. doesNotAutoUpdateFlahaSOIL=true`);
+      setInfo(`FlahaSOIL case → ${status}.`);
       await loadCases();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Case transition failed.");
@@ -252,407 +365,715 @@ export function KnowledgePacksPage() {
     }
   }
 
-  const CASE_NEXT: Record<string, Array<{ status: string; label: string }>> = {
-    DRAFT: [{ status: "READY_FOR_REVIEW", label: "Submit case" }],
-    READY_FOR_REVIEW: [
-      { status: "APPROVED", label: "Approve case" },
-      { status: "REJECTED", label: "Reject" },
-    ],
-    APPROVED: [
-      { status: "PRODUCT_TICKET_OPEN", label: "Open product ticket" },
-      { status: "CLOSED", label: "Close" },
-    ],
-    PRODUCT_TICKET_OPEN: [{ status: "CLOSED", label: "Close" }],
-    REJECTED: [{ status: "DRAFT", label: "Back to draft" }],
-  };
+  if (loading && !packs.length) {
+    return <BrandedState label="Loading knowledge hub…" loading />;
+  }
 
-  if (loading && !packs.length) return <BrandedState label="Loading knowledge packs…" loading />;
+  const laneCounts: Record<ProductLaneId, number> = {
+    soil: soilPacks.length,
+    calc: calcPacks.length,
+    fast: fastPacks.length,
+    markets: marketPacks.length,
+  };
 
   return (
     <Stack spacing={2}>
       <Box>
-        <Typography variant="h5">Knowledge packs</Typography>
+        <Typography variant="h5">Knowledge hub</Typography>
         <Typography variant="body2" color="text.secondary">
-          4S-B structured extracts (THRESHOLD, METHOD, COMPARISON_NOTE). Region/climate are tags only.{" "}
-          <strong>Human review only — never auto-updates FlahaSOIL.</strong>
+          Structured packs by <strong>sister product</strong>. Three engines stay separate:{" "}
+          <strong>FlahaSOIL</strong> (soil) · <strong>FlahaCALC</strong> (irrigation & weather) ·{" "}
+          <strong>FlahaFAST</strong> (nutrient management). Human review only — never auto-update product code.
         </Typography>
       </Box>
 
-      {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
-      {info && <Alert severity="success" onClose={() => setInfo("")}>{info}</Alert>}
+      {error && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {info && (
+        <Alert severity="success" onClose={() => setInfo("")}>
+          {info}
+        </Alert>
+      )}
 
-      <Alert severity="info">
-        Comparison notes and the threshold bank inform PA / FlahaSOIL discussion. APPROVED means governed knowledge —
-        not a write into FlahaSOIL code. Reports use three test levels: PRELIMINARY · MODERATE · ADVANCED.
-      </Alert>
+      <Tabs
+        value={lane}
+        onChange={(_, v: HubTab) => setLane(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{ borderBottom: 1, borderColor: "divider" }}
+      >
+        <Tab value="overview" label={`Overview (${packs.length})`} />
+        <Tab value="soil" label={`FlahaSOIL (${laneCounts.soil})`} />
+        <Tab value="calc" label={`FlahaCALC (${laneCounts.calc})`} />
+        <Tab value="fast" label={`FlahaFAST (${laneCounts.fast})`} />
+        <Tab value="markets" label={`Markets (${laneCounts.markets})`} />
+      </Tabs>
 
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Literature threshold bank (4S-C)
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {bank?.note || "Loading bank…"} Live: {String(bank?.live ?? false)} · entries: {bank?.count ?? 0}
-          </Typography>
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1.5, alignItems: "center" }}>
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel>Bank level filter</InputLabel>
-              <Select
-                label="Bank level filter"
-                value={bankLevel}
-                onChange={(e) => setBankLevel(e.target.value)}
-              >
-                <MenuItem value="">All levels</MenuItem>
-                <MenuItem value="PRELIMINARY">PRELIMINARY</MenuItem>
-                <MenuItem value="MODERATE">MODERATE</MenuItem>
-                <MenuItem value="ADVANCED">ADVANCED</MenuItem>
-              </Select>
-            </FormControl>
-            <Button size="small" variant={bankCuration ? "contained" : "outlined"} onClick={() => setBankCuration(true)}>
-              Curation (include DRAFT)
-            </Button>
-            <Button size="small" variant={!bankCuration ? "contained" : "outlined"} onClick={() => setBankCuration(false)}>
-              Live (APPROVED only)
-            </Button>
-          </Box>
-          <Box sx={{ overflowX: "auto", maxHeight: 280, overflowY: "auto" }}>
+      {/* ═══════════════ OVERVIEW ═══════════════ */}
+      {lane === "overview" && (
+        <Stack spacing={2}>
+          <Alert severity="info">
+            <strong>Product matrix (locked):</strong> packs use theme → product. Irrigation packs never go to
+            FlahaFAST; nutrient packs never go to FlahaCALC. Soil tools (bank, cases, import) only under FlahaSOIL.
+          </Alert>
+
+          <Box sx={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: 4 }}>Parameter</th>
-                  <th style={{ textAlign: "left", padding: 4 }}>Threshold</th>
-                  <th style={{ textAlign: "left", padding: 4 }}>Levels</th>
-                  <th style={{ textAlign: "left", padding: 4 }}>Pack state</th>
-                  <th style={{ textAlign: "left", padding: 4 }}>Title</th>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #e5e7eb" }}>Product</th>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #e5e7eb" }}>Theme</th>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #e5e7eb" }}>Domain</th>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #e5e7eb" }}>In scope</th>
+                  <th style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #e5e7eb" }}>Out of scope</th>
+                  <th style={{ textAlign: "right", padding: 8, borderBottom: "1px solid #e5e7eb" }}>Packs</th>
                 </tr>
               </thead>
               <tbody>
-                {(bank?.entries || []).map((e) => (
-                  <tr key={String(e.itemId)}>
-                    <td style={{ padding: 4 }}>
-                      <code>{String(e.parameter || "—")}</code>
+                {PRODUCT_LANES.map((meta) => (
+                  <tr
+                    key={meta.id}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setLane(meta.id)}
+                  >
+                    <td style={{ padding: 8, verticalAlign: "top" }}>
+                      <Chip size="small" color={meta.color} label={meta.product} />
                     </td>
-                    <td style={{ padding: 4 }}>
-                      {String(e.operator || "")}{" "}
-                      {e.value != null
-                        ? String(e.value)
-                        : e.valueMin != null
-                          ? `${String(e.valueMin)}–${String(e.valueMax)}`
-                          : "—"}{" "}
-                      {String(e.unit || "")}
+                    <td style={{ padding: 8, verticalAlign: "top" }}>
+                      <code>{meta.themes.join(", ")}</code>
                     </td>
-                    <td style={{ padding: 4 }}>
-                      {Array.isArray(e.soilTestLevels) ? (e.soilTestLevels as string[]).join(", ") : "—"}
+                    <td style={{ padding: 8, verticalAlign: "top" }}>{meta.domain}</td>
+                    <td style={{ padding: 8, verticalAlign: "top", maxWidth: 220 }}>
+                      {meta.inScope.slice(0, 3).map((x) => (
+                        <Typography key={x} variant="caption" sx={{ display: "block" }}>
+                          · {x}
+                        </Typography>
+                      ))}
                     </td>
-                    <td style={{ padding: 4 }}>{String(e.packReviewState || "—")}</td>
-                    <td style={{ padding: 4 }}>
-                      {String(e.title || "—")}{" "}
-                      <Button
-                        size="small"
-                        disabled={caseBusy || !e.itemId}
-                        onClick={() => void openCaseFromBank(String(e.itemId), String(e.parameter || ""))}
-                      >
-                        Open case
-                      </Button>
+                    <td style={{ padding: 8, verticalAlign: "top", maxWidth: 200 }}>
+                      {meta.outOfScope.slice(0, 2).map((x) => (
+                        <Typography key={x} variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                          · {x}
+                        </Typography>
+                      ))}
+                    </td>
+                    <td style={{ padding: 8, verticalAlign: "top", textAlign: "right", fontWeight: 700 }}>
+                      {laneCounts[meta.id]}
                     </td>
                   </tr>
                 ))}
-                {!bank?.entries?.length && (
-                  <tr>
-                    <td colSpan={5} style={{ padding: 8, color: "#6B7280" }}>
-                      Empty. Seed: npm run knowledge:seed-threshold-bank — then human-approve pack for Live mode.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </Box>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Import FlahaSOIL report (capture path)
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Upload a FlahaSOIL PDF/JSON test report. INTEL parses parameters, matches the threshold bank, and opens{" "}
-            <strong>DRAFT</strong> comparison cases. Direct SOIL API:{" "}
-            {bridge?.soilApi.configured ? bridge.soilApi.note : "not configured — set FLAHASOIL_API_BASE_URL later"}.
-            Write to FlahaSOIL engines: <strong>never</strong>.
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1 }}>
-            <Button variant="contained" component="label" disabled={caseBusy} size="small">
-              Upload PDF / JSON
-              <input
-                type="file"
-                hidden
-                accept=".pdf,.json,application/pdf,application/json"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (f) void importReport(f);
-                }}
-              />
-            </Button>
-            <TextField
-              size="small"
-              label="FlahaSOIL soilTestId"
-              value={soilTestId}
-              onChange={(e) => setSoilTestId(e.target.value)}
-              sx={{ minWidth: 220 }}
-              disabled={!bridge?.soilApi.configured}
-            />
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={caseBusy || !bridge?.soilApi.configured || !soilTestId.trim()}
-              onClick={() => void importFromSoilApi()}
-            >
-              Import from SOIL API
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            FlahaSOIL comparison cases (4S-D)
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Deviation cases link literature thresholds to report/product observations. Human transitions only — never
-            auto-writes FlahaSOIL.
-          </Typography>
-          {!cases.length ? (
-            <Typography variant="body2" color="text.secondary">
-              No cases yet. Use <strong>Open case</strong> on a bank row, or seed: npm run knowledge:seed-comparison-cases
-            </Typography>
-          ) : (
-            <Stack spacing={1}>
-              {cases.map((c) => (
-                <Box
-                  key={String(c.id)}
-                  sx={{
-                    p: 1,
-                    border: 1,
-                    borderColor: "divider",
-                    borderRadius: 1,
-                    display: "flex",
-                    flexDirection: { xs: "column", md: "row" },
-                    gap: 1,
-                    alignItems: { md: "center" },
-                  }}
-                >
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {String(c.title)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                      <code>{String(c.parameter)}</code> · lit {String(c.literatureValue ?? c.literatureRange ?? "—")} ·
-                      SOIL {String(c.flahaSoilValue ?? "—")} · report {String(c.flahaSoilReportNumber || "—")} ·{" "}
-                      {String(c.flahaSoilTestLevel || "—")}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: "block" }}>
-                      {String(c.deviationSummary || "").slice(0, 160)}
-                    </Typography>
-                  </Box>
-                  <Chip size="small" label={String(c.status)} color={c.status === "APPROVED" ? "success" : "default"} />
-                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                    {(CASE_NEXT[String(c.status)] || []).map((a) => (
-                      <Button
-                        key={a.status}
-                        size="small"
-                        variant="outlined"
-                        disabled={caseBusy}
-                        onClick={() => void transitionCase(String(c.id), a.status)}
-                      >
-                        {a.label}
-                      </Button>
-                    ))}
-                  </Box>
-                </Box>
-              ))}
-            </Stack>
-          )}
-        </CardContent>
-      </Card>
-
-      <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Theme</InputLabel>
-          <Select label="Theme" value={theme} onChange={(e) => setTheme(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="SOIL">Soil</MenuItem>
-            <MenuItem value="IRRIGATION">Irrigation</MenuItem>
-            <MenuItem value="MARKET_CONTEXT">Market context</MenuItem>
-            <MenuItem value="NUTRITION">Nutrition</MenuItem>
-            <MenuItem value="OTHER">Other</MenuItem>
-          </Select>
-        </FormControl>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Extract kind</InputLabel>
-          <Select label="Extract kind" value={extractKind} onChange={(e) => setExtractKind(e.target.value)}>
-            <MenuItem value="">All kinds</MenuItem>
-            <MenuItem value="THRESHOLD">THRESHOLD</MenuItem>
-            <MenuItem value="METHOD">METHOD</MenuItem>
-            <MenuItem value="COMPARISON_NOTE">COMPARISON_NOTE</MenuItem>
-            <MenuItem value="EQUATION">EQUATION</MenuItem>
-            <MenuItem value="NOTE">NOTE</MenuItem>
-            <MenuItem value="REFERENCE">REFERENCE</MenuItem>
-          </Select>
-        </FormControl>
-        <FormControl size="small" sx={{ minWidth: 320, flex: 1 }}>
-          <InputLabel>Pack</InputLabel>
-          <Select
-            label="Pack"
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            disabled={!packs.length}
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr 1fr" },
+            }}
           >
-            {packs.map((p) => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.theme} · {p.reviewState || "DRAFT"} · {p.title}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {!selected ? (
-        <Alert severity="info">
-          No packs yet. Seed with <code>npm run knowledge:seed-samples</code> in apps/api.
-        </Alert>
-      ) : (
-        <>
-          <Card>
-            <CardContent>
-              <Typography variant="h6">{selected.title}</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                {selected.code} · v{selected.version ?? 1} · comparison notes: {comparisonCount}
-              </Typography>
-              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 1.5 }}>
-                <Chip size="small" color="primary" label={selected.theme} />
-                <Chip
-                  size="small"
-                  label={selected.reviewState || "DRAFT"}
-                  color={
-                    selected.reviewState === "APPROVED"
-                      ? "success"
-                      : selected.reviewState === "REJECTED"
-                        ? "error"
-                        : selected.reviewState === "READY_FOR_REVIEW"
-                          ? "warning"
-                          : "default"
-                  }
-                />
-                {(selected.regionTags || []).map((t) => (
-                  <Chip key={`r-${t}`} size="small" variant="outlined" label={`region:${t}`} />
-                ))}
-                {(selected.cropTags || []).map((t) => (
-                  <Chip key={`c-${t}`} size="small" variant="outlined" label={`crop:${t}`} />
-                ))}
-              </Box>
-              <Typography variant="body2" sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
-                {selected.summary || "—"}
-              </Typography>
-
-              <Typography variant="subtitle2" gutterBottom>
-                Human review
-              </Typography>
-              <TextField
-                size="small"
-                fullWidth
-                label="Review note (optional)"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                sx={{ mb: 1 }}
-              />
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                {(NEXT_ACTIONS[selected.reviewState || "DRAFT"] || []).map((a) => (
-                  <Button
-                    key={a.state}
-                    size="small"
-                    variant={a.state === "APPROVED" ? "contained" : "outlined"}
-                    color={a.state === "REJECTED" ? "error" : "primary"}
-                    disabled={busy}
-                    onClick={() => void review(a.state)}
-                  >
-                    {a.label}
-                  </Button>
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
-
-          <Stack spacing={1.5}>
-            {(selected.items || []).map((item) => {
-              const isComparison = item.extractKind === "COMPARISON_NOTE";
+            {PRODUCT_LANES.map((meta) => {
+              const list = packsForLane(packs, meta.id);
+              const by = countByReview(list);
               return (
-                <Card
-                  key={item.id}
-                  variant="outlined"
-                  sx={{
-                    borderColor: isComparison ? "warning.main" : undefined,
-                    bgcolor: isComparison ? "rgba(237, 108, 2, 0.04)" : undefined,
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 0.5, flexWrap: "wrap" }}>
-                      <Chip
-                        size="small"
-                        label={item.extractKind}
-                        color={isComparison ? "warning" : "default"}
-                      />
-                      {isComparison && <Chip size="small" variant="outlined" label="FlahaSOIL path" />}
-                      <Typography variant="subtitle1">{item.title}</Typography>
-                    </Box>
-                    {item.bodyText && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                        {item.bodyText}
+                <Card key={meta.id} variant="outlined" sx={{ height: "100%" }}>
+                  <CardActionArea onClick={() => setLane(meta.id)} sx={{ height: "100%", alignItems: "stretch" }}>
+                    <CardContent>
+                      <Chip size="small" color={meta.color} label={meta.product} sx={{ mb: 1 }} />
+                      <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+                        {list.length}
                       </Typography>
-                    )}
-                    {item.structured && Object.keys(item.structured).length > 0 && (
-                      <Box
-                        component="pre"
-                        sx={{
-                          m: 0,
-                          p: 1.5,
-                          bgcolor: "action.hover",
-                          borderRadius: 1,
-                          fontSize: 12,
-                          overflow: "auto",
-                        }}
-                      >
-                        {JSON.stringify(item.structured, null, 2)}
-                      </Box>
-                    )}
-                    {item.structured && (
-                      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 1 }}>
-                        {typeof item.structured.parameter === "string" && (
-                          <Chip size="small" variant="outlined" label={`param:${item.structured.parameter}`} />
-                        )}
-                        {typeof item.structured.appliesFromLevel === "string" && (
-                          <Chip size="small" variant="outlined" label={`from:${item.structured.appliesFromLevel}`} />
-                        )}
-                        {Array.isArray(item.structured.soilTestLevels) &&
-                          (item.structured.soilTestLevels as string[]).map((lv) => (
-                            <Chip key={lv} size="small" color="info" variant="outlined" label={lv} />
-                          ))}
-                      </Box>
-                    )}
-                    {isComparison && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-                        autoApplyBlocked / doesNotAutoUpdateFlahaSOIL — product code never changes from this note.
-                        Scope notes to FlahaSOIL test levels (PRELIMINARY / MODERATE / ADVANCED).
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                        theme <code>{meta.themes.join(", ")}</code>
                       </Typography>
-                    )}
-                  </CardContent>
+                      <Typography variant="body2" sx={{ mb: 1, minHeight: 48 }}>
+                        {meta.domain}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        {Object.entries(by)
+                          .map(([s, n]) => `${s}:${n}`)
+                          .join(" · ") || "none yet"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                        {meta.tools.join(" · ")}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
                 </Card>
               );
             })}
-          </Stack>
-        </>
+          </Box>
+
+          {!packs.length && (
+            <Alert severity="warning">
+              No packs. Seed: <code>npm run knowledge:seed-samples</code>
+            </Alert>
+          )}
+        </Stack>
+      )}
+
+      {/* ═══════════════ PRODUCT LANE ═══════════════ */}
+      {lane !== "overview" && activeLane && (
+        <Stack spacing={2}>
+          <Card variant="outlined" sx={{ bgcolor: "action.hover" }}>
+            <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center", mb: 1 }}>
+                <Chip color={activeLane.color} label={activeLane.product} />
+                <Chip size="small" variant="outlined" label={`theme: ${activeLane.themes.join(", ")}`} />
+                <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                  {activeLane.domain}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                }}
+              >
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                    In scope
+                  </Typography>
+                  {activeLane.inScope.map((x) => (
+                    <Typography key={x} variant="caption" sx={{ display: "block" }}>
+                      · {x}
+                    </Typography>
+                  ))}
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 700 }} color="text.secondary">
+                    Out of scope (other product)
+                  </Typography>
+                  {activeLane.outOfScope.map((x) => (
+                    <Typography key={x} variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                      · {x}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+              {lane === "calc" && (
+                <Alert severity="info" sx={{ mt: 1.5 }}>
+                  <strong>FlahaCALC only</strong> — irrigation & weather. Nutrient recipes belong under{" "}
+                  <Button size="small" onClick={() => setLane("fast")}>
+                    FlahaFAST
+                  </Button>
+                  .
+                </Alert>
+              )}
+              {lane === "fast" && (
+                <Alert severity="info" sx={{ mt: 1.5 }}>
+                  <strong>FlahaFAST only</strong> — nutrient management. ETo / Kc / irrigation depth belong under{" "}
+                  <Button size="small" onClick={() => setLane("calc")}>
+                    FlahaCALC
+                  </Button>
+                  .
+                </Alert>
+              )}
+              {lane === "soil" && (
+                <Alert severity="success" sx={{ mt: 1.5 }}>
+                  <strong>FlahaSOIL only</strong> — soil lab & comparison tools below. Not irrigation scheduling or
+                  nutrient recipes.
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+
+          {lane === "soil" && (
+            <Tabs value={soilTool} onChange={(_, v) => setSoilTool(v)} variant="scrollable" scrollButtons="auto">
+              <Tab value="packs" label={`Packs (${soilPacks.length})`} />
+              <Tab value="bank" label={`Threshold bank (${bank?.count ?? "…"})`} />
+              <Tab value="cases" label={`Comparison cases (${cases.length})`} />
+              <Tab value="import" label="Report import" />
+            </Tabs>
+          )}
+
+          {(lane !== "soil" || soilTool === "packs") && (
+            <>
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel>Extract kind</InputLabel>
+                  <Select
+                    label="Extract kind"
+                    value={extractKind}
+                    onChange={(e) => setExtractKind(e.target.value)}
+                  >
+                    <MenuItem value="">All kinds</MenuItem>
+                    <MenuItem value="THRESHOLD">THRESHOLD</MenuItem>
+                    <MenuItem value="METHOD">METHOD</MenuItem>
+                    <MenuItem value="EQUATION">EQUATION</MenuItem>
+                    <MenuItem value="COMPARISON_NOTE">COMPARISON_NOTE</MenuItem>
+                    <MenuItem value="NOTE">NOTE</MenuItem>
+                    <MenuItem value="REFERENCE">REFERENCE</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button size="small" variant="outlined" onClick={() => void load()} disabled={loading}>
+                  Refresh
+                </Button>
+              </Box>
+
+              {!lanePacks.length ? (
+                <Alert severity="warning">
+                  No packs for <strong>{activeLane.product}</strong> (theme{" "}
+                  <code>{activeLane.themes.join(", ")}</code>).
+                  <Box component="span" sx={{ display: "block", mt: 0.5 }}>
+                    Expected samples: {activeLane.sampleCodes.map((c) => (
+                      <code key={c} style={{ marginRight: 8 }}>
+                        {c}
+                      </code>
+                    ))}
+                  </Box>
+                  Run <code>npm run knowledge:seed-samples</code> in <code>apps/api</code>
+                  {lane === "markets" && <> · or rebuild analyst packs on Markets</>}.
+                </Alert>
+              ) : (
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 2,
+                    gridTemplateColumns: { xs: "1fr", md: "minmax(260px, 320px) 1fr" },
+                    alignItems: "start",
+                  }}
+                >
+                  <Card variant="outlined">
+                    <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                      <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
+                        <Typography variant="subtitle2">
+                          {activeLane.product} packs ({lanePacks.length})
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Primary product only — not mixed with other engines
+                        </Typography>
+                      </Box>
+                      <List dense disablePadding sx={{ maxHeight: 480, overflow: "auto" }}>
+                        {lanePacks.map((p) => (
+                          <ListItemButton
+                            key={p.id}
+                            selected={p.id === selectedId}
+                            onClick={() => setSelectedId(p.id)}
+                            alignItems="flex-start"
+                            sx={{ borderBottom: 1, borderColor: "divider" }}
+                          >
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {p.title}
+                                  </Typography>
+                                  <Chip
+                                    size="small"
+                                    label={p.reviewState || "DRAFT"}
+                                    color={reviewChipColor(p.reviewState)}
+                                  />
+                                </Box>
+                              }
+                              secondary={`${p.code} · ${p.theme} → ${primaryProductForTheme(p.theme)} · ${p.items?.length ?? 0} items`}
+                            />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    </CardContent>
+                  </Card>
+
+                  <Stack spacing={1.5}>
+                    {!selected ? (
+                      <Alert severity="info">Select a pack on the left.</Alert>
+                    ) : (
+                      <>
+                        <Card variant="outlined">
+                          <CardContent>
+                            <Typography variant="h6">{selected.title}</Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: "block", mb: 1 }}
+                            >
+                              {selected.code} · v{selected.version ?? 1} · theme {selected.theme} →{" "}
+                              {primaryProductForTheme(selected.theme)}
+                            </Typography>
+                            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 1.5 }}>
+                              <Chip
+                                size="small"
+                                color={productChipColor(activeLane.product)}
+                                label={activeLane.product}
+                              />
+                              <Chip size="small" color="primary" label={selected.theme} />
+                              <Chip
+                                size="small"
+                                label={selected.reviewState || "DRAFT"}
+                                color={reviewChipColor(selected.reviewState)}
+                              />
+                              {(selected.regionTags || []).map((t) => (
+                                <Chip key={`r-${t}`} size="small" variant="outlined" label={`region:${t}`} />
+                              ))}
+                              {(selected.cropTags || []).map((t) => (
+                                <Chip key={`c-${t}`} size="small" variant="outlined" label={`crop:${t}`} />
+                              ))}
+                            </Box>
+                            <Typography variant="body2" sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
+                              {selected.summary || "—"}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                              Flag: <code>{activeLane.neverAutoUpdateFlag}</code> — approving this pack does not write{" "}
+                              {activeLane.product} code.
+                            </Typography>
+                            <Divider sx={{ my: 1.5 }} />
+                            <Typography variant="subtitle2" gutterBottom>
+                              Human review
+                            </Typography>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              label="Review note (optional)"
+                              value={note}
+                              onChange={(e) => setNote(e.target.value)}
+                              sx={{ mb: 1 }}
+                            />
+                            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                              {(NEXT_ACTIONS[selected.reviewState || "DRAFT"] || []).map((a) => (
+                                <Button
+                                  key={a.state}
+                                  size="small"
+                                  variant={a.state === "APPROVED" ? "contained" : "outlined"}
+                                  color={a.state === "REJECTED" ? "error" : "primary"}
+                                  disabled={busy}
+                                  onClick={() => void review(a.state)}
+                                >
+                                  {a.label}
+                                </Button>
+                              ))}
+                            </Box>
+                          </CardContent>
+                        </Card>
+
+                        {(selected.items || []).map((item) => {
+                          const isComparison = item.extractKind === "COMPARISON_NOTE";
+                          const s = item.structured ?? {};
+                          const param = typeof s.parameter === "string" ? s.parameter : null;
+                          const equationId = typeof s.equationId === "string" ? s.equationId : null;
+                          const hints = extractProductHints(item);
+                          return (
+                            <Card
+                              key={item.id}
+                              variant="outlined"
+                              sx={{
+                                borderColor: isComparison ? "warning.main" : undefined,
+                                bgcolor: isComparison ? "rgba(237, 108, 2, 0.04)" : undefined,
+                              }}
+                            >
+                              <CardContent>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    mb: 0.5,
+                                  }}
+                                >
+                                  <Chip
+                                    size="small"
+                                    label={item.extractKind}
+                                    color={isComparison ? "warning" : "default"}
+                                  />
+                                  {param && (
+                                    <Chip size="small" variant="outlined" label={`param:${param}`} />
+                                  )}
+                                  {equationId && (
+                                    <Chip size="small" color="info" variant="outlined" label={equationId} />
+                                  )}
+                                  {hints.map((h) => (
+                                    <Chip
+                                      key={h}
+                                      size="small"
+                                      color={productChipColor(h)}
+                                      variant="outlined"
+                                      label={h}
+                                    />
+                                  ))}
+                                  {(item.evidenceArtifactId ||
+                                    (typeof s.evidenceArtifactId === "string" && s.evidenceArtifactId)) && (
+                                    <Chip
+                                      size="small"
+                                      variant="outlined"
+                                      label={`artifact:${String(item.evidenceArtifactId || s.evidenceArtifactId).slice(0, 8)}…`}
+                                      title={String(item.evidenceArtifactId || s.evidenceArtifactId)}
+                                    />
+                                  )}
+                                  {item.governanceCandidateId && (
+                                    <Chip
+                                      size="small"
+                                      variant="outlined"
+                                      label={`candidate:${item.governanceCandidateId.slice(0, 8)}…`}
+                                    />
+                                  )}
+                                  {item.sourceUrl && (
+                                    <Chip size="small" variant="outlined" label="has sourceUrl" />
+                                  )}
+                                  {isComparison && (
+                                    <Chip
+                                      size="small"
+                                      variant="outlined"
+                                      color="success"
+                                      label="FlahaSOIL comparison only"
+                                    />
+                                  )}
+                                  <Typography variant="subtitle1">{item.title}</Typography>
+                                </Box>
+                                {(item.evidenceArtifactId || item.governanceCandidateId) && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                                    Evidence:{" "}
+                                    {item.evidenceArtifactId && (
+                                      <code>artifact {item.evidenceArtifactId}</code>
+                                    )}
+                                    {item.governanceCandidateId && (
+                                      <code> · candidate {item.governanceCandidateId}</code>
+                                    )}
+                                  </Typography>
+                                )}
+                                {item.bodyText && (
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    {item.bodyText}
+                                  </Typography>
+                                )}
+                                {Object.keys(s).length > 0 && (
+                                  <Box
+                                    component="pre"
+                                    sx={{
+                                      m: 0,
+                                      p: 1.5,
+                                      bgcolor: "action.hover",
+                                      borderRadius: 1,
+                                      fontSize: 12,
+                                      overflow: "auto",
+                                      maxHeight: 220,
+                                    }}
+                                  >
+                                    {JSON.stringify(s, null, 2)}
+                                  </Box>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </>
+                    )}
+                  </Stack>
+                </Box>
+              )}
+            </>
+          )}
+
+          {/* Soil-only tools */}
+          {lane === "soil" && soilTool === "bank" && (
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Literature threshold bank — FlahaSOIL only
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {bank?.note || "—"} Live: {String(bank?.live ?? false)} · entries: {bank?.count ?? 0}. Not used for
+                  FlahaCALC irrigation or FlahaFAST nutrients.
+                </Typography>
+                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1.5 }}>
+                  <FormControl size="small" sx={{ minWidth: 160 }}>
+                    <InputLabel>Level</InputLabel>
+                    <Select label="Level" value={bankLevel} onChange={(e) => setBankLevel(e.target.value)}>
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="PRELIMINARY">PRELIMINARY</MenuItem>
+                      <MenuItem value="MODERATE">MODERATE</MenuItem>
+                      <MenuItem value="ADVANCED">ADVANCED</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Button
+                    size="small"
+                    variant={bankCuration ? "contained" : "outlined"}
+                    onClick={() => setBankCuration(true)}
+                  >
+                    Curation
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={!bankCuration ? "contained" : "outlined"}
+                    onClick={() => setBankCuration(false)}
+                  >
+                    Live only
+                  </Button>
+                </Box>
+                <Box sx={{ overflowX: "auto", maxHeight: 360 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left", padding: 6 }}>Parameter</th>
+                        <th style={{ textAlign: "left", padding: 6 }}>Threshold</th>
+                        <th style={{ textAlign: "left", padding: 6 }}>Levels</th>
+                        <th style={{ textAlign: "left", padding: 6 }}>State</th>
+                        <th style={{ textAlign: "left", padding: 6 }}>Title</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(bank?.entries || []).map((e) => (
+                        <tr key={String(e.itemId)}>
+                          <td style={{ padding: 6 }}>
+                            <code>{String(e.parameter || "—")}</code>
+                          </td>
+                          <td style={{ padding: 6 }}>
+                            {String(e.operator || "")}{" "}
+                            {e.value != null
+                              ? String(e.value)
+                              : e.valueMin != null
+                                ? `${String(e.valueMin)}–${String(e.valueMax)}`
+                                : "—"}{" "}
+                            {String(e.unit || "")}
+                          </td>
+                          <td style={{ padding: 6 }}>
+                            {Array.isArray(e.soilTestLevels)
+                              ? (e.soilTestLevels as string[]).join(", ")
+                              : "—"}
+                          </td>
+                          <td style={{ padding: 6 }}>{String(e.packReviewState || "—")}</td>
+                          <td style={{ padding: 6 }}>
+                            {String(e.title || "—")}{" "}
+                            <Button
+                              size="small"
+                              disabled={caseBusy || !e.itemId}
+                              onClick={() =>
+                                void openCaseFromBank(String(e.itemId), String(e.parameter || ""))
+                              }
+                            >
+                              Open case
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                      {!bank?.entries?.length && (
+                        <tr>
+                          <td colSpan={5} style={{ padding: 8, color: "#6B7280" }}>
+                            Empty bank. Seed + approve SOIL packs for Live mode.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+
+          {lane === "soil" && soilTool === "cases" && (
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  FlahaSOIL comparison cases
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Literature vs soil report observations. Human only — never writes FlahaSOIL engines. Not CALC or
+                  FAST.
+                </Typography>
+                {!cases.length ? (
+                  <Typography variant="body2" color="text.secondary">
+                    No cases. Open from threshold bank or import a soil report.
+                  </Typography>
+                ) : (
+                  <Stack spacing={1}>
+                    {cases.map((c) => (
+                      <Box
+                        key={String(c.id)}
+                        sx={{
+                          p: 1.5,
+                          border: 1,
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          display: "flex",
+                          flexDirection: { xs: "column", md: "row" },
+                          gap: 1,
+                          alignItems: { md: "center" },
+                        }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {String(c.title)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            <code>{String(c.parameter)}</code> · lit{" "}
+                            {String(c.literatureValue ?? c.literatureRange ?? "—")} · SOIL{" "}
+                            {String(c.flahaSoilValue ?? "—")}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          size="small"
+                          label={String(c.status)}
+                          color={c.status === "APPROVED" ? "success" : "default"}
+                        />
+                        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                          {(CASE_NEXT[String(c.status)] || []).map((a) => (
+                            <Button
+                              key={a.status}
+                              size="small"
+                              variant="outlined"
+                              disabled={caseBusy}
+                              onClick={() => void transitionCase(String(c.id), a.status)}
+                            >
+                              {a.label}
+                            </Button>
+                          ))}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {lane === "soil" && soilTool === "import" && (
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Import FlahaSOIL report
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  Soil PDF/JSON only → DRAFT comparison cases. Does not import Mahaseel/Amman or CALC/FAST exports.
+                  API: {bridge?.soilApi.configured ? bridge.soilApi.note : "not configured"}.
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+                  <Button variant="contained" component="label" disabled={caseBusy} size="small">
+                    Upload PDF / JSON
+                    <input
+                      type="file"
+                      hidden
+                      accept=".pdf,.json,application/pdf,application/json"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = "";
+                        if (f) void importReport(f);
+                      }}
+                    />
+                  </Button>
+                  <TextField
+                    size="small"
+                    label="soilTestId"
+                    value={soilTestId}
+                    onChange={(e) => setSoilTestId(e.target.value)}
+                    disabled={!bridge?.soilApi.configured}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={caseBusy || !bridge?.soilApi.configured || !soilTestId.trim()}
+                    onClick={() => void importFromSoilApi()}
+                  >
+                    Import from SOIL API
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+        </Stack>
       )}
     </Stack>
   );

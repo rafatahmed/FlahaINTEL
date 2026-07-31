@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-30
+ * Last modified: 2026-07-31
  */
 import type { MarketChannel, PrismaClient } from "@prisma/client";
 import { mapAmmanDaySummaries, mapAmmanRow, type AmmanRawRow } from "../parsers/amman.js";
@@ -109,12 +109,8 @@ async function harvestMahaseel(
   const buf = await fetchBuffer(pdfUrl);
   let text = "";
   try {
-    // Avoid pdf-parse package root (runs test harness); load library entry only.
-    const { createRequire } = await import("node:module");
-    const require = createRequire(import.meta.url);
-    const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (b: Buffer) => Promise<{ text: string }>;
-    const parsed = await pdfParse(buf);
-    text = parsed.text || "";
+    const { extractPdfText } = await import("./extractPdfText.js");
+    text = await extractPdfText(buf);
   } catch (e) {
     throw new MarketValidationError(
       "MAHASEEL_PDF_PARSE_FAILED",

@@ -10,7 +10,7 @@ so engineering never drifts away from Precision Agriculture outcomes.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-30
+Last modified: 2026-07-31
 -->
 
 # FlahaINTEL — Final Product Lock
@@ -73,6 +73,8 @@ Without backbone, eyes and muscles become a **reckless scraper**.
 ## 2. Locked final product (one sentence)
 
 **FlahaINTEL is Flaha’s private agri-intelligence system for the Precision Agriculture division: it watches trusted external sources anywhere Flaha serves farmers, collects and structures knowledge (markets, soil, irrigation, nutrition, digital agri), keeps a full evidence trail, keeps humans in charge, and feeds governed context into FlahaSOIL, FlahaCALC, FlahaFAST and farm advice — not a public news site, not unsupervised scraping, and not limited to one country.**
+
+**System co-existence (2026-07-31, owner locked):** FlahaINTEL is the **primary** ops intelligence plane. The separate **Flaha Knowledge Platform** is **frozen-thin** (document authority + future MCP only) — see `docs/program/flaha-system-vision-and-operate-lock.md`. Do not re-implement FKP or MCP science corpus inside FlahaINTEL.
 
 ---
 

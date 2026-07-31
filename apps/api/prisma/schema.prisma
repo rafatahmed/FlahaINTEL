@@ -622,6 +622,7 @@ model UserAccount {
   knowledgePacksOwned KnowledgePack[] @relation("KnowledgePackOwner")
   flahaSoilComparisonsCreated FlahaSoilComparisonCase[] @relation("FlahaSoilComparisonCreator")
   flahaSoilComparisonsReviewed FlahaSoilComparisonCase[] @relation("FlahaSoilComparisonReviewer")
+  evidenceIntakesCreated EvidenceIntake[] @relation("EvidenceIntakeCreator")
 
   @@index([active])
 }
@@ -642,6 +643,7 @@ model Tenant {
   marketDaySummaries MarketDaySummary[]
   knowledgePacks KnowledgePack[]
   flahaSoilComparisons FlahaSoilComparisonCase[]
+  evidenceIntakes EvidenceIntake[]
 
   @@index([active])
 }
@@ -1223,4 +1225,66 @@ model FlahaSoilComparisonCase {
   @@index([tenantId, status])
   @@index([tenantId, parameter])
   @@index([createdById])
+}
+
+// ---------------------------------------------------------------------------
+// Evidence Intake Spine (central Submit): land once → classify → promote
+// ---------------------------------------------------------------------------
+
+/// What the human says this evidence is (routes promote, not re-upload).
+enum EvidenceIntakeClass {
+  UNCLASSIFIED
+  EYES_WEBSITE
+  EYES_DOCUMENT
+  MARKET_MAHASEEL_PDF
+  MARKET_JO_AMMAN_EXCEL
+  PRODUCT_SOIL_REPORT
+  PRODUCT_CALC_REPORT
+  PRODUCT_FAST_REPORT
+}
+
+enum EvidenceIntakeStatus {
+  LANDED
+  CLASSIFIED
+  PROMOTING
+  PROMOTED
+  FAILED
+  REJECTED
+}
+
+/// Universal intake record: one door for human-initiated evidence.
+model EvidenceIntake {
+  id                 String                @id @default(uuid()) @db.Uuid
+  tenantId           String                @db.Uuid
+  tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  intakeClass        EvidenceIntakeClass   @default(UNCLASSIFIED)
+  status             EvidenceIntakeStatus  @default(LANDED)
+  title              String
+  originalFilename   String?
+  sourceUrl          String?
+  mediaType          String?
+  byteSize           BigInt?
+  contentSha256      String?               @db.Char(64)
+  /// Relative path under intake root for landed files (market/soil/etc.).
+  storageRelativePath String?
+  inputArtifactId    String?               @db.Uuid
+  productSubmissionId String?              @db.Uuid
+  promoteResult      Json?
+  errorCode          String?
+  errorMessage       String?               @db.VarChar(2000)
+  notes              String?
+  correlationId      String
+  idempotencyKey     String                @unique
+  createdById        String                @db.Uuid
+  createdBy          UserAccount           @relation("EvidenceIntakeCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  classifiedAt       DateTime?
+  promotedAt         DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, intakeClass, createdAt])
+  @@index([contentSha256])
+  @@index([createdById])
+  @@index([correlationId])
 }

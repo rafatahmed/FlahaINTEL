@@ -14,6 +14,8 @@
     "bootstrap:source-policies": "npm run bootstrap:source-policies --workspace=@flaha-intel/api",
     "markets:seed-channels": "npm run markets:seed-channels --workspace=@flaha-intel/api",
     "markets:harvest": "npm run markets:harvest --workspace=@flaha-intel/api --",
+    "markets:import-mahaseel-pdfs": "npm run markets:import-mahaseel-pdfs --workspace=@flaha-intel/api --",
+    "markets:import-jo-amman-excel": "npm run markets:import-jo-amman-excel --workspace=@flaha-intel/api --",
     "markets:retention": "npm run markets:retention --workspace=@flaha-intel/api --",
     "markets:build-analyst-packs": "npm run markets:build-analyst-packs --workspace=@flaha-intel/api --",
     "knowledge:seed-threshold-bank": "npm run knowledge:seed-threshold-bank --workspace=@flaha-intel/api",
@@ -25,7 +27,10 @@
     "ops:smoke": "powershell -NoProfile -File ops/scripts/smoke-test.ps1",
     "ops:check-free-space": "powershell -NoProfile -File ops/scripts/check-free-space.ps1",
     "ops:register-backup-task": "powershell -NoProfile -File ops/scripts/register-backup-task.ps1",
-    "ops:register-market-harvest-task": "powershell -NoProfile -File ops/scripts/register-market-harvest-task.ps1"
+    "ops:register-market-harvest-task": "powershell -NoProfile -File ops/scripts/register-market-harvest-task.ps1",
+    "ops:start": "powershell -NoProfile -File ops/scripts/start-flahaintel.ps1",
+    "ops:stop": "powershell -NoProfile -File ops/scripts/start-flahaintel.ps1 -Stop",
+    "ops:artifact-hygiene": "npm run ops:artifact-hygiene --workspace=@flaha-intel/api --"
   },
   "engines": {
     "node": ">=20"

@@ -3,13 +3,18 @@
  * Precision Agriculture Division
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
- * Title: Knowledge Pack Extract Template (4S-B)
- * Introduction: Validates structured extracts aligned to FlahaSOIL keys and test levels.
+ * Title: Knowledge Pack Extract Template (4S-B / 4I)
+ * Introduction: Validates structured extracts aligned to FlahaSOIL keys and
+ * FlahaCALC/FAST parameter identities (4I). Never auto-updates products.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
  * Last modified: 2026-07-31
  */
+import {
+  getCalcFastParameterSpec,
+  normalizeCalcFastParameterKey,
+} from "./flahaCalcFastParameters.js";
 import {
   defaultSoilTestLevels,
   getParameterSpec,
@@ -151,7 +156,8 @@ function parseAppliesFromLevel(raw: unknown, soilTestLevels: SoilTestLevel[]): S
 }
 
 /**
- * Normalize parameter aliases (EC → ecDsM) and attach level metadata.
+ * Normalize parameter aliases and attach product metadata.
+ * Prefer FlahaSOIL keys (4S); else FlahaCALC/FAST keys (4I).
  * Mutates structured in place for canonical storage.
  */
 function alignFlahaSoilParameter(
@@ -159,46 +165,67 @@ function alignFlahaSoilParameter(
   opts: { requireKnownParameter: boolean },
 ): void {
   const rawParam = requireString(structured, "parameter", "PARAMETER_REQUIRED");
-  const canonical = normalizeFlahaSoilParameter(rawParam);
-  if (!canonical) {
-    if (opts.requireKnownParameter) {
+
+  const soilCanonical = normalizeFlahaSoilParameter(rawParam);
+  if (soilCanonical) {
+    structured.parameter = soilCanonical;
+    structured.parameterCatalog = "FlahaSOIL";
+    const spec = getParameterSpec(soilCanonical);
+    if (spec?.unit && structured.unit == null) {
+      structured.unit = spec.unit;
+    }
+    if (spec?.domain) {
+      structured.parameterDomain = spec.domain;
+    }
+
+    let soilTestLevels: SoilTestLevel[];
+    if (structured.soilTestLevels == null) {
+      const from = spec?.appliesFromLevel ?? "PRELIMINARY";
+      soilTestLevels = defaultSoilTestLevels(from);
+      structured.soilTestLevels = soilTestLevels;
+      structured.appliesFromLevel = structured.appliesFromLevel ?? from;
+    } else {
+      soilTestLevels = parseSoilTestLevels(structured.soilTestLevels);
+      structured.soilTestLevels = soilTestLevels;
+    }
+
+    const appliesFrom = parseAppliesFromLevel(structured.appliesFromLevel, soilTestLevels);
+    structured.appliesFromLevel = appliesFrom;
+
+    if (spec && rankLevel(appliesFrom) < rankLevel(spec.appliesFromLevel)) {
       throw new ExtractTemplateError(
-        "PARAMETER_UNKNOWN",
-        `parameter "${rawParam}" is not a known FlahaSOIL key/alias. See docs/knowledge/flahasoil-recon-webapp-and-report.md.`,
+        "APPLIES_FROM_LEVEL_TOO_LOW",
+        `parameter ${soilCanonical} is expected from ${spec.appliesFromLevel}+ in FlahaSOIL; appliesFromLevel cannot be ${appliesFrom}.`,
       );
     }
     return;
   }
-  structured.parameter = canonical;
-  const spec = getParameterSpec(canonical);
-  if (spec?.unit && structured.unit == null) {
-    structured.unit = spec.unit;
-  }
-  if (spec?.domain) {
-    structured.parameterDomain = spec.domain;
+
+  const calcFastCanonical = normalizeCalcFastParameterKey(rawParam);
+  if (calcFastCanonical) {
+    structured.parameter = calcFastCanonical;
+    structured.parameterCatalog = "FlahaCALC_FAST";
+    const spec = getCalcFastParameterSpec(calcFastCanonical);
+    if (spec?.unit && structured.unit == null) {
+      structured.unit = spec.unit;
+    }
+    if (!structured.unit) {
+      // Dimensionless product ratios (Kc, Ea) still need a unit token for 4S-B THRESHOLD.
+      structured.unit = "1";
+    }
+    if (spec?.domain) {
+      structured.parameterDomain = spec.domain;
+    }
+    if (spec?.products?.length) {
+      structured.productHandoff = structured.productHandoff ?? [...spec.products];
+    }
+    return;
   }
 
-  // Level applicability
-  let soilTestLevels: SoilTestLevel[];
-  if (structured.soilTestLevels == null) {
-    // Default from parameter matrix when omitted
-    const from = spec?.appliesFromLevel ?? "PRELIMINARY";
-    soilTestLevels = defaultSoilTestLevels(from);
-    structured.soilTestLevels = soilTestLevels;
-    structured.appliesFromLevel = structured.appliesFromLevel ?? from;
-  } else {
-    soilTestLevels = parseSoilTestLevels(structured.soilTestLevels);
-    structured.soilTestLevels = soilTestLevels;
-  }
-
-  const appliesFrom = parseAppliesFromLevel(structured.appliesFromLevel, soilTestLevels);
-  structured.appliesFromLevel = appliesFrom;
-
-  // Soft check: if parameter matrix says ADVANCED-only, warn by rejecting under-scope
-  if (spec && rankLevel(appliesFrom) < rankLevel(spec.appliesFromLevel)) {
+  if (opts.requireKnownParameter) {
     throw new ExtractTemplateError(
-      "APPLIES_FROM_LEVEL_TOO_LOW",
-      `parameter ${canonical} is expected from ${spec.appliesFromLevel}+ in FlahaSOIL; appliesFromLevel cannot be ${appliesFrom}.`,
+      "PARAMETER_UNKNOWN",
+      `parameter "${rawParam}" is not a known FlahaSOIL or FlahaCALC/FAST key/alias. See docs/knowledge/flahasoil-recon-webapp-and-report.md and docs/knowledge/flahacalc-flahafast-recon.md.`,
     );
   }
 }
