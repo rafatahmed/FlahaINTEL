@@ -10,7 +10,7 @@ FlahaINTEL content — crop × place × theme × method — without embeddings o
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-31
-Last modified: 2026-07-31
+Last modified: 2026-08-01
 -->
 
 # Gate 4R-A — Research topic index (research desk foundation)
