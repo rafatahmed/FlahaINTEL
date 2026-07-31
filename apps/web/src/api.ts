@@ -291,7 +291,18 @@ export const api = {
     request<{ channelCode: string; count: number; entries: Array<{ ar: string; en: string; code: string }> }>(
       "/api/markets/commodity-map/jo-amman",
     ),
-  knowledgePacks: (theme?: string) =>
-    request<{ packs: Array<Record<string, unknown>> }>(`/api/knowledge-packs${query({ theme })}`),
+  knowledgePacks: (filters: { theme?: string; extractKind?: string; reviewState?: string } | string = {}) => {
+    const f = typeof filters === "string" ? { theme: filters } : filters;
+    return request<{ packs: Array<Record<string, unknown>> }>(`/api/knowledge-packs${query(f)}`);
+  },
   knowledgePack: (id: string) => request<{ pack: Record<string, unknown> }>(`/api/knowledge-packs/${id}`),
+  knowledgeComparisonNotes: (reviewState?: string) =>
+    request<{ count: number; notes: Array<Record<string, unknown>> }>(
+      `/api/knowledge-packs/comparison-notes${query({ reviewState })}`,
+    ),
+  reviewKnowledgePack: (id: string, body: { reviewState: string; note?: string }) =>
+    request<{ pack: Record<string, unknown>; governance: Record<string, unknown> }>(
+      `/api/knowledge-packs/${id}/review`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
 };

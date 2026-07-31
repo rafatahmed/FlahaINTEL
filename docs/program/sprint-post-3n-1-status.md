@@ -62,7 +62,7 @@ npm run knowledge:seed-samples
 ## Next (systemic order)
 
 1. **Host hygiene:** free C: toward ≥5–15% when practical (optional for markets)  
-2. **4S-B:** expand soil pack extracts toward FlahaSOIL comparison notes (human review stays)  
+2. **4S-B:** **DONE** — template validation, human review API/UI, comparison pack samples  
 3. Let scheduled harvest run nightly/daily to grow 365d series  
 4. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
 

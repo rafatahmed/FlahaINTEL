@@ -4,11 +4,11 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Knowledge Pack Service Tests
- * Introduction: Gate 4S-A pack creation rules (theme, code, multi-region tags).
+ * Introduction: Gate 4S-A/B pack creation, extract validation, human review rules.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-30
+ * Last modified: 2026-07-31
  */
 import { describe, expect, it, vi } from "vitest";
 import { KnowledgePackError, KnowledgePackService } from "./service.js";
@@ -53,7 +53,13 @@ describe("KnowledgePackService", () => {
         {
           title: "Example EC threshold note",
           extractKind: "THRESHOLD",
-          structured: { parameter: "EC", unit: "dS/m", note: "illustrative only" },
+          structured: {
+            parameter: "EC",
+            unit: "dS/m",
+            operator: "<=",
+            value: 2.5,
+            doesNotAutoUpdateFlahaSOIL: true,
+          },
         },
       ],
     });
@@ -62,5 +68,29 @@ describe("KnowledgePackService", () => {
     expect(arg.code).toBe("soil-thresholds-v1");
     expect(arg.regionTags).toEqual(["QA", "JO", "CA"]);
     expect(arg.items.create).toHaveLength(1);
+    expect(arg.items.create[0].extractKind).toBe("THRESHOLD");
+  });
+
+  it("rejects DRAFT → APPROVED (no auto-approve)", async () => {
+    const db = {
+      knowledgePack: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "p1",
+          reviewState: "DRAFT",
+          summary: null,
+          items: [],
+        }),
+        update: vi.fn(),
+      },
+    } as never;
+    const svc = new KnowledgePackService(db);
+    await expect(
+      svc.reviewPack({
+        tenantId: "t",
+        packId: "p1",
+        reviewerId: "u",
+        reviewState: "APPROVED",
+      }),
+    ).rejects.toMatchObject({ code: "REVIEW_TRANSITION_FORBIDDEN" });
   });
 });

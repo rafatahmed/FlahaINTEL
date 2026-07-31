@@ -1,13 +1,14 @@
 {
-  "samplesVersion": 1,
+  "samplesVersion": 2,
   "principle": "Universal soil/irrigation science packs; region/climate are tags only. Samples are illustrative literature notes — never auto-update FlahaSOIL algorithms.",
-  "handoffRule": "Approved packs INFORM FlahaSOIL / CALC / FAST work. Product algorithm changes require a separate product process.",
+  "handoffRule": "Approved packs INFORM FlahaSOIL / CALC / FAST work. Product algorithm changes require a separate product process. Human review only (4S-B).",
+  "extractTemplate": "docs/knowledge/extract-template-4s-b.md",
   "packs": [
     {
       "code": "soil-thresholds-baseline-v1",
       "theme": "SOIL",
       "title": "Soil analysis thresholds baseline (sample)",
-      "summary": "Illustrative EC, pH, and organic-matter notes for greenhouse and open-field vegetable systems. Universal science with place tags — not product defaults.",
+      "summary": "Illustrative EC, pH, SAR, OM, and NPK-style notes for greenhouse and open-field systems. Universal science with place tags — not product defaults. 4S-B structured extracts.",
       "language": "en",
       "cropTags": ["tomato", "cucumber", "pepper", "lettuce"],
       "regionTags": ["QA", "JO", "CA", "global"],
@@ -15,7 +16,7 @@
       "reviewStateHint": "DRAFT",
       "items": [
         {
-          "title": "Irrigation water / substrate EC upper note (tomato soilless)",
+          "title": "Substrate EC upper note (tomato soilless)",
           "extractKind": "THRESHOLD",
           "bodyText": "Illustrative literature-style note: many greenhouse tomato guides treat substrate EC above ~2.5–3.5 dS/m as elevated stress risk depending on stage and cultivar. Not a FlahaSOIL default.",
           "structured": {
@@ -26,6 +27,8 @@
             "crop": "tomato",
             "context": "soilless greenhouse illustrative",
             "confidence": "literature-note",
+            "regionTags": ["global"],
+            "climateTags": ["greenhouse"],
             "doesNotAutoUpdateFlahaSOIL": true
           },
           "sourceUrl": "https://example.invalid/literature/soil-ec-note"
@@ -33,7 +36,7 @@
         {
           "title": "Soil pH suitability band (most vegetables)",
           "extractKind": "THRESHOLD",
-          "bodyText": "Common agronomy guidance places many vegetables near pH 6.0–7.0 for nutrient availability. Local soils (e.g. calcareous arid zones) often need different management — use region tags, not a hard product wall.",
+          "bodyText": "Common agronomy guidance places many vegetables near pH 6.0–7.0 for nutrient availability. Calcareous arid soils often need different management — region tags, not product walls.",
           "structured": {
             "parameter": "pH",
             "unit": "pH",
@@ -43,25 +46,45 @@
             "crop": "vegetables-general",
             "context": "mineral soil illustrative",
             "confidence": "literature-note",
+            "regionTags": ["QA", "JO", "global"],
+            "climateTags": ["arid", "open-field"],
             "doesNotAutoUpdateFlahaSOIL": true
           },
           "sourceUrl": "https://example.invalid/literature/soil-ph-note"
         },
         {
-          "title": "Organic matter qualitative note",
-          "extractKind": "NOTE",
-          "bodyText": "Higher soil organic matter generally improves water holding and structure. Target bands depend on soil texture and climate; arid open-field systems often start low and benefit from compost programs.",
+          "title": "SAR caution band (illustrative)",
+          "extractKind": "THRESHOLD",
+          "bodyText": "Elevated sodium adsorption ratio can degrade structure and infiltration. Treat values as literature orientation only.",
           "structured": {
-            "parameter": "organic_matter",
-            "unit": "%",
-            "context": "qualitative management note",
+            "parameter": "SAR",
+            "unit": "ratio",
+            "operator": "<=",
+            "value": 6,
+            "context": "irrigation water / soil extract illustrative",
+            "confidence": "literature-note",
             "doesNotAutoUpdateFlahaSOIL": true
           }
         },
         {
-          "title": "Lab method pointer — saturated paste EC",
+          "title": "Organic matter qualitative band",
+          "extractKind": "THRESHOLD",
+          "bodyText": "Higher soil organic matter generally improves water holding. Arid open-field systems often start low.",
+          "structured": {
+            "parameter": "organic_matter",
+            "unit": "%",
+            "operator": ">=",
+            "value": 1.5,
+            "context": "arid open-field illustrative floor, not universal optimum",
+            "confidence": "literature-note",
+            "climateTags": ["arid", "open-field"],
+            "doesNotAutoUpdateFlahaSOIL": true
+          }
+        },
+        {
+          "title": "Lab method — saturated paste EC",
           "extractKind": "METHOD",
-          "bodyText": "Saturated paste extract EC is a common lab method for soil salinity comparison. Always record method with the number so FlahaSOIL comparisons are apples-to-apples.",
+          "bodyText": "Saturated paste extract EC is a common lab method for soil salinity comparison. Always record method with the number.",
           "structured": {
             "method": "saturated_paste_EC",
             "parameter": "EC",
@@ -70,12 +93,93 @@
           }
         },
         {
-          "title": "FlahaSOIL comparison workflow (manual)",
+          "title": "FlahaSOIL comparison workflow pointer",
           "extractKind": "REFERENCE",
-          "bodyText": "Compare literature threshold notes against FlahaSOIL outputs manually. Record deviation notes in PA review; do not silently patch product formulas from this pack.",
+          "bodyText": "Use COMPARISON_NOTE extracts and human review. Do not silently patch FlahaSOIL formulas from this pack.",
           "structured": {
             "workflow": "manual-deviation-notes",
             "product": "FlahaSOIL",
+            "doesNotAutoUpdateFlahaSOIL": true
+          }
+        }
+      ]
+    },
+    {
+      "code": "flahasoil-comparison-notes-v1",
+      "theme": "SOIL",
+      "title": "FlahaSOIL comparison notes (sample, human review)",
+      "summary": "4S-B COMPARISON_NOTE extracts: literature orientation vs FlahaSOIL discussion. DRAFT until a human reviews. Never auto-applies to product code.",
+      "language": "en",
+      "cropTags": ["tomato", "cucumber", "vegetables-general"],
+      "regionTags": ["QA", "JO", "CA", "global"],
+      "climateTags": ["arid", "greenhouse", "open-field"],
+      "reviewStateHint": "DRAFT",
+      "items": [
+        {
+          "title": "EC soilless tomato — literature vs product discussion",
+          "extractKind": "COMPARISON_NOTE",
+          "bodyText": "Literature often flags substrate EC above ~2.5 dS/m as elevated risk for tomato. PA should compare against FlahaSOIL guidance bands manually; any product change needs a separate ticket.",
+          "structured": {
+            "product": "FlahaSOIL",
+            "parameter": "EC",
+            "unit": "dS/m",
+            "literatureValue": 2.5,
+            "literatureOperator": "<=",
+            "flahaSoilObservation": "Human to fill after checking current FlahaSOIL defaults for soilless tomato.",
+            "deviationSummary": "Illustrative literature upper stress note may be tighter or looser than product defaults depending on crop stage and method.",
+            "recommendedHumanAction": "review-in-PA",
+            "autoApplyBlocked": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "crop": "tomato",
+            "climateTags": ["greenhouse"],
+            "confidence": "expert-draft"
+          }
+        },
+        {
+          "title": "pH vegetable band — calcareous arid context",
+          "extractKind": "COMPARISON_NOTE",
+          "bodyText": "Literature 6–7 pH band for many vegetables; calcareous arid soils (QA/JO) often run higher. FlahaSOIL regional defaults must be reviewed by humans, not overwritten by this pack.",
+          "structured": {
+            "product": "FlahaSOIL",
+            "parameter": "pH",
+            "unit": "pH",
+            "literatureValueMin": 6.0,
+            "literatureValueMax": 7.0,
+            "literatureRange": "6.0–7.0 typical vegetables",
+            "flahaSoilObservation": "Confirm whether product encodes arid calcareous adjustments as tags or hard defaults.",
+            "deviationSummary": "Universal 6–7 band may under-represent calcareous arid management practice; region tags needed in advice.",
+            "recommendedHumanAction": "need-more-evidence",
+            "autoApplyBlocked": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "crop": "vegetables-general",
+            "regionTags": ["QA", "JO"],
+            "climateTags": ["arid"],
+            "confidence": "literature-note"
+          }
+        },
+        {
+          "title": "SAR structure risk — no auto-change",
+          "extractKind": "COMPARISON_NOTE",
+          "bodyText": "If FlahaSOIL exposes SAR or sodium indices, compare against literature caution (~6 illustrative). Action is PA review or product ticket only.",
+          "structured": {
+            "product": "FlahaSOIL",
+            "parameter": "SAR",
+            "unit": "ratio",
+            "literatureValue": 6,
+            "deviationSummary": "Illustrative SAR caution only; product may use different indices (ESP, Na%).",
+            "recommendedHumanAction": "schedule-product-ticket",
+            "autoApplyBlocked": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "confidence": "expert-draft"
+          }
+        },
+        {
+          "title": "Method pairing rule for any comparison",
+          "extractKind": "METHOD",
+          "bodyText": "Never compare literature EC to product EC without the same method identity (e.g. saturated paste vs 1:2 extract).",
+          "structured": {
+            "method": "require_method_with_threshold",
+            "parameter": "EC",
             "doesNotAutoUpdateFlahaSOIL": true
           }
         }
@@ -95,7 +199,7 @@
         {
           "title": "Drip irrigation uniformity check",
           "extractKind": "METHOD",
-          "bodyText": "Periodic catch-can or flow checks help keep emission uniformity high. Poor uniformity wastes water and confuses soil moisture advice.",
+          "bodyText": "Periodic catch-can or flow checks help keep emission uniformity high.",
           "structured": {
             "method": "emission_uniformity_check",
             "context": "drip systems",
@@ -105,7 +209,7 @@
         {
           "title": "Irrigation water EC caution (illustrative)",
           "extractKind": "THRESHOLD",
-          "bodyText": "Irrigation water EC above ~1.5–2.0 dS/m often needs salinity-aware scheduling and leaching fraction design for sensitive vegetables. Adjust by crop and drainage.",
+          "bodyText": "Irrigation water EC above ~1.5–2.0 dS/m often needs salinity-aware scheduling for sensitive vegetables.",
           "structured": {
             "parameter": "irrigation_water_EC",
             "unit": "dS/m",
@@ -120,12 +224,12 @@
         {
           "title": "Equation note placeholder for FlahaCALC/FAST",
           "extractKind": "EQUATION",
-          "bodyText": "Crop water requirement estimates (ETc = Kc × ETo) are the shared backbone for irrigation advice. Pack stores method identity only; CALC/FAST own implementation.",
+          "bodyText": "ETc = Kc × ETo backbone for irrigation advice. Pack stores identity only.",
           "structured": {
             "equationId": "ETc_Kc_ETo",
             "form": "ETc = Kc * ETo",
             "productHandoff": ["FlahaCALC", "FlahaFAST"],
-            "doesNotAutoUpdateProductCode": true
+            "doesNotAutoUpdateFlahaSOIL": true
           }
         }
       ]
@@ -134,7 +238,7 @@
       "code": "soil-moisture-tomato-context-v1",
       "theme": "SOIL",
       "title": "Soil moisture × tomato context (sample)",
-      "summary": "Cross-cutting soil moisture notes for tomato under arid and greenhouse tags — supports scientific writing and product comparison later.",
+      "summary": "Cross-cutting soil moisture notes for tomato under arid and greenhouse tags.",
       "language": "en",
       "cropTags": ["tomato"],
       "regionTags": ["QA", "JO", "CA"],
@@ -144,7 +248,7 @@
         {
           "title": "Avoid chronic water stress at fruit set",
           "extractKind": "NOTE",
-          "bodyText": "Tomato fruit set and blossom-end rot risk rise under uneven moisture. Prefer consistent irrigation rather than extreme wet/dry cycles in greenhouse systems.",
+          "bodyText": "Tomato fruit set and blossom-end rot risk rise under uneven moisture.",
           "structured": {
             "crop": "tomato",
             "topic": "moisture_consistency",
@@ -154,10 +258,28 @@
         {
           "title": "Reference — measure method with advice",
           "extractKind": "REFERENCE",
-          "bodyText": "When citing moisture thresholds, always pair sensor/method (tensiometer, capacitance, gravimetric) with the number.",
+          "bodyText": "When citing moisture thresholds, always pair sensor/method with the number.",
           "structured": {
             "requireMethodWithThreshold": true,
             "doesNotAutoUpdateFlahaSOIL": true
+          }
+        },
+        {
+          "title": "Moisture consistency vs FlahaSOIL advice tone",
+          "extractKind": "COMPARISON_NOTE",
+          "bodyText": "If FlahaSOIL advice is stage-aware for tomato fruit set, confirm messaging stresses consistency over extreme dry-down in greenhouse arid climates.",
+          "structured": {
+            "product": "FlahaSOIL",
+            "parameter": "soil_moisture_management",
+            "unit": "qualitative",
+            "literatureRange": "consistent moisture at fruit set preferred",
+            "deviationSummary": "Product tone should be checked for dry-down vs consistency messaging under arid greenhouse tags.",
+            "recommendedHumanAction": "review-in-PA",
+            "autoApplyBlocked": true,
+            "doesNotAutoUpdateFlahaSOIL": true,
+            "crop": "tomato",
+            "climateTags": ["arid", "greenhouse"],
+            "confidence": "expert-draft"
           }
         }
       ]

@@ -166,6 +166,7 @@ Phase 3 delivers governed multi-channel ingestion under the FlahaINTEL product. 
 | 4M-D | Schedule + retention + trends | **Foundation** — Task Scheduler harvest; `GET /api/markets/retention`; Markets UI series + retention table |
 | 4M-A | Qatar market channel (MoCI daily vegetables) | **Implemented** (source) — registry + seed; daily extract muscle pending |
 | 4S-A | Soil/irrigation knowledge pack schema | **Implemented** — `KnowledgePack` + `/api/knowledge-packs` + sample packs (`knowledge:seed-samples`) |
+| 4S-B | Structured extract template + FlahaSOIL comparison notes | **Implemented** — validation, human-only review, `COMPARISON_NOTE`, Knowledge UI |
 
 Additional migrations in the Phase 3 lineage include durable ingestion jobs, governance review, and product submissions. See `apps/api/prisma/migrations/`.
 

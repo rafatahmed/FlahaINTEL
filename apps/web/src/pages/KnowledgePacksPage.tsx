@@ -4,15 +4,16 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Knowledge Packs Page
- * Introduction: Browse soil/irrigation knowledge pack samples (Gate 4S).
+ * Introduction: Browse 4S packs, comparison notes, and human-only review actions.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-30
+ * Last modified: 2026-07-31
  */
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -21,9 +22,10 @@ import {
   MenuItem,
   Select,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { BrandedState } from "../components/BrandedState";
 
@@ -47,50 +49,100 @@ type Pack = {
   regionTags?: string[];
   climateTags?: string[];
   reviewState?: string;
+  version?: number;
   items?: PackItem[];
+};
+
+const NEXT_ACTIONS: Record<string, Array<{ state: string; label: string }>> = {
+  DRAFT: [{ state: "READY_FOR_REVIEW", label: "Submit for review" }, { state: "ARCHIVED", label: "Archive" }],
+  READY_FOR_REVIEW: [
+    { state: "APPROVED", label: "Approve (human)" },
+    { state: "REJECTED", label: "Reject" },
+    { state: "DRAFT", label: "Back to draft" },
+  ],
+  APPROVED: [{ state: "READY_FOR_REVIEW", label: "Re-open review" }, { state: "ARCHIVED", label: "Archive" }],
+  REJECTED: [{ state: "DRAFT", label: "Revise (draft)" }, { state: "READY_FOR_REVIEW", label: "Re-submit" }],
+  ARCHIVED: [{ state: "DRAFT", label: "Restore draft" }],
 };
 
 export function KnowledgePacksPage() {
   const [theme, setTheme] = useState<string>("");
+  const [extractKind, setExtractKind] = useState<string>("");
   const [packs, setPacks] = useState<Pack[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
+  const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.knowledgePacks({
+        theme: theme || undefined,
+        extractKind: extractKind || undefined,
+      });
+      const list = (res.packs || []) as Pack[];
+      setPacks(list);
+      setSelectedId((prev) => (list.some((p) => p.id === prev) ? prev : list[0]?.id || ""));
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load knowledge packs.");
+    } finally {
+      setLoading(false);
+    }
+  }, [theme, extractKind]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        setLoading(true);
-        const res = await api.knowledgePacks(theme || undefined);
-        const list = (res.packs || []) as Pack[];
-        setPacks(list);
-        setSelectedId((prev) => (list.some((p) => p.id === prev) ? prev : list[0]?.id || ""));
-        setError("");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load knowledge packs.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [theme]);
+    void load();
+  }, [load]);
 
   const selected = packs.find((p) => p.id === selectedId);
+  const comparisonCount = (selected?.items || []).filter((i) => i.extractKind === "COMPARISON_NOTE").length;
 
-  if (loading) return <BrandedState label="Loading knowledge packs…" loading />;
+  async function review(to: string) {
+    if (!selected) return;
+    setBusy(true);
+    setInfo("");
+    try {
+      const res = await api.reviewKnowledgePack(selected.id, {
+        reviewState: to,
+        note: note.trim() || undefined,
+      });
+      setInfo(`Review → ${to}. Auto-approve: ${String(res.governance?.autoApprove)} · FlahaSOIL auto-update blocked.`);
+      setNote("");
+      await load();
+      setSelectedId(selected.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Review failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading && !packs.length) return <BrandedState label="Loading knowledge packs…" loading />;
 
   return (
     <Stack spacing={2}>
       <Box>
         <Typography variant="h5">Knowledge packs</Typography>
         <Typography variant="body2" color="text.secondary">
-          Soil and irrigation science packs (4S). Region/climate are tags only — packs never auto-change FlahaSOIL algorithms.
+          4S-B structured extracts (THRESHOLD, METHOD, COMPARISON_NOTE). Region/climate are tags only.{" "}
+          <strong>Human review only — never auto-updates FlahaSOIL.</strong>
         </Typography>
       </Box>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
+      {info && <Alert severity="success" onClose={() => setInfo("")}>{info}</Alert>}
+
+      <Alert severity="info">
+        Comparison notes are discussion artifacts for PA and product owners. APPROVED means governed knowledge — not a
+        write into FlahaSOIL code.
+      </Alert>
 
       <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel>Theme</InputLabel>
           <Select label="Theme" value={theme} onChange={(e) => setTheme(e.target.value)}>
             <MenuItem value="">All</MenuItem>
@@ -98,6 +150,18 @@ export function KnowledgePacksPage() {
             <MenuItem value="IRRIGATION">Irrigation</MenuItem>
             <MenuItem value="NUTRITION">Nutrition</MenuItem>
             <MenuItem value="OTHER">Other</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Extract kind</InputLabel>
+          <Select label="Extract kind" value={extractKind} onChange={(e) => setExtractKind(e.target.value)}>
+            <MenuItem value="">All kinds</MenuItem>
+            <MenuItem value="THRESHOLD">THRESHOLD</MenuItem>
+            <MenuItem value="METHOD">METHOD</MenuItem>
+            <MenuItem value="COMPARISON_NOTE">COMPARISON_NOTE</MenuItem>
+            <MenuItem value="EQUATION">EQUATION</MenuItem>
+            <MenuItem value="NOTE">NOTE</MenuItem>
+            <MenuItem value="REFERENCE">REFERENCE</MenuItem>
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth: 320, flex: 1 }}>
@@ -110,7 +174,7 @@ export function KnowledgePacksPage() {
           >
             {packs.map((p) => (
               <MenuItem key={p.id} value={p.id}>
-                {p.theme} · {p.title}
+                {p.theme} · {p.reviewState || "DRAFT"} · {p.title}
               </MenuItem>
             ))}
           </Select>
@@ -119,7 +183,7 @@ export function KnowledgePacksPage() {
 
       {!selected ? (
         <Alert severity="info">
-          No packs yet. Seed samples with <code>npm run knowledge:seed-samples</code> in apps/api.
+          No packs yet. Seed with <code>npm run knowledge:seed-samples</code> in apps/api.
         </Alert>
       ) : (
         <>
@@ -127,62 +191,113 @@ export function KnowledgePacksPage() {
             <CardContent>
               <Typography variant="h6">{selected.title}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                {selected.code} · {selected.reviewState || "DRAFT"}
+                {selected.code} · v{selected.version ?? 1} · comparison notes: {comparisonCount}
               </Typography>
-              <Typography variant="body2" sx={{ mb: 1.5 }}>
-                {selected.summary || "—"}
-              </Typography>
-              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 1.5 }}>
                 <Chip size="small" color="primary" label={selected.theme} />
+                <Chip
+                  size="small"
+                  label={selected.reviewState || "DRAFT"}
+                  color={
+                    selected.reviewState === "APPROVED"
+                      ? "success"
+                      : selected.reviewState === "REJECTED"
+                        ? "error"
+                        : selected.reviewState === "READY_FOR_REVIEW"
+                          ? "warning"
+                          : "default"
+                  }
+                />
                 {(selected.regionTags || []).map((t) => (
                   <Chip key={`r-${t}`} size="small" variant="outlined" label={`region:${t}`} />
                 ))}
                 {(selected.cropTags || []).map((t) => (
                   <Chip key={`c-${t}`} size="small" variant="outlined" label={`crop:${t}`} />
                 ))}
-                {(selected.climateTags || []).map((t) => (
-                  <Chip key={`cl-${t}`} size="small" variant="outlined" label={`climate:${t}`} />
+              </Box>
+              <Typography variant="body2" sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
+                {selected.summary || "—"}
+              </Typography>
+
+              <Typography variant="subtitle2" gutterBottom>
+                Human review
+              </Typography>
+              <TextField
+                size="small"
+                fullWidth
+                label="Review note (optional)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                sx={{ mb: 1 }}
+              />
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                {(NEXT_ACTIONS[selected.reviewState || "DRAFT"] || []).map((a) => (
+                  <Button
+                    key={a.state}
+                    size="small"
+                    variant={a.state === "APPROVED" ? "contained" : "outlined"}
+                    color={a.state === "REJECTED" ? "error" : "primary"}
+                    disabled={busy}
+                    onClick={() => void review(a.state)}
+                  >
+                    {a.label}
+                  </Button>
                 ))}
               </Box>
             </CardContent>
           </Card>
 
           <Stack spacing={1.5}>
-            {(selected.items || []).map((item) => (
-              <Card key={item.id}>
-                <CardContent>
-                  <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 0.5 }}>
-                    <Chip size="small" label={item.extractKind} />
-                    <Typography variant="subtitle1">{item.title}</Typography>
-                  </Box>
-                  {item.bodyText && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                      {item.bodyText}
-                    </Typography>
-                  )}
-                  {item.structured && Object.keys(item.structured).length > 0 && (
-                    <Box
-                      component="pre"
-                      sx={{
-                        m: 0,
-                        p: 1.5,
-                        bgcolor: "action.hover",
-                        borderRadius: 1,
-                        fontSize: 12,
-                        overflow: "auto",
-                      }}
-                    >
-                      {JSON.stringify(item.structured, null, 2)}
+            {(selected.items || []).map((item) => {
+              const isComparison = item.extractKind === "COMPARISON_NOTE";
+              return (
+                <Card
+                  key={item.id}
+                  variant="outlined"
+                  sx={{
+                    borderColor: isComparison ? "warning.main" : undefined,
+                    bgcolor: isComparison ? "rgba(237, 108, 2, 0.04)" : undefined,
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 0.5, flexWrap: "wrap" }}>
+                      <Chip
+                        size="small"
+                        label={item.extractKind}
+                        color={isComparison ? "warning" : "default"}
+                      />
+                      {isComparison && <Chip size="small" variant="outlined" label="FlahaSOIL path" />}
+                      <Typography variant="subtitle1">{item.title}</Typography>
                     </Box>
-                  )}
-                  {item.sourceUrl && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-                      Source: {item.sourceUrl}
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                    {item.bodyText && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                        {item.bodyText}
+                      </Typography>
+                    )}
+                    {item.structured && Object.keys(item.structured).length > 0 && (
+                      <Box
+                        component="pre"
+                        sx={{
+                          m: 0,
+                          p: 1.5,
+                          bgcolor: "action.hover",
+                          borderRadius: 1,
+                          fontSize: 12,
+                          overflow: "auto",
+                        }}
+                      >
+                        {JSON.stringify(item.structured, null, 2)}
+                      </Box>
+                    )}
+                    {isComparison && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                        autoApplyBlocked / doesNotAutoUpdateFlahaSOIL — product code never changes from this note.
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </Stack>
         </>
       )}

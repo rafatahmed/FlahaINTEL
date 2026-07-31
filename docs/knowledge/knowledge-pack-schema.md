@@ -33,7 +33,7 @@ Science of **soil, irrigation, nutrition, water** is universal.
 | `reviewState` | DRAFT → READY_FOR_REVIEW → APPROVED / REJECTED / ARCHIVED |
 | `items[]` | Ordered extracts |
 
-## Item extract kinds (recommended)
+## Item extract kinds (4S-B closed set)
 
 | extractKind | Use |
 |-------------|-----|
@@ -42,6 +42,9 @@ Science of **soil, irrigation, nutrition, water** is universal.
 | `EQUATION` | Formula note (link to FlahaCALC/FAST later) |
 | `REFERENCE` | Citation / source pointer |
 | `NOTE` | Free text insight |
+| `COMPARISON_NOTE` | Human literature vs FlahaSOIL deviation note (never auto-apply) |
+
+Full field dictionary: `docs/knowledge/extract-template-4s-b.md`.
 
 ## Structured JSON (THRESHOLD example)
 
@@ -77,8 +80,18 @@ npm run knowledge:seed-samples
 
 Samples stay `DRAFT` for human governance. They are illustrative literature notes and **never** auto-update FlahaSOIL.
 
+## Human review (4S-B)
+
+```text
+DRAFT → READY_FOR_REVIEW → APPROVED | REJECTED
+```
+
+No auto-approve. Content re-seed of an APPROVED pack returns it to DRAFT.
+
 ## API
 
-- `GET /api/knowledge-packs`
+- `GET /api/knowledge-packs` — optional `theme`, `extractKind`, `reviewState`
+- `GET /api/knowledge-packs/comparison-notes`
 - `GET /api/knowledge-packs/:id`
 - `POST /api/knowledge-packs`
+- `POST /api/knowledge-packs/:id/review` — body `{ reviewState, note? }` (`governance_review`)
