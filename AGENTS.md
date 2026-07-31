@@ -9,7 +9,7 @@ Defines repository-wide operating instructions for automated coding agents.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-31
+Last modified: 2026-08-01
 -->
 
 # FlahaINTEL Agent Instructions
@@ -30,12 +30,15 @@ Metaphor:
 
 **Platform capabilities in repo today:**
 
-- authoritative **RSS** sources with hardened collection and deduplication;
+- authoritative **RSS** sources with hardened collection and deduplication (plus agribusiness news batch);
 - durable multi-stage **ingestion pipeline** (acquire → extract → normalize);
 - **immutable artifacts** and PostgreSQL jobs, provenance, decisions;
 - **analyst governance** (approve / reject / hold / correct) and promotion eligibility;
 - operational **API + web shell**;
-- **Windows production-like** ops acceptance (Phase 3N).
+- **Windows production-like** ops acceptance (Phase 3N);
+- **product surface (post-3N):** markets (QA/JO), knowledge packs, research desk (4R-A/L/B/X + Crossref + APA), product handoff 4I-B / feed policies 4B.
+
+**Milestone posture:** Backbone tag `v0.5.0-phase-3n-windows-production-like`. Intermediate product-surface tag recommended as `v0.6.0-post-3n-product-surface` — see `docs/program/milestone-v0.6-product-surface-release-readiness.md`. Not product-complete until operate criteria (disk, content, market span) land.
 
 Do not expand beyond the currently approved milestone unless explicitly instructed.  
 When a new milestone is approved, preserve the verified foundation, map the work to the final product lock (O1–O5 / Backbone|Eyes|Muscles|Brain), and update this file.
@@ -193,6 +196,11 @@ Phase 3 delivers governed multi-channel ingestion under the FlahaINTEL product. 
 | 4S-C | Literature threshold bank (human approved) | **Implemented** — bank JSON + seed + `GET /threshold-bank` + UI (APPROVED = live) |
 | 4S-D | FlahaSOIL comparison workflow | **Implemented** — `FlahaSoilComparisonCase` + API + UI; human deviation notes only |
 | 4S-D2 | Soil report bridge | **Implemented** — PDF/JSON upload import; optional read-only `FLAHASOIL_API_*`; never writes SOIL |
+| 4R | Research desk (Stage D surface) | **Implemented (surface)** — topic index, literature+Crossref, collections+APA, claims; scope accepted |
+| Markets analytics | Multi-year / histogram / deviation | **Implemented** — pure engine + `/api/markets/prices/analytics` |
+| RSS agri batch | Agribusiness news/alerts | **Implemented (PENDING accept)** — practical register; prices stay Markets |
+
+**Release readiness:** `docs/program/milestone-v0.6-product-surface-release-readiness.md`
 
 Additional migrations in the Phase 3 lineage include durable ingestion jobs, governance review, and product submissions. See `apps/api/prisma/migrations/`.
 
