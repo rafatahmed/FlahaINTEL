@@ -36,9 +36,11 @@ type ResearchDb = PrismaClient & {
   researchTopic: any;
   researchTopicEntry: any;
   researchIndexRebuild: any;
+  literatureSource: any;
 };
 
 type EntryCreate = {
+  entryKind: "PACK_ITEM" | "LITERATURE";
   packId: string;
   packCode: string;
   packTitle: string;
@@ -50,6 +52,7 @@ type EntryCreate = {
   reviewState: KnowledgePackReviewState;
   evidencePresent: boolean;
   sourceUrl: string | null;
+  literatureSourceId?: string | null;
 };
 
 export class ResearchIndexService {
@@ -59,8 +62,8 @@ export class ResearchIndexService {
   }
 
   /**
-   * Full rebuild for tenant: wipe topics/entries, reindex packs matching filter.
-   * Default: APPROVED only.
+   * Full rebuild for tenant: wipe topics/entries, reindex APPROVED packs +
+   * SOURCE_APPROVED literature (4R-L). Default: approved-only.
    */
   async rebuildTenant(params: {
     tenantId: string;
@@ -77,6 +80,13 @@ export class ResearchIndexService {
       include: { items: { orderBy: { sequence: "asc" } } },
     });
 
+    const litFilter = params.includeDraft
+      ? { in: ["SOURCE_APPROVED", "CATALOGUED"] as const }
+      : { in: ["SOURCE_APPROVED"] as const };
+    const literature = await this.rdb.literatureSource.findMany({
+      where: { tenantId: params.tenantId, reviewState: litFilter },
+    });
+
     await this.rdb.researchTopicEntry.deleteMany({
       where: { topic: { tenantId: params.tenantId } },
     });
@@ -84,6 +94,18 @@ export class ResearchIndexService {
 
     let entryCount = 0;
     const topicMap = new Map<string, { facets: TopicFacets; entries: EntryCreate[] }>();
+
+    const pushEntry = (facets: TopicFacets, entry: EntryCreate) => {
+      const key = buildTopicKey(facets);
+      let bucket = topicMap.get(key);
+      if (!bucket) {
+        bucket = { facets, entries: [] };
+        topicMap.set(key, bucket);
+      }
+      if (bucket.entries.some((e) => e.itemId === entry.itemId)) return;
+      bucket.entries.push(entry);
+      entryCount += 1;
+    };
 
     for (const pack of packs) {
       for (const item of pack.items) {
@@ -96,15 +118,8 @@ export class ResearchIndexService {
           structured: item.structured,
         });
         for (const facets of facetRows) {
-          const key = buildTopicKey(facets);
-          let bucket = topicMap.get(key);
-          if (!bucket) {
-            bucket = { facets, entries: [] };
-            topicMap.set(key, bucket);
-          }
-          // Dedupe same item under same topic
-          if (bucket.entries.some((e) => e.itemId === item.id)) continue;
-          bucket.entries.push({
+          pushEntry(facets, {
+            entryKind: "PACK_ITEM",
             packId: pack.id,
             packCode: pack.code,
             packTitle: pack.title,
@@ -116,9 +131,56 @@ export class ResearchIndexService {
             reviewState: pack.reviewState,
             evidencePresent: Boolean(item.evidenceArtifactId || item.sourceUrl),
             sourceUrl: item.sourceUrl,
+            literatureSourceId: null,
           });
-          entryCount += 1;
         }
+      }
+    }
+
+    // 4R-L: SOURCE_APPROVED literature → REFERENCE aboutness topics (not claim packs).
+    for (const lit of literature as Array<Record<string, unknown>>) {
+      const id = String(lit.id);
+      const theme = (lit.primaryTheme || "OTHER") as KnowledgePackTheme;
+      const cropTags = (lit.cropTags as string[]) || [];
+      const regionTags = (lit.regionTags as string[]) || [];
+      const climateTags = (lit.climateTags as string[]) || [];
+      const parameterKeys = (lit.parameterKeys as string[]) || [];
+      const keywords = (lit.keywords as string[]) || [];
+      const structured =
+        parameterKeys.length > 0 ? { parameter: parameterKeys[0] } : { parameter: keywords[0] || "" };
+
+      const facetRows = expandItemFacets({
+        theme,
+        cropTags: cropTags.length ? cropTags : [""],
+        regionTags: regionTags.length ? regionTags : [""],
+        climateTags,
+        extractKind: "REFERENCE",
+        structured,
+      });
+
+      const snippet = snippetFromItem(
+        String(lit.citationApa || lit.abstractText || ""),
+        String(lit.title || ""),
+      );
+      const reviewState: KnowledgePackReviewState =
+        lit.reviewState === "SOURCE_APPROVED" ? "APPROVED" : "DRAFT";
+
+      for (const facets of facetRows) {
+        pushEntry(facets, {
+          entryKind: "LITERATURE",
+          packId: id,
+          packCode: String(lit.code || id),
+          packTitle: String(lit.title || "").slice(0, 200),
+          packVersion: 1,
+          itemId: id,
+          itemTitle: String(lit.title || ""),
+          extractKind: "REFERENCE",
+          snippet,
+          reviewState,
+          evidencePresent: Boolean(lit.evidenceArtifactId || lit.sourceUrl || lit.doi || lit.url),
+          sourceUrl: (lit.sourceUrl as string) || (lit.url as string) || null,
+          literatureSourceId: id,
+        });
       }
     }
 
@@ -156,6 +218,7 @@ export class ResearchIndexService {
         topicCount,
         entryCount,
         packCount: packs.length,
+        literatureCount: literature.length,
         note: params.note?.trim() || null,
       },
     });
@@ -165,6 +228,7 @@ export class ResearchIndexService {
       topicCount,
       entryCount,
       packCount: packs.length,
+      literatureCount: literature.length,
       mode: audit.mode,
     };
   }

@@ -583,11 +583,56 @@ export const api = {
       topicCount: number;
       entryCount: number;
       packCount: number;
+      literatureCount?: number;
       mode: string;
       governance: Record<string, unknown>;
     }>("/api/research/rebuild", { method: "POST", body: JSON.stringify(body) }),
   researchRebuilds: () =>
     request<{ rebuilds: Array<Record<string, unknown>> }>("/api/research/rebuilds"),
+
+  /** 4R-L multi-domain literature sources (APA-grade) */
+  researchLiterature: (
+    filters: {
+      domain?: string;
+      keyword?: string;
+      trustTier?: string;
+      primaryTheme?: string;
+      productLane?: string;
+      q?: string;
+      reviewState?: string;
+      includeCatalog?: boolean | string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) =>
+    request<{
+      total: number;
+      limit: number;
+      offset: number;
+      sources: Array<Record<string, unknown>>;
+    }>(
+      `/api/research/literature${query({
+        ...filters,
+        includeCatalog: filters.includeCatalog ? "1" : undefined,
+      })}`,
+    ),
+  researchLiteratureFacets: (includeCatalog?: boolean) =>
+    request<{
+      sourceCount: number;
+      domains: Array<{ value: string; label: string; count: number }>;
+      keywords: Array<{ value: string; label: string; count: number }>;
+      trustTiers: Array<{ value: string; label: string; count: number }>;
+      themes: Array<{ value: string; label: string; count: number }>;
+      productLanes: Array<{ value: string; label: string; count: number }>;
+      documentTypes: Array<{ value: string; label: string; count: number }>;
+    }>(`/api/research/literature/facets${query({ includeCatalog: includeCatalog ? "1" : undefined })}`),
+  researchLiteratureOne: (id: string) =>
+    request<{ source: Record<string, unknown> }>(`/api/research/literature/${id}`),
+  researchLiteratureReview: (id: string, body: { reviewState: string; note?: string }) =>
+    request<{ source: Record<string, unknown>; governance: Record<string, unknown> }>(
+      `/api/research/literature/${id}/review`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
   knowledgeComparisonNotes: (reviewState?: string) =>
     request<{ count: number; notes: Array<Record<string, unknown>> }>(
       `/api/knowledge-packs/comparison-notes${query({ reviewState })}`,

@@ -1,0 +1,105 @@
+{
+  "description": "Multi-domain 4R-L literature examples (APA-grade). Not a complete library — pattern samples across soil, irrigation, nutrition, plant production, weather, markets context.",
+  "citationStandard": "APA_7_ASA_CSSA_SSSA",
+  "sources": [
+    {
+      "code": "ex-smith-jones-2023-soil-moisture-maize",
+      "authors": [
+        { "family": "Smith", "given": "J. A." },
+        { "family": "Jones", "given": "B. C." }
+      ],
+      "year": 2023,
+      "title": "Effects of soil moisture and temperature on maize yield under climate variability",
+      "containerTitle": "Soil Science Society of America Journal",
+      "volume": "87",
+      "issue": "4",
+      "pages": "1023-1035",
+      "doi": "10.1002/saj2.example001",
+      "documentType": "JOURNAL_ARTICLE",
+      "trustTier": "PEER_REVIEWED",
+      "domainTags": ["soil", "plant-production", "weather"],
+      "keywords": ["soil moisture", "temperature", "maize", "climate variability", "yield"],
+      "cropTags": ["maize"],
+      "climateTags": ["variable"],
+      "parameterKeys": [],
+      "notes": "Illustrative APA journal form (DOI placeholder). Multi-domain: soil + plant production + weather."
+    },
+    {
+      "code": "ex-allen-1998-fao56-crop-evapotranspiration",
+      "authors": [
+        { "family": "Allen", "given": "R. G." },
+        { "family": "Pereira", "given": "L. S." },
+        { "family": "Raes", "given": "D." },
+        { "family": "Smith", "given": "M." }
+      ],
+      "year": 1998,
+      "title": "Crop evapotranspiration — Guidelines for computing crop water requirements",
+      "containerTitle": "FAO Irrigation and Drainage Paper 56",
+      "publisher": "Food and Agriculture Organization of the United Nations",
+      "publisherPlace": "Rome",
+      "url": "https://www.fao.org/3/x0490e/x0490e00.htm",
+      "documentType": "REPORT",
+      "trustTier": "INSTITUTIONAL",
+      "domainTags": ["irrigation", "weather", "agrometeorology", "plant-production"],
+      "keywords": ["ETo", "Kc", "FAO-56", "crop water requirements", "evapotranspiration"],
+      "parameterKeys": ["eto", "kc"],
+      "productLanes": ["FlahaCALC"],
+      "primaryTheme": "IRRIGATION",
+      "notes": "Canonical irrigation/weather methods reference for FlahaCALC-oriented extracts (claims still require L3 pack)."
+    },
+    {
+      "code": "ex-res-nutrient-solution-targets-bulletin",
+      "authors": [{ "family": "Extension Soil Fertility Program", "given": "" }],
+      "year": 2021,
+      "title": "Hydroponic nutrient solution targets for leafy greens (extension bulletin sample)",
+      "publisher": "University Extension (sample)",
+      "url": "https://example.org/extension/nutrient-solution-leafy-greens",
+      "documentType": "EXTENSION_BULLETIN",
+      "trustTier": "EXTENSION",
+      "domainTags": ["nutrition", "fertigation", "horticulture"],
+      "keywords": ["nutrient solution", "EC", "pH", "leafy greens", "hydroponics"],
+      "cropTags": ["lettuce", "leafy-greens"],
+      "parameterKeys": ["solution-ec", "solution-ph"],
+      "productLanes": ["FlahaFAST"],
+      "primaryTheme": "NUTRITION",
+      "notes": "Sample extension form — replace with real bulletin metadata before SOURCE_APPROVED in production."
+    },
+    {
+      "code": "ex-market-context-wholesale-veg-review-2022",
+      "authors": [{ "family": "Regional Agribusiness Observatory", "given": "" }],
+      "year": 2022,
+      "title": "Wholesale vegetable price formation in arid-region markets: a policy review",
+      "documentType": "REPORT",
+      "trustTier": "INSTITUTIONAL",
+      "url": "https://example.org/reports/wholesale-veg-arid-2022",
+      "domainTags": ["markets", "agribusiness", "plant-production"],
+      "keywords": ["wholesale", "vegetables", "price formation", "arid markets"],
+      "cropTags": ["tomato", "cucumber", "potato"],
+      "regionTags": ["MENA"],
+      "productLanes": ["Markets"],
+      "primaryTheme": "MARKET_CONTEXT",
+      "notes": "Literature about markets — not a substitute for the Markets price database."
+    },
+    {
+      "code": "ex-dohrmann-cec-methodology-pattern",
+      "authors": [{ "family": "Dohrmann", "given": "R." }],
+      "year": 2006,
+      "title": "Cation exchange capacity methodology: an efficient model for the detection of incorrect cation exchange capacity and exchangeable cation results (pattern record)",
+      "documentType": "JOURNAL_ARTICLE",
+      "trustTier": "PEER_REVIEWED",
+      "domainTags": ["soil", "methods"],
+      "keywords": [
+        "CEC",
+        "Exchangeable calcium",
+        "Calcareous soils and clays",
+        "Gypsiferous soils and clays",
+        "CSF model"
+      ],
+      "parameterKeys": ["cec", "ca"],
+      "productLanes": ["FlahaSOIL"],
+      "primaryTheme": "SOIL",
+      "localPathHint": "D:\\\\Library\\\\SOIL\\\\CEC\\\\(operator path — metadata only)",
+      "notes": "Pattern-only example of multi-keyword soil methods literature. Complete DOI/container before treating citationComplete in production. Not the system design boundary."
+    }
+  ]
+}

@@ -204,6 +204,21 @@ export function KnowledgePacksPage(props?: {
   const [researchSelectedId, setResearchSelectedId] = useState("");
   const [researchDetail, setResearchDetail] = useState<Record<string, unknown> | null>(null);
   const [researchBusy, setResearchBusy] = useState(false);
+  /** Research desk sub-view: topic index (4R-A) vs literature library (4R-L) */
+  const [researchView, setResearchView] = useState<"topics" | "literature">("literature");
+  const [litSources, setLitSources] = useState<Array<Record<string, unknown>>>([]);
+  const [litTotal, setLitTotal] = useState(0);
+  const [litFacets, setLitFacets] = useState<{
+    sourceCount: number;
+    domains: Array<{ value: string; label: string; count: number }>;
+    keywords: Array<{ value: string; label: string; count: number }>;
+    trustTiers: Array<{ value: string; label: string; count: number }>;
+  } | null>(null);
+  const [litDomain, setLitDomain] = useState("");
+  const [litQ, setLitQ] = useState("");
+  const [litIncludeCatalog, setLitIncludeCatalog] = useState(true);
+  const [litSelectedId, setLitSelectedId] = useState("");
+  const [litDetail, setLitDetail] = useState<Record<string, unknown> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -276,9 +291,32 @@ export function KnowledgePacksPage(props?: {
     }
   }, [researchTheme, researchCrop, researchRegion, researchKind, researchQ]);
 
+  const loadLiterature = useCallback(async () => {
+    try {
+      const [listRes, facetsRes] = await Promise.all([
+        api.researchLiterature({
+          domain: litDomain || undefined,
+          q: litQ || undefined,
+          includeCatalog: litIncludeCatalog,
+          limit: 100,
+        }),
+        api.researchLiteratureFacets(litIncludeCatalog),
+      ]);
+      setLitSources(listRes.sources || []);
+      setLitTotal(listRes.total || 0);
+      setLitFacets(facetsRes);
+    } catch {
+      setLitSources([]);
+      setLitTotal(0);
+      setLitFacets(null);
+    }
+  }, [litDomain, litQ, litIncludeCatalog]);
+
   useEffect(() => {
-    if (lane === "research") void loadResearch();
-  }, [lane, loadResearch]);
+    if (lane !== "research") return;
+    if (researchView === "topics") void loadResearch();
+    else void loadLiterature();
+  }, [lane, researchView, loadResearch, loadLiterature]);
 
   useEffect(() => {
     if (!researchSelectedId) {
@@ -291,17 +329,47 @@ export function KnowledgePacksPage(props?: {
       .catch(() => setResearchDetail(null));
   }, [researchSelectedId]);
 
+  useEffect(() => {
+    if (!litSelectedId) {
+      setLitDetail(null);
+      return;
+    }
+    void api
+      .researchLiteratureOne(litSelectedId)
+      .then((r) => setLitDetail(r.source))
+      .catch(() => setLitDetail(null));
+  }, [litSelectedId]);
+
   async function rebuildResearchIndex() {
     setResearchBusy(true);
     setInfo("");
     try {
       const res = await api.researchRebuild({ note: "ui rebuild" });
       setInfo(
-        `Research index rebuilt: ${res.topicCount} topics · ${res.entryCount} entries from ${res.packCount} APPROVED pack(s).`,
+        `Research index rebuilt: ${res.topicCount} topics · ${res.entryCount} entries · ${res.packCount} pack(s) · ${res.literatureCount ?? 0} literature.`,
       );
       await loadResearch();
+      await loadLiterature();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Research rebuild failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function reviewLiterature(id: string, reviewState: string) {
+    setResearchBusy(true);
+    setInfo("");
+    try {
+      await api.researchLiteratureReview(id, { reviewState, note: "ui review" });
+      setInfo(`Literature source → ${reviewState}`);
+      await loadLiterature();
+      if (litSelectedId === id) {
+        const r = await api.researchLiteratureOne(id);
+        setLitDetail(r.source);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Literature review failed.");
     } finally {
       setResearchBusy(false);
     }
@@ -530,210 +598,417 @@ export function KnowledgePacksPage(props?: {
         <Tab value="markets" label={`Markets (${laneCounts.markets})`} />
       </Tabs>
 
-      {/* ═══════════════ 4R-A RESEARCH INDEX ═══════════════ */}
+      {/* ═══════════════ RESEARCH DESK (4R-A topics + 4R-L literature) ═══════════════ */}
       {lane === "research" && (
         <Stack spacing={2}>
           <Alert severity="info">
-            <strong>Research desk (4R-A):</strong> facet index over <strong>APPROVED</strong> knowledge packs
-            (crop · region · theme · parameter). Not Markets prices, not FKP wiki, not product writes. Rebuild after
-            approving packs.
+            <strong>Research desk (Stage D):</strong> multi-domain library + finder.{" "}
+            <strong>Literature</strong> = citable sources (APA 7th / ASA–CSSA–SSSA) — aboutness, not product writes.{" "}
+            <strong>Topics</strong> = facet index over APPROVED packs + SOURCE_APPROVED literature. Not Markets
+            prices, not FKP wiki.
           </Alert>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Theme</InputLabel>
-              <Select
-                label="Theme"
-                value={researchTheme}
-                onChange={(e) => setResearchTheme(e.target.value)}
-              >
-                <MenuItem value="">All</MenuItem>
-                {(researchFacets?.themes || []).map((t) => (
-                  <MenuItem key={t.value} value={t.value}>
-                    {t.label} ({t.count})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Crop</InputLabel>
-              <Select label="Crop" value={researchCrop} onChange={(e) => setResearchCrop(e.target.value)}>
-                <MenuItem value="">All</MenuItem>
-                {(researchFacets?.crops || []).map((t) => (
-                  <MenuItem key={t.value} value={t.value}>
-                    {t.label} ({t.count})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Region</InputLabel>
-              <Select
-                label="Region"
-                value={researchRegion}
-                onChange={(e) => setResearchRegion(e.target.value)}
-              >
-                <MenuItem value="">All</MenuItem>
-                {(researchFacets?.regions || []).map((t) => (
-                  <MenuItem key={t.value} value={t.value}>
-                    {t.label} ({t.count})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Extract kind</InputLabel>
-              <Select
-                label="Extract kind"
-                value={researchKind}
-                onChange={(e) => setResearchKind(e.target.value)}
-              >
-                <MenuItem value="">All</MenuItem>
-                {(researchFacets?.extractKinds || []).map((t) => (
-                  <MenuItem key={t.value} value={t.value}>
-                    {t.label} ({t.count})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              size="small"
-              label="Search title"
-              value={researchQ}
-              onChange={(e) => setResearchQ(e.target.value)}
-            />
-            <Button size="small" variant="outlined" onClick={() => void loadResearch()}>
-              Apply
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              disabled={researchBusy}
-              onClick={() => void rebuildResearchIndex()}
-            >
-              {researchBusy ? "Rebuilding…" : "Rebuild index"}
-            </Button>
-          </Box>
-          <Typography variant="caption" color="text.secondary">
-            {researchFacets
-              ? `${researchFacets.topicCount} topics · ${researchFacets.entryCount} entries · showing ${researchTopics.length} of ${researchTotal}`
-              : "Index empty — approve packs then Rebuild index."}
-          </Typography>
 
-          <Box
-            sx={{
-              display: "grid",
-              gap: 2,
-              gridTemplateColumns: { xs: "1fr", md: "minmax(280px, 1fr) 1.2fr" },
-              alignItems: "start",
-            }}
+          <Tabs
+            value={researchView}
+            onChange={(_, v: "topics" | "literature") => setResearchView(v)}
+            sx={{ borderBottom: 1, borderColor: "divider", minHeight: 40 }}
           >
-            <Card variant="outlined">
-              <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
-                <List dense disablePadding sx={{ maxHeight: 520, overflow: "auto" }}>
-                  {researchTopics.length === 0 ? (
-                    <Box sx={{ p: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No topics. Approve sample packs, then click <strong>Rebuild index</strong>.
-                      </Typography>
-                    </Box>
-                  ) : (
-                    researchTopics.map((t) => (
-                      <ListItemButton
-                        key={String(t.id)}
-                        selected={researchSelectedId === String(t.id)}
-                        onClick={() => setResearchSelectedId(String(t.id))}
-                        sx={{ borderBottom: 1, borderColor: "divider" }}
-                      >
-                        <ListItemText
-                          primary={
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {String(t.title)}
-                            </Typography>
-                          }
-                          secondary={`${String(t.productLane)} · ${String(t.theme)} · ${String(t.entryCount)} entries`}
-                        />
-                      </ListItemButton>
-                    ))
-                  )}
-                </List>
-              </CardContent>
-            </Card>
+            <Tab value="literature" label={`Literature (${litFacets?.sourceCount ?? litTotal ?? "—"})`} />
+            <Tab value="topics" label={`Topics (${researchFacets?.topicCount ?? researchTotal ?? "—"})`} />
+          </Tabs>
 
-            <Card variant="outlined">
-              <CardContent>
-                {!researchDetail ? (
-                  <Typography color="text.secondary" variant="body2">
-                    Select a topic to see linked pack items.
-                  </Typography>
-                ) : (
-                  <Stack spacing={1.5}>
-                    <Typography variant="h6">{String(researchDetail.title)}</Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      <Chip size="small" color="primary" label={String(researchDetail.theme)} />
-                      <Chip size="small" label={String(researchDetail.productLane)} />
-                      {Boolean(researchDetail.cropLabel) && (
-                        <Chip size="small" variant="outlined" label={`crop:${String(researchDetail.cropLabel)}`} />
-                      )}
-                      {Boolean(researchDetail.regionLabel) && (
-                        <Chip size="small" variant="outlined" label={`region:${String(researchDetail.regionLabel)}`} />
-                      )}
-                      {Boolean(researchDetail.parameterKey) && (
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={`param:${String(researchDetail.parameterKey)}`}
-                        />
-                      )}
-                      {Boolean(researchDetail.extractKind) && (
-                        <Chip size="small" variant="outlined" label={String(researchDetail.extractKind)} />
-                      )}
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      topicKey: <code>{String(researchDetail.topicKey)}</code>
-                    </Typography>
-                    <Divider />
-                    <Typography variant="subtitle2">Entries</Typography>
-                    {((researchDetail.entries as Array<Record<string, unknown>>) || []).map((e) => (
-                      <Card key={String(e.id)} variant="outlined">
-                        <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {String(e.itemTitle)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                            {String(e.packCode)} v{String(e.packVersion)} · {String(e.extractKind)} ·{" "}
-                            {String(e.reviewState)}
-                            {e.evidencePresent ? " · evidence" : ""}
-                          </Typography>
-                          {Boolean(e.snippet) && (
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              {String(e.snippet)}
-                            </Typography>
-                          )}
-                          <Button
-                            size="small"
-                            sx={{ mt: 0.5 }}
-                            onClick={() => {
-                              const theme = String(e.packCode || "");
-                              void theme;
-                              // Jump to product lane packs list by selecting pack id
-                              const laneGuess = String(researchDetail.productLane || "");
-                              if (laneGuess.includes("SOIL")) setLane("soil");
-                              else if (laneGuess.includes("CALC")) setLane("calc");
-                              else if (laneGuess.includes("FAST")) setLane("fast");
-                              else if (laneGuess.includes("Market")) setLane("markets");
-                              setSelectedId(String(e.packId));
-                            }}
-                          >
-                            Open pack
-                          </Button>
-                        </CardContent>
-                      </Card>
+          {researchView === "literature" && (
+            <Stack spacing={2}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Domain</InputLabel>
+                  <Select label="Domain" value={litDomain} onChange={(e) => setLitDomain(e.target.value)}>
+                    <MenuItem value="">All</MenuItem>
+                    {(litFacets?.domains || []).map((t) => (
+                      <MenuItem key={t.value} value={t.value}>
+                        {t.label} ({t.count})
+                      </MenuItem>
                     ))}
-                  </Stack>
-                )}
-              </CardContent>
-            </Card>
-          </Box>
+                  </Select>
+                </FormControl>
+                <TextField
+                  size="small"
+                  label="Search title / citation"
+                  value={litQ}
+                  onChange={(e) => setLitQ(e.target.value)}
+                />
+                <Button
+                  size="small"
+                  variant={litIncludeCatalog ? "contained" : "outlined"}
+                  onClick={() => setLitIncludeCatalog((v) => !v)}
+                >
+                  {litIncludeCatalog ? "Include catalogued" : "Approved only"}
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => void loadLiterature()}>
+                  Apply
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  disabled={researchBusy}
+                  onClick={() => void rebuildResearchIndex()}
+                >
+                  {researchBusy ? "Rebuilding…" : "Rebuild topic index"}
+                </Button>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                Showing {litSources.length} of {litTotal}. Register via{" "}
+                <code>npm run knowledge:register-literature</code>. Keywords = aboutness; claims stay in packs.
+                Citation standard: APA 7th.
+              </Typography>
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: { xs: "1fr", md: "minmax(280px, 1fr) 1.3fr" },
+                  alignItems: "start",
+                }}
+              >
+                <Card variant="outlined">
+                  <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                    <List dense disablePadding sx={{ maxHeight: 520, overflow: "auto" }}>
+                      {litSources.length === 0 ? (
+                        <Box sx={{ p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            No literature yet. Run{" "}
+                            <code>npm run knowledge:register-literature -- --approve</code> for multi-domain
+                            samples, or POST /api/research/literature.
+                          </Typography>
+                        </Box>
+                      ) : (
+                        litSources.map((s) => (
+                          <ListItemButton
+                            key={String(s.id)}
+                            selected={litSelectedId === String(s.id)}
+                            onClick={() => setLitSelectedId(String(s.id))}
+                            sx={{ borderBottom: 1, borderColor: "divider" }}
+                          >
+                            <ListItemText
+                              primary={
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {String(s.title)}
+                                </Typography>
+                              }
+                              secondary={`${String(s.year ?? "n.d.")} · ${String(s.reviewState)} · ${(s.domainTags as string[] | undefined)?.slice(0, 3).join(", ") || "—"}`}
+                            />
+                          </ListItemButton>
+                        ))
+                      )}
+                    </List>
+                  </CardContent>
+                </Card>
+                <Card variant="outlined">
+                  <CardContent>
+                    {!litDetail ? (
+                      <Typography color="text.secondary" variant="body2">
+                        Select a source for APA citation, keywords, and review actions.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1.5}>
+                        <Typography variant="h6">{String(litDetail.title)}</Typography>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          <Chip size="small" color="primary" label={String(litDetail.reviewState)} />
+                          <Chip size="small" label={String(litDetail.trustTier)} />
+                          <Chip size="small" variant="outlined" label={String(litDetail.documentType)} />
+                          <Chip size="small" variant="outlined" label={String(litDetail.primaryTheme)} />
+                          {Boolean(litDetail.citationComplete) ? (
+                            <Chip size="small" color="success" label="citation complete" />
+                          ) : (
+                            <Chip size="small" color="warning" label="citation incomplete" />
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          In-text: <code>{String(litDetail.citationInText || "")}</code>
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: "Georgia, serif", lineHeight: 1.5 }}>
+                          {String(litDetail.citationApa || "")}
+                        </Typography>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {((litDetail.domainTags as string[]) || []).map((d) => (
+                            <Chip key={d} size="small" variant="outlined" label={`domain:${d}`} />
+                          ))}
+                          {((litDetail.keywords as string[]) || []).slice(0, 12).map((k) => (
+                            <Chip key={k} size="small" label={k} />
+                          ))}
+                          {((litDetail.productLanes as string[]) || []).map((p) => (
+                            <Chip key={p} size="small" color="secondary" label={p} />
+                          ))}
+                        </Box>
+                        {Boolean(litDetail.localPathHint) && (
+                          <Typography variant="caption" color="text.secondary">
+                            Library path hint: <code>{String(litDetail.localPathHint)}</code>
+                          </Typography>
+                        )}
+                        <Divider />
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                          {String(litDetail.reviewState) === "CATALOGUED" && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              disabled={researchBusy}
+                              onClick={() => void reviewLiterature(String(litDetail.id), "SOURCE_APPROVED")}
+                            >
+                              Approve source
+                            </Button>
+                          )}
+                          {String(litDetail.reviewState) === "SOURCE_APPROVED" && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={researchBusy}
+                              onClick={() => void reviewLiterature(String(litDetail.id), "CATALOGUED")}
+                            >
+                              Back to catalogued
+                            </Button>
+                          )}
+                          {String(litDetail.reviewState) !== "REJECTED" &&
+                            String(litDetail.reviewState) !== "ARCHIVED" && (
+                              <Button
+                                size="small"
+                                color="error"
+                                disabled={researchBusy}
+                                onClick={() => void reviewLiterature(String(litDetail.id), "REJECTED")}
+                              >
+                                Reject
+                              </Button>
+                            )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Approving a <strong>source</strong> does not create a scientific claim pack and does not
+                          write FlahaSOIL/CALC/FAST.
+                        </Typography>
+                      </Stack>
+                    )}
+                  </CardContent>
+                </Card>
+              </Box>
+            </Stack>
+          )}
+
+          {researchView === "topics" && (
+            <Stack spacing={2}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Theme</InputLabel>
+                  <Select
+                    label="Theme"
+                    value={researchTheme}
+                    onChange={(e) => setResearchTheme(e.target.value)}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {(researchFacets?.themes || []).map((t) => (
+                      <MenuItem key={t.value} value={t.value}>
+                        {t.label} ({t.count})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Crop</InputLabel>
+                  <Select label="Crop" value={researchCrop} onChange={(e) => setResearchCrop(e.target.value)}>
+                    <MenuItem value="">All</MenuItem>
+                    {(researchFacets?.crops || []).map((t) => (
+                      <MenuItem key={t.value} value={t.value}>
+                        {t.label} ({t.count})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Region</InputLabel>
+                  <Select
+                    label="Region"
+                    value={researchRegion}
+                    onChange={(e) => setResearchRegion(e.target.value)}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {(researchFacets?.regions || []).map((t) => (
+                      <MenuItem key={t.value} value={t.value}>
+                        {t.label} ({t.count})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Extract kind</InputLabel>
+                  <Select
+                    label="Extract kind"
+                    value={researchKind}
+                    onChange={(e) => setResearchKind(e.target.value)}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {(researchFacets?.extractKinds || []).map((t) => (
+                      <MenuItem key={t.value} value={t.value}>
+                        {t.label} ({t.count})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  size="small"
+                  label="Search title"
+                  value={researchQ}
+                  onChange={(e) => setResearchQ(e.target.value)}
+                />
+                <Button size="small" variant="outlined" onClick={() => void loadResearch()}>
+                  Apply
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  disabled={researchBusy}
+                  onClick={() => void rebuildResearchIndex()}
+                >
+                  {researchBusy ? "Rebuilding…" : "Rebuild index"}
+                </Button>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                {researchFacets
+                  ? `${researchFacets.topicCount} topics · ${researchFacets.entryCount} entries · showing ${researchTopics.length} of ${researchTotal}`
+                  : "Index empty — approve packs/literature then Rebuild index."}
+              </Typography>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: { xs: "1fr", md: "minmax(280px, 1fr) 1.2fr" },
+                  alignItems: "start",
+                }}
+              >
+                <Card variant="outlined">
+                  <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                    <List dense disablePadding sx={{ maxHeight: 520, overflow: "auto" }}>
+                      {researchTopics.length === 0 ? (
+                        <Box sx={{ p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            No topics. Approve packs and/or literature sources, then{" "}
+                            <strong>Rebuild index</strong>.
+                          </Typography>
+                        </Box>
+                      ) : (
+                        researchTopics.map((t) => (
+                          <ListItemButton
+                            key={String(t.id)}
+                            selected={researchSelectedId === String(t.id)}
+                            onClick={() => setResearchSelectedId(String(t.id))}
+                            sx={{ borderBottom: 1, borderColor: "divider" }}
+                          >
+                            <ListItemText
+                              primary={
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {String(t.title)}
+                                </Typography>
+                              }
+                              secondary={`${String(t.productLane)} · ${String(t.theme)} · ${String(t.entryCount)} entries`}
+                            />
+                          </ListItemButton>
+                        ))
+                      )}
+                    </List>
+                  </CardContent>
+                </Card>
+
+                <Card variant="outlined">
+                  <CardContent>
+                    {!researchDetail ? (
+                      <Typography color="text.secondary" variant="body2">
+                        Select a topic to see linked pack items and literature references.
+                      </Typography>
+                    ) : (
+                      <Stack spacing={1.5}>
+                        <Typography variant="h6">{String(researchDetail.title)}</Typography>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          <Chip size="small" color="primary" label={String(researchDetail.theme)} />
+                          <Chip size="small" label={String(researchDetail.productLane)} />
+                          {Boolean(researchDetail.cropLabel) && (
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={`crop:${String(researchDetail.cropLabel)}`}
+                            />
+                          )}
+                          {Boolean(researchDetail.regionLabel) && (
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={`region:${String(researchDetail.regionLabel)}`}
+                            />
+                          )}
+                          {Boolean(researchDetail.parameterKey) && (
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={`param:${String(researchDetail.parameterKey)}`}
+                            />
+                          )}
+                          {Boolean(researchDetail.extractKind) && (
+                            <Chip size="small" variant="outlined" label={String(researchDetail.extractKind)} />
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          topicKey: <code>{String(researchDetail.topicKey)}</code>
+                        </Typography>
+                        <Divider />
+                        <Typography variant="subtitle2">Entries</Typography>
+                        {((researchDetail.entries as Array<Record<string, unknown>>) || []).map((e) => (
+                          <Card key={String(e.id)} variant="outlined">
+                            <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {String(e.itemTitle)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                                {String(e.entryKind || "PACK_ITEM")} · {String(e.packCode)} ·{" "}
+                                {String(e.extractKind)} · {String(e.reviewState)}
+                                {e.evidencePresent ? " · evidence" : ""}
+                              </Typography>
+                              {Boolean(e.snippet) && (
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                  {String(e.snippet)}
+                                </Typography>
+                              )}
+                              {String(e.entryKind) === "LITERATURE" ? (
+                                <Button
+                                  size="small"
+                                  sx={{ mt: 0.5 }}
+                                  onClick={() => {
+                                    setResearchView("literature");
+                                    setLitSelectedId(String(e.literatureSourceId || e.packId));
+                                  }}
+                                >
+                                  Open literature
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="small"
+                                  sx={{ mt: 0.5 }}
+                                  onClick={() => {
+                                    const laneGuess = String(researchDetail.productLane || "");
+                                    if (laneGuess.includes("SOIL")) setLane("soil");
+                                    else if (laneGuess.includes("CALC")) setLane("calc");
+                                    else if (laneGuess.includes("FAST")) setLane("fast");
+                                    else if (laneGuess.includes("Market")) setLane("markets");
+                                    setSelectedId(String(e.packId));
+                                  }}
+                                >
+                                  Open pack
+                                </Button>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </Stack>
+                    )}
+                  </CardContent>
+                </Card>
+              </Box>
+            </Stack>
+          )}
         </Stack>
       )}
 

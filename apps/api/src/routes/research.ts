@@ -97,8 +97,10 @@ export function researchRoutes(prisma: PrismaClient): FastifyPluginAsync {
           ...result,
           governance: {
             defaultApprovedOnly: !body.includeDraft,
+            includesLiteratureSources: true,
             noEmbeddings: true,
             doesNotWriteProductEngines: true,
+            citationStandard: "APA_7_ASA_CSSA_SSSA",
           },
         };
       } catch (e) {

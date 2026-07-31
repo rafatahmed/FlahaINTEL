@@ -69,18 +69,21 @@ npm run knowledge:seed-samples
 | 4B-B | PA dashboard scorecard | **DONE** | `/api/pa-dashboard` + Dashboard card |
 
 | 4R-A | Research topic index (desk) | **DONE (4R-A.1)** | Materialized topics + `/api/research/*` + Knowledge Research tab |
+| 4R scope | Stage D multi-domain desk | **ACCEPTED** | `gate-4r-research-desk-scope.md` · APA/ASA–CSSA–SSSA |
+| 4R-L | Literature source records (L2) | **DONE (4R-L.1)** | `LiteratureSource` + APA + `/api/research/literature/*` + UI + index hook |
 | Markets analytics | Multi-year / monthly / histogram | **DONE** | `market-price-analytics.md` |
 
 ## Next (systemic order)
 
 1. ~~**Owner accept 4R-A frame** → implement 4R-A.1~~ **DONE**  
-2. **Owner accept Stage D full scope** — `docs/program/gates/gate-4r-research-desk-scope.md` (multi-domain library + APA/ASA–CSSA–SSSA citation; not packs-only)  
-3. **Charter 4R-L** (literature source records) after scope accept — design before bulk import  
-4. **Operate:** harvest + historical fill + approve packs + `knowledge:rebuild-research-index` + handoff exports  
+2. ~~**Owner accept Stage D full scope**~~ **DONE**  
+3. ~~**4R-L.1 literature sources**~~ **DONE** — operate: `knowledge:register-literature` + approve + rebuild  
+4. **Operate:** real library JSON/PDF metadata in; harvest + historical fill; approve packs; handoff  
 5. **Optional 4R-A.2:** soil cases in index + pack topic chips  
-6. **Host hygiene:** free C: toward ≥5–15% when practical  
-7. **4R-B** collections + APA bibliography export (after L2/L4 usable)  
-8. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
+6. **Later 4R-X:** deep extract cards from literature (claims)  
+7. **Later 4R-B:** collections + APA bibliography export  
+8. **Host hygiene:** free C: toward ≥5–15% when practical  
+9. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
 
 ## Exit criteria for Sprint 1
 

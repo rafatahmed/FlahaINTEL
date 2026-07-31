@@ -95,11 +95,20 @@ Charter: [`gate-4r-a-research-topic-index.md`](gates/gate-4r-a-research-topic-in
 
 ## Recommended program order
 
-1. **Owner accept** full scope (`gate-4r-research-desk-scope.md`)  
-2. Charter **4R-L** (citable multi-domain literature records)  
-3. Extend **4R-A** beyond packs-only  
-4. Scale extracts (**4R-X**) where claims are needed  
-5. **4R-B** collections + APA export when writers need dossiers  
-6. Operate: real library in → approve → find → optional handoff  
+1. ~~**Owner accept** full scope~~ **DONE** (`gate-4r-research-desk-scope.md`)  
+2. ~~**4R-L.1** literature records~~ **DONE** (`gate-4r-l-literature-source-records.md`)  
+3. **Operate** register real multi-domain sources → SOURCE_APPROVED → rebuild index  
+4. Extend **4R-A** UX / facets as library grows  
+5. Scale extracts (**4R-X**) where claims are needed  
+6. **4R-B** collections + APA export when writers need dossiers  
 
 **Parallel:** historical market fill remains Markets operate; it does not replace Stage D literature.
+
+### Operator (4R-L)
+
+```powershell
+npm run knowledge:register-literature
+npm run knowledge:register-literature -- --approve
+npm run knowledge:rebuild-research-index
+# Knowledge → Research → Literature | Topics
+```

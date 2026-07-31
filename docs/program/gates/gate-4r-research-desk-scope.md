@@ -19,8 +19,9 @@ Last modified: 2026-08-01
 
 ## Status
 
-**SCOPE DRAFT** (2026-08-01) · Awaiting owner accept  
-**Not** implementation. **Not** limited to one domain, paper, or product.
+**SCOPE ACCEPTED** (2026-08-01) · Owner accept → implement along gate map  
+**Not** limited to one domain, paper, or product.  
+**4R-L.1** literature records: see `gate-4r-l-literature-source-records.md`.
 
 Related short pointer: `docs/program/research-desk-frame.md`  
 Related slice already built: `docs/program/gates/gate-4r-a-research-topic-index.md` (4R-A.1 = approved **pack** facet index only)
@@ -426,13 +427,15 @@ Names **4R-L / 4R-X / 4R-E** are scope labels for planning; owner may rename at 
 
 Scope is accepted when owner agrees:
 
-- [ ] Research is **multi-domain agribusiness / PA library + desk**, not one product or one parameter.  
-- [ ] Layers L0–L5 and **aboutness vs claim** are correct.  
-- [ ] **ASA/CSSA/SSSA · APA 7th author–year + DOI** is the desk citation default.  
-- [ ] Sister products are **optional links**, not the outer boundary.  
-- [ ] 4R-A.1 is acknowledged as **partial L4**, not the full Stage D.  
-- [ ] Gate split 4R-A / 4R-L / 4R-X / 4R-B / 4R-E is an acceptable planning map (names adjustable).  
-- [ ] FKP, Markets prices, and no-auto-product-write boundaries stand.
+- [x] Research is **multi-domain agribusiness / PA library + desk**, not one product or one parameter.  
+- [x] Layers L0–L5 and **aboutness vs claim** are correct.  
+- [x] **ASA/CSSA/SSSA · APA 7th author–year + DOI** is the desk citation default.  
+- [x] Sister products are **optional links**, not the outer boundary.  
+- [x] 4R-A.1 is acknowledged as **partial L4**, not the full Stage D.  
+- [x] Gate split 4R-A / 4R-L / 4R-X / 4R-B / 4R-E is an acceptable planning map (names adjustable).  
+- [x] FKP, Markets prices, and no-auto-product-write boundaries stand.  
+
+**Owner accept:** 2026-08-01 · go ahead systemic 4R-L first.
 
 ---
 

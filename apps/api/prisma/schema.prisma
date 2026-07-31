@@ -626,6 +626,8 @@ model UserAccount {
   productFeedPoliciesUpdated ProductFeedPolicy[] @relation("ProductFeedPolicyUpdater")
   productHandoffExports ProductHandoffExport[] @relation("ProductHandoffExporter")
   researchIndexRebuilds ResearchIndexRebuild[] @relation("ResearchIndexRebuildActor")
+  literatureSourcesOwned LiteratureSource[] @relation("LiteratureSourceOwner")
+  literatureSourcesReviewed LiteratureSource[] @relation("LiteratureSourceReviewer")
 
   @@index([active])
 }
@@ -650,6 +652,7 @@ model Tenant {
   productFeedPolicies ProductFeedPolicy[]
   productHandoffExports ProductHandoffExport[]
   researchTopics ResearchTopic[]
+  literatureSources LiteratureSource[]
 
   @@index([active])
 }
@@ -1295,6 +1298,104 @@ model EvidenceIntake {
   @@index([correlationId])
 }
 
+/// Gate 4R-L: document type for citable literature (multi-domain desk).
+enum LiteratureDocumentType {
+  JOURNAL_ARTICLE
+  BOOK
+  BOOK_CHAPTER
+  REPORT
+  STANDARD
+  EXTENSION_BULLETIN
+  CONFERENCE
+  THESIS
+  OTHER
+}
+
+/// Trust tier — not the same as claim approval (L3).
+enum LiteratureTrustTier {
+  PEER_REVIEWED
+  INSTITUTIONAL
+  EXTENSION
+  BOOK
+  STANDARDS
+  TRADE
+  OTHER
+}
+
+/// L2 source lifecycle (catalog vs source-approved). Not pack claim approval.
+enum LiteratureSourceReviewState {
+  CATALOGUED
+  SOURCE_APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+/// Gate 4R-L: multi-domain citable literature / source record (APA-grade identity).
+/// Aboutness (keywords, domains) ≠ scientific claim (that is L3 pack extract).
+model LiteratureSource {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  tenantId              String                      @db.Uuid
+  tenant                Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /// Stable operator code (slug), unique per tenant.
+  code                  String
+  /// Ordered authors: [{ "family": "Smith", "given": "J. A." }, ...]
+  authorsJson           Json                        @default("[]")
+  year                  Int?
+  title                 String
+  containerTitle        String?
+  volume                String?
+  issue                 String?
+  pages                 String?
+  publisher             String?
+  publisherPlace        String?
+  doi                   String?
+  url                   String?
+  accession             String?
+  documentType          LiteratureDocumentType      @default(JOURNAL_ARTICLE)
+  trustTier             LiteratureTrustTier         @default(OTHER)
+  language              String                      @default("en")
+  /// Multi-domain aboutness (soil, irrigation, plant-production, weather, nutrition, markets, agronomy, …).
+  domainTags            String[]                    @default([])
+  keywords              String[]                    @default([])
+  cropTags              String[]                    @default([])
+  /// Study / stated geography from the source.
+  regionTags            String[]                    @default([])
+  /// Human applicability (e.g. JO-arid) — never auto-filled from soil class alone.
+  applicabilityRegionTags String[]                  @default([])
+  climateTags           String[]                    @default([])
+  /// Optional: FlahaSOIL | FlahaCALC | FlahaFAST | Markets
+  productLanes          String[]                    @default([])
+  /// Optional closed-ish keys (cec, kcMid, …) when known.
+  parameterKeys         String[]                    @default([])
+  /// Maps into KnowledgePackTheme for topic index compatibility.
+  primaryTheme          KnowledgePackTheme          @default(OTHER)
+  evidenceArtifactId    String?                     @db.Uuid
+  /// Operator library path hint (metadata only; not a security boundary).
+  localPathHint         String?
+  sourceUrl             String?
+  /// Cached APA 7th reference list entry.
+  citationApa           String?
+  citationComplete      Boolean                     @default(false)
+  abstractText          String?
+  notes                 String?
+  reviewState           LiteratureSourceReviewState @default(CATALOGUED)
+  reviewNote            String?
+  reviewedAt            DateTime?
+  reviewedById          String?                     @db.Uuid
+  reviewedBy            UserAccount?                @relation("LiteratureSourceReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  ownerUserId           String                      @db.Uuid
+  owner                 UserAccount                 @relation("LiteratureSourceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId, reviewState])
+  @@index([tenantId, primaryTheme])
+  @@index([tenantId, trustTier])
+  @@index([tenantId, year])
+  @@index([doi])
+}
+
 /// Gate 4R-A: materialized research topic (facet bundle over approved content).
 model ResearchTopic {
   id            String               @id @default(uuid()) @db.Uuid
@@ -1328,39 +1429,45 @@ model ResearchTopic {
 }
 
 model ResearchTopicEntry {
-  id              String        @id @default(uuid()) @db.Uuid
-  topicId         String        @db.Uuid
-  topic           ResearchTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  packId          String        @db.Uuid
-  packCode        String
-  packTitle       String
-  packVersion     Int           @default(1)
-  itemId          String        @db.Uuid
-  itemTitle       String
-  extractKind     String
-  snippet         String?       @db.VarChar(500)
-  reviewState     KnowledgePackReviewState
-  evidencePresent Boolean       @default(false)
-  sourceUrl       String?
-  createdAt       DateTime      @default(now())
+  id                 String        @id @default(uuid()) @db.Uuid
+  topicId            String        @db.Uuid
+  topic              ResearchTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  /// PACK_ITEM | LITERATURE
+  entryKind          String        @default("PACK_ITEM")
+  packId             String        @db.Uuid
+  packCode           String
+  packTitle          String
+  packVersion        Int           @default(1)
+  itemId             String        @db.Uuid
+  itemTitle          String
+  extractKind        String
+  snippet            String?       @db.VarChar(500)
+  reviewState        KnowledgePackReviewState
+  evidencePresent    Boolean       @default(false)
+  sourceUrl          String?
+  /// Set when entryKind = LITERATURE (packId/itemId also set to source id for uniqueness).
+  literatureSourceId String?       @db.Uuid
+  createdAt          DateTime      @default(now())
 
   @@unique([topicId, itemId])
   @@index([packId])
   @@index([itemId])
+  @@index([literatureSourceId])
 }
 
 /// Audit of research index rebuilds.
 model ResearchIndexRebuild {
-  id           String      @id @default(uuid()) @db.Uuid
-  tenantId     String      @db.Uuid
-  actorUserId  String?     @db.Uuid
-  actor        UserAccount? @relation("ResearchIndexRebuildActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-  mode         String
-  topicCount   Int         @default(0)
-  entryCount   Int         @default(0)
-  packCount    Int         @default(0)
-  note         String?
-  createdAt    DateTime    @default(now())
+  id              String      @id @default(uuid()) @db.Uuid
+  tenantId        String      @db.Uuid
+  actorUserId     String?     @db.Uuid
+  actor           UserAccount? @relation("ResearchIndexRebuildActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  mode            String
+  topicCount      Int         @default(0)
+  entryCount      Int         @default(0)
+  packCount       Int         @default(0)
+  literatureCount Int         @default(0)
+  note            String?
+  createdAt       DateTime    @default(now())
 
   @@index([tenantId, createdAt])
 }
