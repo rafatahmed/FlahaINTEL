@@ -625,6 +625,7 @@ model UserAccount {
   evidenceIntakesCreated EvidenceIntake[] @relation("EvidenceIntakeCreator")
   productFeedPoliciesUpdated ProductFeedPolicy[] @relation("ProductFeedPolicyUpdater")
   productHandoffExports ProductHandoffExport[] @relation("ProductHandoffExporter")
+  researchIndexRebuilds ResearchIndexRebuild[] @relation("ResearchIndexRebuildActor")
 
   @@index([active])
 }
@@ -648,6 +649,7 @@ model Tenant {
   evidenceIntakes EvidenceIntake[]
   productFeedPolicies ProductFeedPolicy[]
   productHandoffExports ProductHandoffExport[]
+  researchTopics ResearchTopic[]
 
   @@index([active])
 }
@@ -1291,6 +1293,76 @@ model EvidenceIntake {
   @@index([contentSha256])
   @@index([createdById])
   @@index([correlationId])
+}
+
+/// Gate 4R-A: materialized research topic (facet bundle over approved content).
+model ResearchTopic {
+  id            String               @id @default(uuid()) @db.Uuid
+  tenantId      String               @db.Uuid
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /// Stable slug/hash of facet bundle (unique per tenant).
+  topicKey      String
+  title         String
+  theme         KnowledgePackTheme
+  /// FlahaSOIL | FlahaCALC | FlahaFAST | Markets | Unassigned
+  productLane   String
+  cropSlug      String               @default("")
+  cropLabel     String               @default("")
+  regionSlug    String               @default("")
+  regionLabel   String               @default("")
+  climateSlug   String               @default("")
+  climateLabel  String               @default("")
+  parameterKey  String               @default("")
+  extractKind   String               @default("")
+  entryCount    Int                  @default(0)
+  lastIndexedAt DateTime             @default(now())
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  entries       ResearchTopicEntry[]
+
+  @@unique([tenantId, topicKey])
+  @@index([tenantId, theme, cropSlug, regionSlug])
+  @@index([tenantId, productLane])
+  @@index([tenantId, parameterKey])
+  @@index([tenantId, extractKind])
+}
+
+model ResearchTopicEntry {
+  id              String        @id @default(uuid()) @db.Uuid
+  topicId         String        @db.Uuid
+  topic           ResearchTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  packId          String        @db.Uuid
+  packCode        String
+  packTitle       String
+  packVersion     Int           @default(1)
+  itemId          String        @db.Uuid
+  itemTitle       String
+  extractKind     String
+  snippet         String?       @db.VarChar(500)
+  reviewState     KnowledgePackReviewState
+  evidencePresent Boolean       @default(false)
+  sourceUrl       String?
+  createdAt       DateTime      @default(now())
+
+  @@unique([topicId, itemId])
+  @@index([packId])
+  @@index([itemId])
+}
+
+/// Audit of research index rebuilds.
+model ResearchIndexRebuild {
+  id           String      @id @default(uuid()) @db.Uuid
+  tenantId     String      @db.Uuid
+  actorUserId  String?     @db.Uuid
+  actor        UserAccount? @relation("ResearchIndexRebuildActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  mode         String
+  topicCount   Int         @default(0)
+  entryCount   Int         @default(0)
+  packCount    Int         @default(0)
+  note         String?
+  createdAt    DateTime    @default(now())
+
+  @@index([tenantId, createdAt])
 }
 
 /// Gate 4B-A: which pack themes may feed a sister product (admin-governed).

@@ -71,7 +71,7 @@ type Pack = {
   items?: PackItem[];
 };
 
-type HubTab = "overview" | ProductLaneId;
+type HubTab = "overview" | ProductLaneId | "research";
 
 const NEXT_ACTIONS: Record<string, Array<{ state: string; label: string }>> = {
   DRAFT: [
@@ -180,6 +180,28 @@ export function KnowledgePacksPage(props?: {
   );
   const [soilTestId, setSoilTestId] = useState("");
 
+  // 4R-A research index
+  const [researchTopics, setResearchTopics] = useState<Array<Record<string, unknown>>>([]);
+  const [researchTotal, setResearchTotal] = useState(0);
+  const [researchFacets, setResearchFacets] = useState<{
+    themes: Array<{ value: string; label: string; count: number }>;
+    productLanes: Array<{ value: string; label: string; count: number }>;
+    crops: Array<{ value: string; label: string; count: number }>;
+    regions: Array<{ value: string; label: string; count: number }>;
+    parameters: Array<{ value: string; label: string; count: number }>;
+    extractKinds: Array<{ value: string; label: string; count: number }>;
+    topicCount: number;
+    entryCount: number;
+  } | null>(null);
+  const [researchTheme, setResearchTheme] = useState("");
+  const [researchCrop, setResearchCrop] = useState("");
+  const [researchRegion, setResearchRegion] = useState("");
+  const [researchKind, setResearchKind] = useState("");
+  const [researchQ, setResearchQ] = useState("");
+  const [researchSelectedId, setResearchSelectedId] = useState("");
+  const [researchDetail, setResearchDetail] = useState<Record<string, unknown> | null>(null);
+  const [researchBusy, setResearchBusy] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -228,6 +250,60 @@ export function KnowledgePacksPage(props?: {
     if (lane === "soil" && (soilTool === "cases" || soilTool === "import")) void loadCases();
   }, [lane, soilTool, loadCases]);
 
+  const loadResearch = useCallback(async () => {
+    try {
+      const [topicsRes, facetsRes] = await Promise.all([
+        api.researchTopics({
+          theme: researchTheme || undefined,
+          crop: researchCrop || undefined,
+          region: researchRegion || undefined,
+          extractKind: researchKind || undefined,
+          q: researchQ || undefined,
+          limit: 100,
+        }),
+        api.researchFacets(),
+      ]);
+      setResearchTopics(topicsRes.topics || []);
+      setResearchTotal(topicsRes.total || 0);
+      setResearchFacets(facetsRes);
+    } catch {
+      setResearchTopics([]);
+      setResearchTotal(0);
+      setResearchFacets(null);
+    }
+  }, [researchTheme, researchCrop, researchRegion, researchKind, researchQ]);
+
+  useEffect(() => {
+    if (lane === "research") void loadResearch();
+  }, [lane, loadResearch]);
+
+  useEffect(() => {
+    if (!researchSelectedId) {
+      setResearchDetail(null);
+      return;
+    }
+    void api
+      .researchTopic(researchSelectedId)
+      .then((r) => setResearchDetail(r.topic))
+      .catch(() => setResearchDetail(null));
+  }, [researchSelectedId]);
+
+  async function rebuildResearchIndex() {
+    setResearchBusy(true);
+    setInfo("");
+    try {
+      const res = await api.researchRebuild({ note: "ui rebuild" });
+      setInfo(
+        `Research index rebuilt: ${res.topicCount} topics · ${res.entryCount} entries from ${res.packCount} APPROVED pack(s).`,
+      );
+      await loadResearch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Research rebuild failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
   useEffect(() => {
     void api
       .flahaSoilBridgeStatus()
@@ -255,7 +331,7 @@ export function KnowledgePacksPage(props?: {
 
   const selected =
     lanePacks.find((p) => p.id === selectedId) ?? packs.find((p) => p.id === selectedId);
-  const activeLane = lane === "overview" ? null : laneById(lane);
+  const activeLane = lane === "overview" || lane === "research" ? null : laneById(lane);
 
   async function review(to: string) {
     if (!selected) return;
@@ -440,11 +516,222 @@ export function KnowledgePacksPage(props?: {
         sx={{ borderBottom: 1, borderColor: "divider" }}
       >
         <Tab value="overview" label={`Overview (${packs.length})`} />
+        <Tab
+          value="research"
+          label={`Research (${researchFacets?.topicCount ?? researchTotal ?? "—"})`}
+        />
         <Tab value="soil" label={`FlahaSOIL (${laneCounts.soil})`} />
         <Tab value="calc" label={`FlahaCALC (${laneCounts.calc})`} />
         <Tab value="fast" label={`FlahaFAST (${laneCounts.fast})`} />
         <Tab value="markets" label={`Markets (${laneCounts.markets})`} />
       </Tabs>
+
+      {/* ═══════════════ 4R-A RESEARCH INDEX ═══════════════ */}
+      {lane === "research" && (
+        <Stack spacing={2}>
+          <Alert severity="info">
+            <strong>Research desk (4R-A):</strong> facet index over <strong>APPROVED</strong> knowledge packs
+            (crop · region · theme · parameter). Not Markets prices, not FKP wiki, not product writes. Rebuild after
+            approving packs.
+          </Alert>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Theme</InputLabel>
+              <Select
+                label="Theme"
+                value={researchTheme}
+                onChange={(e) => setResearchTheme(e.target.value)}
+              >
+                <MenuItem value="">All</MenuItem>
+                {(researchFacets?.themes || []).map((t) => (
+                  <MenuItem key={t.value} value={t.value}>
+                    {t.label} ({t.count})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Crop</InputLabel>
+              <Select label="Crop" value={researchCrop} onChange={(e) => setResearchCrop(e.target.value)}>
+                <MenuItem value="">All</MenuItem>
+                {(researchFacets?.crops || []).map((t) => (
+                  <MenuItem key={t.value} value={t.value}>
+                    {t.label} ({t.count})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Region</InputLabel>
+              <Select
+                label="Region"
+                value={researchRegion}
+                onChange={(e) => setResearchRegion(e.target.value)}
+              >
+                <MenuItem value="">All</MenuItem>
+                {(researchFacets?.regions || []).map((t) => (
+                  <MenuItem key={t.value} value={t.value}>
+                    {t.label} ({t.count})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Extract kind</InputLabel>
+              <Select
+                label="Extract kind"
+                value={researchKind}
+                onChange={(e) => setResearchKind(e.target.value)}
+              >
+                <MenuItem value="">All</MenuItem>
+                {(researchFacets?.extractKinds || []).map((t) => (
+                  <MenuItem key={t.value} value={t.value}>
+                    {t.label} ({t.count})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              label="Search title"
+              value={researchQ}
+              onChange={(e) => setResearchQ(e.target.value)}
+            />
+            <Button size="small" variant="outlined" onClick={() => void loadResearch()}>
+              Apply
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              disabled={researchBusy}
+              onClick={() => void rebuildResearchIndex()}
+            >
+              {researchBusy ? "Rebuilding…" : "Rebuild index"}
+            </Button>
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            {researchFacets
+              ? `${researchFacets.topicCount} topics · ${researchFacets.entryCount} entries · showing ${researchTopics.length} of ${researchTotal}`
+              : "Index empty — approve packs then Rebuild index."}
+          </Typography>
+
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateColumns: { xs: "1fr", md: "minmax(280px, 1fr) 1.2fr" },
+              alignItems: "start",
+            }}
+          >
+            <Card variant="outlined">
+              <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                <List dense disablePadding sx={{ maxHeight: 520, overflow: "auto" }}>
+                  {researchTopics.length === 0 ? (
+                    <Box sx={{ p: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No topics. Approve sample packs, then click <strong>Rebuild index</strong>.
+                      </Typography>
+                    </Box>
+                  ) : (
+                    researchTopics.map((t) => (
+                      <ListItemButton
+                        key={String(t.id)}
+                        selected={researchSelectedId === String(t.id)}
+                        onClick={() => setResearchSelectedId(String(t.id))}
+                        sx={{ borderBottom: 1, borderColor: "divider" }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {String(t.title)}
+                            </Typography>
+                          }
+                          secondary={`${String(t.productLane)} · ${String(t.theme)} · ${String(t.entryCount)} entries`}
+                        />
+                      </ListItemButton>
+                    ))
+                  )}
+                </List>
+              </CardContent>
+            </Card>
+
+            <Card variant="outlined">
+              <CardContent>
+                {!researchDetail ? (
+                  <Typography color="text.secondary" variant="body2">
+                    Select a topic to see linked pack items.
+                  </Typography>
+                ) : (
+                  <Stack spacing={1.5}>
+                    <Typography variant="h6">{String(researchDetail.title)}</Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      <Chip size="small" color="primary" label={String(researchDetail.theme)} />
+                      <Chip size="small" label={String(researchDetail.productLane)} />
+                      {Boolean(researchDetail.cropLabel) && (
+                        <Chip size="small" variant="outlined" label={`crop:${String(researchDetail.cropLabel)}`} />
+                      )}
+                      {Boolean(researchDetail.regionLabel) && (
+                        <Chip size="small" variant="outlined" label={`region:${String(researchDetail.regionLabel)}`} />
+                      )}
+                      {Boolean(researchDetail.parameterKey) && (
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          label={`param:${String(researchDetail.parameterKey)}`}
+                        />
+                      )}
+                      {Boolean(researchDetail.extractKind) && (
+                        <Chip size="small" variant="outlined" label={String(researchDetail.extractKind)} />
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      topicKey: <code>{String(researchDetail.topicKey)}</code>
+                    </Typography>
+                    <Divider />
+                    <Typography variant="subtitle2">Entries</Typography>
+                    {((researchDetail.entries as Array<Record<string, unknown>>) || []).map((e) => (
+                      <Card key={String(e.id)} variant="outlined">
+                        <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {String(e.itemTitle)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            {String(e.packCode)} v{String(e.packVersion)} · {String(e.extractKind)} ·{" "}
+                            {String(e.reviewState)}
+                            {e.evidencePresent ? " · evidence" : ""}
+                          </Typography>
+                          {Boolean(e.snippet) && (
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>
+                              {String(e.snippet)}
+                            </Typography>
+                          )}
+                          <Button
+                            size="small"
+                            sx={{ mt: 0.5 }}
+                            onClick={() => {
+                              const theme = String(e.packCode || "");
+                              void theme;
+                              // Jump to product lane packs list by selecting pack id
+                              const laneGuess = String(researchDetail.productLane || "");
+                              if (laneGuess.includes("SOIL")) setLane("soil");
+                              else if (laneGuess.includes("CALC")) setLane("calc");
+                              else if (laneGuess.includes("FAST")) setLane("fast");
+                              else if (laneGuess.includes("Market")) setLane("markets");
+                              setSelectedId(String(e.packId));
+                            }}
+                          >
+                            Open pack
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </CardContent>
+            </Card>
+          </Box>
+        </Stack>
+      )}
 
       {/* ═══════════════ OVERVIEW ═══════════════ */}
       {lane === "overview" && (

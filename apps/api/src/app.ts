@@ -26,6 +26,7 @@ import { knowledgePackRoutes } from "./routes/knowledgePacks.js";
 import { flahaSoilComparisonRoutes } from "./routes/flahaSoilComparisons.js";
 import { intakeRoutes } from "./routes/intake.js";
 import { productHandoffRoutes } from "./routes/productHandoff.js";
+import { researchRoutes } from "./routes/research.js";
 import { RssScheduler } from "./scheduler.js";
 
 export interface AppDependencies {
@@ -87,6 +88,7 @@ export function buildApp(dependencies: AppDependencies = {}) {
   app.register(flahaSoilComparisonRoutes(prisma), { prefix: "/api" });
   app.register(intakeRoutes(prisma, artifactStore), { prefix: "/api" });
   app.register(productHandoffRoutes(prisma), { prefix: "/api" });
+  app.register(researchRoutes(prisma), { prefix: "/api" });
   app.addHook("onReady", async () => {
     // Ensure artifact root + .metadata exist before any intake seal/promote.
     try {

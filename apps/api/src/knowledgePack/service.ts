@@ -255,7 +255,7 @@ export class KnowledgePackService {
           ? `\n[rejected ${new Date().toISOString()}] ${note}`
           : "";
 
-    return this.db.knowledgePack.update({
+    const updated = await this.db.knowledgePack.update({
       where: { id: pack.id },
       data: {
         reviewState: transition.to,
@@ -266,6 +266,27 @@ export class KnowledgePackService {
       },
       include: { items: { orderBy: { sequence: "asc" } } },
     });
+
+    // 4R-A: best-effort research index refresh when approval state changes
+    if (
+      transition.to === "APPROVED" ||
+      transition.from === "APPROVED" ||
+      transition.to === "ARCHIVED" ||
+      transition.to === "REJECTED"
+    ) {
+      try {
+        const { ResearchIndexService } = await import("../research/service.js");
+        await new ResearchIndexService(this.db).reindexPack({
+          tenantId: params.tenantId,
+          packId: pack.id,
+          actorUserId: params.reviewerId,
+        });
+      } catch {
+        // Index rebuild must never block governance review.
+      }
+    }
+
+    return updated;
   }
 
   /** Comparison notes across packs (for PA / FlahaSOIL discussion — still not product writes). */

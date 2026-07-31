@@ -540,6 +540,54 @@ export const api = {
     }),
   /** 4B-B PA scorecard */
   paDashboard: () => request<Record<string, unknown>>("/api/pa-dashboard"),
+
+  /** 4R-A research topic index */
+  researchTopics: (
+    filters: {
+      theme?: string;
+      productLane?: string;
+      crop?: string;
+      region?: string;
+      climate?: string;
+      parameter?: string;
+      extractKind?: string;
+      q?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) =>
+    request<{
+      total: number;
+      limit: number;
+      offset: number;
+      topics: Array<Record<string, unknown>>;
+    }>(`/api/research/topics${query(filters)}`),
+  researchTopic: (id: string) =>
+    request<{ topic: Record<string, unknown> & { entries?: Array<Record<string, unknown>> } }>(
+      `/api/research/topics/${id}`,
+    ),
+  researchFacets: () =>
+    request<{
+      themes: Array<{ value: string; label: string; count: number }>;
+      productLanes: Array<{ value: string; label: string; count: number }>;
+      crops: Array<{ value: string; label: string; count: number }>;
+      regions: Array<{ value: string; label: string; count: number }>;
+      parameters: Array<{ value: string; label: string; count: number }>;
+      extractKinds: Array<{ value: string; label: string; count: number }>;
+      topicCount: number;
+      entryCount: number;
+    }>("/api/research/facets"),
+  researchRebuild: (body: { includeDraft?: boolean; note?: string } = {}) =>
+    request<{
+      rebuildId: string;
+      topicCount: number;
+      entryCount: number;
+      packCount: number;
+      mode: string;
+      governance: Record<string, unknown>;
+    }>("/api/research/rebuild", { method: "POST", body: JSON.stringify(body) }),
+  researchRebuilds: () =>
+    request<{ rebuilds: Array<Record<string, unknown>> }>("/api/research/rebuilds"),
   knowledgeComparisonNotes: (reviewState?: string) =>
     request<{ count: number; notes: Array<Record<string, unknown>> }>(
       `/api/knowledge-packs/comparison-notes${query({ reviewState })}`,

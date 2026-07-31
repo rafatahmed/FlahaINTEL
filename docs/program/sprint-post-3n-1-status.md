@@ -68,16 +68,17 @@ npm run knowledge:seed-samples
 | 4B-A | Product feed policies | **DONE** | Per-target themes; cross-product guards |
 | 4B-B | PA dashboard scorecard | **DONE** | `/api/pa-dashboard` + Dashboard card |
 
-| 4R-A | Research topic index (desk) | **FRAMED** | Charter: `gates/gate-4r-a-research-topic-index.md` — implement after accept |
+| 4R-A | Research topic index (desk) | **DONE (4R-A.1)** | Materialized topics + `/api/research/*` + Knowledge Research tab |
 | Markets analytics | Multi-year / monthly / histogram | **DONE** | `market-price-analytics.md` |
 
 ## Next (systemic order)
 
-1. **Owner accept 4R-A frame** → implement 4R-A.1 (materialized index + Research tab)  
-2. **Operate:** harvest + historical fill + approve packs + handoff exports  
-3. **Host hygiene:** free C: toward ≥5–15% when practical  
-4. **4R-B** research collections (after 4R-A usable)  
-5. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
+1. ~~**Owner accept 4R-A frame** → implement 4R-A.1~~ **DONE**  
+2. **Operate:** harvest + historical fill + approve packs + `knowledge:rebuild-research-index` + handoff exports  
+3. **Optional 4R-A.2:** soil cases in index + pack topic chips  
+4. **Host hygiene:** free C: toward ≥5–15% when practical  
+5. **4R-B** research collections (after desk is in daily use)  
+6. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
 
 ## Exit criteria for Sprint 1
 

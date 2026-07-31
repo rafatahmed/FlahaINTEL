@@ -17,8 +17,7 @@ Last modified: 2026-07-31
 
 ## Status
 
-**CHARTERED / FRAMED** (2026-07-31) · Implement only after owner accepts this frame  
-**Not started in code** until this document is accepted.
+**IMPLEMENTED (4R-A.1 MVP)** (2026-07-31) · Materialized topics + API + Knowledge Research tab + CLI rebuild
 
 ---
 
@@ -299,17 +298,18 @@ Nav label: **Research** under Knowledge / Brain — not a sixth product engine.
 ### Phase 4R-A.0 — Frame (this document)
 
 - [x] Charter + boundaries + facet catalog  
-- [ ] Owner accept / amend  
+- [x] Owner accept (2026-07-31)  
 
-### Phase 4R-A.1 — MVP index (code)
+### Phase 4R-A.1 — MVP index (code) — **DONE**
 
-1. Prisma: `ResearchTopic`, `ResearchTopicEntry` (+ migration)  
-2. Indexer service: build facets from packs/items  
-3. Rebuild CLI + POST rebuild  
-4. GET topics + facets API  
-5. Knowledge UI: Research tab (filters + list + open pack)  
-6. Tests: facet extraction, rebuild idempotency  
-7. Docs: operator how-to  
+1. [x] Prisma: `ResearchTopic`, `ResearchTopicEntry`, `ResearchIndexRebuild` (+ migration `20260731240000_research_topic_index_4r_a`)  
+2. [x] Indexer service: build facets from packs/items (`src/research/*`)  
+3. [x] Rebuild CLI `knowledge:rebuild-research-index` + POST `/api/research/rebuild`  
+4. [x] GET topics + facets + topic detail API  
+5. [x] Knowledge UI: Research tab (filters + list + entry drawer)  
+6. [x] Tests: facet extraction (vitest)  
+7. [x] Docs: operator how-to (this gate §14)  
+8. [x] Best-effort reindex on pack approve / leave-APPROVED 
 
 ### Phase 4R-A.2 — Enrichment (optional same sprint if fast)
 
@@ -328,14 +328,23 @@ Nav label: **Research** under Knowledge / Brain — not a sixth product engine.
 
 ## 14. Acceptance criteria (when built)
 
-- [ ] Only APPROVED content in default topic browse  
-- [ ] Filter by at least: theme, crop, region, extractKind, parameter  
-- [ ] Topic entry deep-links to pack/item  
-- [ ] Rebuild is idempotent and tenant-safe  
-- [ ] CALC vs FAST vs SOIL lanes remain separated in product facet  
-- [ ] No embeddings / AI summarization  
-- [ ] Documented FKP boundary  
-- [ ] API + UI usable on local tenant with sample packs  
+- [x] Only APPROVED content in default topic browse  
+- [x] Filter by at least: theme, crop, region, extractKind, parameter  
+- [x] Topic entry deep-links to pack/item  
+- [x] Rebuild is idempotent and tenant-safe  
+- [x] CALC vs FAST vs SOIL lanes remain separated in product facet  
+- [x] No embeddings / AI summarization  
+- [x] Documented FKP boundary  
+- [x] API + UI usable on local tenant with sample packs  
+
+### Operator
+
+```powershell
+npm run knowledge:seed-samples
+# Human-approve packs in Knowledge UI
+npm run knowledge:rebuild-research-index
+# Knowledge → Research tab
+```
 
 ---
 
