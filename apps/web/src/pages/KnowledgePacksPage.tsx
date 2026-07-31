@@ -11,6 +11,8 @@
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
  * Last modified: 2026-07-31
+ *
+ * Fix: Research tab must not call packsForLane("research") (undefined lane → white page).
  */
 import {
   Alert,
@@ -116,8 +118,9 @@ function reviewChipColor(state?: string): "default" | "success" | "error" | "war
 }
 
 function packsForLane(packs: Pack[], laneId: ProductLaneId): Pack[] {
-  const themes = laneById(laneId).themes;
-  return packs.filter((p) => themes.includes(p.theme));
+  const def = laneById(laneId);
+  if (!def) return [];
+  return packs.filter((p) => def.themes.includes(p.theme));
 }
 
 function countByReview(packs: Pack[]): Record<string, number> {
@@ -317,12 +320,13 @@ export function KnowledgePacksPage(props?: {
   const marketPacks = useMemo(() => packsForLane(packs, "markets"), [packs]);
 
   const lanePacks = useMemo(() => {
-    if (lane === "overview") return packs;
+    // Research is not a product lane — never call packsForLane("research") (white-page crash).
+    if (lane === "overview" || lane === "research") return packs;
     return packsForLane(packs, lane);
   }, [packs, lane]);
 
   useEffect(() => {
-    if (lane === "overview") return;
+    if (lane === "overview" || lane === "research") return;
     setSelectedId((prev) => {
       if (lanePacks.some((p) => p.id === prev)) return prev;
       return lanePacks[0]?.id || "";
