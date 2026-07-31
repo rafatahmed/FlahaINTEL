@@ -28,6 +28,58 @@ function mapError(error: unknown): never {
 export function literatureRoutes(prisma: PrismaClient): FastifyPluginAsync {
   const lit = new LiteratureSourceService(prisma);
   return async (app) => {
+    /** Crossref DOI lookup (read-only enricher). */
+    app.get("/research/literature/crossref", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as { doi?: string };
+        if (!q.doi?.trim()) throw new LiteratureError("INVALID_DOI", "Query doi is required.");
+        return await lit.lookupCrossrefDoi(q.doi);
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    app.get("/research/literature/crossref/search", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as { q?: string; rows?: string };
+        if (!q.q?.trim()) throw new LiteratureError("INVALID_QUERY", "Query q is required.");
+        return await lit.searchCrossref(q.q, q.rows ? Number(q.rows) : 10);
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    app.post("/research/literature/crossref/register", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "submit");
+        const body = (request.body || {}) as Record<string, unknown>;
+        if (!body.doi || !String(body.doi).trim()) {
+          throw new LiteratureError("INVALID_DOI", "body.doi is required.");
+        }
+        return await lit.registerFromCrossref({
+          tenantId: actor.tenantId,
+          ownerUserId: actor.userId,
+          doi: String(body.doi),
+          code: body.code != null ? String(body.code) : undefined,
+          domainTags: body.domainTags as string[] | undefined,
+          cropTags: body.cropTags as string[] | undefined,
+          regionTags: body.regionTags as string[] | undefined,
+          productLanes: body.productLanes as string[] | undefined,
+          parameterKeys: body.parameterKeys as string[] | undefined,
+          primaryTheme: body.primaryTheme != null ? String(body.primaryTheme) : null,
+          notes: body.notes != null ? String(body.notes) : null,
+          approve: Boolean(body.approve),
+        });
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
     app.get("/research/literature", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);

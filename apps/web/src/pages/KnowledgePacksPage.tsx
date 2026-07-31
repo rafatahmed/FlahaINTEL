@@ -228,6 +228,15 @@ export function KnowledgePacksPage(props?: {
   const [colNewCode, setColNewCode] = useState("");
   const [colNewTitle, setColNewTitle] = useState("");
   const [colAddTargetId, setColAddTargetId] = useState("");
+  const [crossrefDoi, setCrossrefDoi] = useState("");
+  const [crossrefPreview, setCrossrefPreview] = useState<{
+    citationApa: string;
+    citationInText: string;
+    citationComplete: boolean;
+    draft: Record<string, unknown>;
+  } | null>(null);
+  const [crossrefSearchQ, setCrossrefSearchQ] = useState("");
+  const [crossrefHits, setCrossrefHits] = useState<Array<Record<string, unknown>>>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -489,6 +498,74 @@ export function KnowledgePacksPage(props?: {
     }
   }
 
+  async function lookupCrossrefDoi() {
+    if (!crossrefDoi.trim()) {
+      setError("Enter a DOI to look up on Crossref.");
+      return;
+    }
+    setResearchBusy(true);
+    setInfo("");
+    setCrossrefPreview(null);
+    try {
+      const res = await api.researchCrossrefLookup(crossrefDoi.trim());
+      setCrossrefPreview({
+        citationApa: res.citationApa,
+        citationInText: res.citationInText,
+        citationComplete: res.citationComplete,
+        draft: res.draft,
+      });
+      setInfo(`Crossref: ${String(res.draft.title || "").slice(0, 80)}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Crossref lookup failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function registerFromCrossref(approve: boolean) {
+    const doi = String(crossrefPreview?.draft?.doi || crossrefDoi).trim();
+    if (!doi) {
+      setError("Look up a DOI first.");
+      return;
+    }
+    setResearchBusy(true);
+    setInfo("");
+    try {
+      const res = await api.researchCrossrefRegister({
+        doi,
+        approve,
+        domainTags: litDomain ? [litDomain] : undefined,
+      });
+      setInfo(
+        `${res.created ? "Registered" : "Updated"} literature ${String(res.source.code)} · ${String(res.source.reviewState)} (Crossref).`,
+      );
+      setLitIncludeCatalog(true);
+      await loadLiterature();
+      setLitSelectedId(String(res.source.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Crossref register failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function searchCrossref() {
+    if (!crossrefSearchQ.trim()) {
+      setError("Enter a Crossref search query.");
+      return;
+    }
+    setResearchBusy(true);
+    try {
+      const res = await api.researchCrossrefSearch(crossrefSearchQ.trim(), 8);
+      setCrossrefHits(res.items || []);
+      setInfo(`Crossref search: ${res.total} hits (showing ${res.items?.length || 0}).`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Crossref search failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
   useEffect(() => {
     void api
       .flahaSoilBridgeStatus()
@@ -734,6 +811,126 @@ export function KnowledgePacksPage(props?: {
 
           {researchView === "literature" && (
             <Stack spacing={2}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Crossref DOI enricher (public API · polite mailto pool)
+                  </Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
+                    <TextField
+                      size="small"
+                      label="DOI"
+                      placeholder="10.1002/saj2.XXXXX or https://doi.org/..."
+                      value={crossrefDoi}
+                      onChange={(e) => setCrossrefDoi(e.target.value)}
+                      sx={{ minWidth: 280, flex: 1 }}
+                    />
+                    <Button
+                      size="small"
+                      variant="contained"
+                      disabled={researchBusy}
+                      onClick={() => void lookupCrossrefDoi()}
+                    >
+                      Lookup DOI
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={researchBusy || !crossrefPreview}
+                      onClick={() => void registerFromCrossref(false)}
+                    >
+                      Register catalogued
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="success"
+                      disabled={researchBusy || !crossrefPreview}
+                      onClick={() => void registerFromCrossref(true)}
+                    >
+                      Register + approve
+                    </Button>
+                  </Box>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center", mt: 1.5 }}>
+                    <TextField
+                      size="small"
+                      label="Crossref search"
+                      placeholder="soil moisture maize"
+                      value={crossrefSearchQ}
+                      onChange={(e) => setCrossrefSearchQ(e.target.value)}
+                      sx={{ minWidth: 220, flex: 1 }}
+                    />
+                    <Button size="small" variant="outlined" disabled={researchBusy} onClick={() => void searchCrossref()}>
+                      Search Crossref
+                    </Button>
+                  </Box>
+                  {crossrefPreview && (
+                    <Box sx={{ mt: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        In-text: <code>{crossrefPreview.citationInText}</code> ·{" "}
+                        {crossrefPreview.citationComplete ? "citation complete" : "incomplete"} · type{" "}
+                        {String(crossrefPreview.draft.documentType || "")}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontFamily: "Georgia, serif", mt: 0.5, whiteSpace: "pre-wrap" }}
+                      >
+                        {crossrefPreview.citationApa}
+                      </Typography>
+                    </Box>
+                  )}
+                  {crossrefHits.length > 0 && (
+                    <Box sx={{ mt: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Search hits (click DOI to load):
+                      </Typography>
+                      <List dense>
+                        {crossrefHits.map((h) => (
+                          <ListItemButton
+                            key={String(h.doi)}
+                            onClick={() => {
+                              setCrossrefDoi(String(h.doi || ""));
+                              setCrossrefPreview({
+                                citationApa: "",
+                                citationInText: "",
+                                citationComplete: Boolean(h.doi && h.year && h.title),
+                                draft: h,
+                              });
+                              void (async () => {
+                                setResearchBusy(true);
+                                try {
+                                  const res = await api.researchCrossrefLookup(String(h.doi));
+                                  setCrossrefPreview({
+                                    citationApa: res.citationApa,
+                                    citationInText: res.citationInText,
+                                    citationComplete: res.citationComplete,
+                                    draft: res.draft,
+                                  });
+                                } catch (e) {
+                                  setError(e instanceof Error ? e.message : "Lookup failed.");
+                                } finally {
+                                  setResearchBusy(false);
+                                }
+                              })();
+                            }}
+                          >
+                            <ListItemText
+                              primary={String(h.title || "").slice(0, 100)}
+                              secondary={`${String(h.year ?? "n.d.")} · ${String(h.doi || "")}`}
+                            />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    </Box>
+                  )}
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    Metadata from api.crossref.org — not full-text, not auto product write. Prefer real DOIs;
+                    set <code>FLAHA_CROSSREF_MAILTO</code> for polite pool. Domain filter below applied on
+                    register when set.
+                  </Typography>
+                </CardContent>
+              </Card>
+
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
                 <FormControl size="small" sx={{ minWidth: 140 }}>
                   <InputLabel>Domain</InputLabel>
@@ -772,9 +969,8 @@ export function KnowledgePacksPage(props?: {
                 </Button>
               </Box>
               <Typography variant="caption" color="text.secondary">
-                Showing {litSources.length} of {litTotal}. Register via{" "}
-                <code>npm run knowledge:register-literature</code>. Keywords = aboutness; claims stay in packs.
-                Citation standard: APA 7th.
+                Showing {litSources.length} of {litTotal}. Also:{" "}
+                <code>npm run knowledge:crossref -- --doi=...</code> · Keywords = aboutness · APA 7th.
               </Typography>
               <Box
                 sx={{

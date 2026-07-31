@@ -19,6 +19,7 @@ import {
   parseAuthorsJson,
   type ApaAuthor,
 } from "./apa.js";
+import { CrossrefError, fetchCrossrefWorkByDoi, searchCrossrefWorks } from "./crossref.js";
 import { normalizeDomainTags, productLanesFromDomains, themeFromDomains } from "./domains.js";
 
 /** Local string unions so builds work before/without prisma generate (Windows DLL lock). */
@@ -438,6 +439,158 @@ export class LiteratureSourceService {
       },
     });
     return this.serialize(updated);
+  }
+
+  /** Crossref DOI lookup (no DB write). */
+  async lookupCrossrefDoi(doi: string) {
+    try {
+      const draft = await fetchCrossrefWorkByDoi(doi);
+      const citationApa = formatApaReference({
+        authors: draft.authors,
+        year: draft.year,
+        title: draft.title,
+        containerTitle: draft.containerTitle,
+        volume: draft.volume,
+        issue: draft.issue,
+        pages: draft.pages,
+        publisher: draft.publisher,
+        doi: draft.doi,
+        url: draft.url,
+        documentType: draft.documentType,
+      });
+      return {
+        draft,
+        citationApa,
+        citationInText: formatApaInText(draft.authors, draft.year),
+        citationComplete: isCitationComplete({
+          authors: draft.authors,
+          year: draft.year,
+          title: draft.title,
+          doi: draft.doi,
+          url: draft.url,
+        }),
+        governance: {
+          source: "crossref",
+          aboutnessOnly: true,
+          doesNotWriteProductEngines: true,
+          humanReviewStillRequired: true,
+          citationStandard: "APA_7_ASA_CSSA_SSSA",
+          politePoolMailto:
+            process.env.FLAHA_CROSSREF_MAILTO ||
+            process.env.FLAHA_BOOTSTRAP_ADMIN_EMAIL ||
+            "admin@flaha.local",
+        },
+      };
+    } catch (e) {
+      if (e instanceof CrossrefError) {
+        throw new LiteratureError(e.code, e.message, e.statusCode);
+      }
+      throw e;
+    }
+  }
+
+  /** Crossref text search (no DB write). */
+  async searchCrossref(query: string, rows?: number) {
+    try {
+      const result = await searchCrossrefWorks({ query, rows });
+      return {
+        ...result,
+        governance: {
+          source: "crossref",
+          aboutnessOnly: true,
+          humanReviewStillRequired: true,
+        },
+      };
+    } catch (e) {
+      if (e instanceof CrossrefError) {
+        throw new LiteratureError(e.code, e.message, e.statusCode);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Fetch Crossref metadata and upsert a CATALOGUED literature source.
+   * Operator may pass domainTags / product lanes; never auto SOURCE_APPROVED.
+   */
+  async registerFromCrossref(params: {
+    tenantId: string;
+    ownerUserId: string;
+    doi: string;
+    code?: string;
+    domainTags?: string[];
+    cropTags?: string[];
+    regionTags?: string[];
+    productLanes?: string[];
+    parameterKeys?: string[];
+    primaryTheme?: string | null;
+    notes?: string | null;
+    approve?: boolean;
+  }) {
+    const looked = await this.lookupCrossrefDoi(params.doi);
+    const d = looked.draft;
+    const result = await this.upsertByCode({
+      tenantId: params.tenantId,
+      ownerUserId: params.ownerUserId,
+      code: params.code || d.suggestedCode,
+      authors: d.authors,
+      year: d.year,
+      title: d.title,
+      containerTitle: d.containerTitle,
+      volume: d.volume,
+      issue: d.issue,
+      pages: d.pages,
+      publisher: d.publisher,
+      doi: d.doi,
+      url: d.url,
+      documentType: d.documentType,
+      trustTier: d.trustTier,
+      language: d.language,
+      domainTags: params.domainTags,
+      keywords: d.keywords,
+      cropTags: params.cropTags,
+      regionTags: params.regionTags,
+      productLanes: params.productLanes,
+      parameterKeys: params.parameterKeys,
+      primaryTheme: params.primaryTheme,
+      sourceUrl: d.url,
+      abstractText: d.abstractText,
+      notes:
+        params.notes?.trim() ||
+        `Registered from Crossref (${d.crossrefType || "work"}). Human domain tags recommended.`,
+    });
+
+    if (params.approve && result.source.reviewState === "CATALOGUED") {
+      const approved = await this.review({
+        tenantId: params.tenantId,
+        id: String(result.source.id),
+        reviewerId: params.ownerUserId,
+        reviewState: "SOURCE_APPROVED",
+        note: "approved after Crossref register",
+      });
+      return {
+        created: result.created,
+        source: approved,
+        crossref: looked,
+        governance: {
+          registeredFrom: "crossref",
+          doesNotWriteProductEngines: true,
+          humanReviewStillRequired: false,
+        },
+      };
+    }
+
+    return {
+      created: result.created,
+      source: result.source,
+      crossref: looked,
+      governance: {
+        registeredFrom: "crossref",
+        doesNotWriteProductEngines: true,
+        humanReviewStillRequired: true,
+        defaultReviewState: "CATALOGUED",
+      },
+    };
   }
 
   async facets(tenantId: string, approvedOnly = true) {

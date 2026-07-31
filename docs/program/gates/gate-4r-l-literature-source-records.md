@@ -42,17 +42,30 @@ PA can **register multi-domain literature** (articles, reports, books, standards
 | UI | Knowledge → Research → **Literature** sub-panel |
 | Index | SOURCE_APPROVED sources contribute REFERENCE entries to research topic rebuild |
 
-## 3. Out of scope (later)
+## 3. Crossref enricher (added)
+
+Public Crossref REST API (no key; polite `mailto=` pool):
+
+| Action | How |
+|--------|-----|
+| DOI lookup | `GET /api/research/literature/crossref?doi=` or `npm run knowledge:crossref -- --doi=` |
+| Search | `GET .../crossref/search?q=` or `--search=` |
+| Register | `POST .../crossref/register` or `--register` [--approve] |
+| Env | `FLAHA_CROSSREF_MAILTO` (recommended), `FLAHA_CROSSREF_USER_AGENT` optional |
+
+Crossref fills APA-grade metadata. **Human still sets domains / SOURCE_APPROVED.** Not full-text, not product write.
+
+## 4. Out of scope (later)
 
 | Item | Gate |
 |------|------|
-| Full Zotero sync / Crossref auto-fetch | Later |
-| 4R-B collections + bibliography export file | 4R-B |
+| Full Zotero sync / bulk library crawl | Later |
+| 4R-B collections + bibliography export file | 4R-B (done separately) |
 | Deep extract cards from PDF body | 4R-X |
 | OCR / AI keyword extraction | Forbidden without gate |
 | Auto product write | Never |
 
-## 4. Acceptance
+## 5. Acceptance
 
 - [x] Multi-domain literature records (not SOIL-only)
 - [x] APA author–year reference formatting (desk default)
@@ -60,14 +73,19 @@ PA can **register multi-domain literature** (articles, reports, books, standards
 - [x] Aboutness keywords ≠ approved claims
 - [x] SOURCE_APPROVED only in default literature browse of “trusted sources”
 - [x] Research rebuild can attach approved literature as REFERENCE topics
+- [x] Crossref DOI lookup + search + register (polite mailto pool)
 - [x] No embeddings / AI
 
-## 5. Operator
+## 6. Operator
 
 ```powershell
 # Register from JSON (see docs/knowledge/samples/literature-source-examples.json)
 npm run knowledge:register-literature -- --file=path\to\sources.json
-# Or API POST /api/research/literature
+# Crossref enricher
+npm run knowledge:crossref -- --doi=10.2136/sssaj2018.01.0010
+npm run knowledge:crossref -- --doi=10.2136/sssaj2018.01.0010 --register --domain=soil
+npm run knowledge:crossref -- --search="cation exchange capacity" --rows=5
+# Or API / UI Literature → Crossref box
 # Review → SOURCE_APPROVED in UI or POST .../review
 npm run knowledge:rebuild-research-index
 ```

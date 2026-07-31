@@ -108,8 +108,9 @@ Charter: [`gate-4r-a-research-topic-index.md`](gates/gate-4r-a-research-topic-in
 
 ```powershell
 npm run knowledge:register-literature -- --approve
+npm run knowledge:crossref -- --doi=10.xxxx/yyyy --register --domain=soil
 npm run knowledge:rebuild-research-index
 # Knowledge → Research → Literature | Collections | Topics
+# Literature: Crossref DOI lookup → Register; Draft claim on pack
 # Collections: create dossier → add literature → Copy APA bibliography
-# Literature: Draft claim on pack (creates DRAFT REFERENCE item with APA evidence)
 ```

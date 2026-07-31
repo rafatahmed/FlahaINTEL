@@ -633,6 +633,36 @@ export const api = {
       `/api/research/literature/${id}/review`,
       { method: "POST", body: JSON.stringify(body) },
     ),
+  researchCrossrefLookup: (doi: string) =>
+    request<{
+      draft: Record<string, unknown>;
+      citationApa: string;
+      citationInText: string;
+      citationComplete: boolean;
+      governance: Record<string, unknown>;
+    }>(`/api/research/literature/crossref${query({ doi })}`),
+  researchCrossrefSearch: (q: string, rows?: number) =>
+    request<{
+      total: number;
+      query: string;
+      items: Array<Record<string, unknown>>;
+    }>(`/api/research/literature/crossref/search${query({ q, rows })}`),
+  researchCrossrefRegister: (body: {
+    doi: string;
+    code?: string;
+    domainTags?: string[];
+    approve?: boolean;
+    notes?: string;
+  }) =>
+    request<{
+      created: boolean;
+      source: Record<string, unknown>;
+      crossref: Record<string, unknown>;
+      governance: Record<string, unknown>;
+    }>("/api/research/literature/crossref/register", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   researchLiteratureAttachClaim: (
     id: string,
     body: { packCode?: string; itemTitle?: string; bodyText?: string; extractKind?: string } = {},
