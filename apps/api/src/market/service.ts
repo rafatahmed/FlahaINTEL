@@ -19,6 +19,7 @@ import {
   type ChannelReviewMode,
   type PriceReviewDecisionSource,
 } from "./reviewPolicy.js";
+import { buildMarketAnalytics } from "./marketAnalytics.js";
 import {
   dedupeTrendPointsByDay,
   marketSeriesKey,
@@ -1027,6 +1028,124 @@ export class MarketService {
       truncated,
       maxSeries: MAX_TREND_SERIES,
       series,
+    };
+  }
+
+  /**
+   * Channel-agnostic comprehensive analytics for one price series
+   * (daily, multi-year overlay, monthly/annual, histogram, deviation).
+   * Works for Amman (mode), Mahaseel (unit), MoCI (unit).
+   */
+  async priceAnalytics(params: {
+    tenantId: string;
+    channelCode: string;
+    commodityCode: string;
+    from?: string;
+    to?: string;
+    originLabel?: string;
+    grade?: string;
+    cultivationMethod?: string;
+    packDescription?: string;
+    seriesKey?: string;
+    preferValue?: "auto" | "priceMode" | "unitPrice";
+    onlyApproved?: boolean;
+    limit?: number;
+  }) {
+    const channel = await this.db.marketChannel.findUnique({ where: { code: params.channelCode } });
+    if (!channel) throw new MarketValidationError("CHANNEL_NOT_FOUND", `Unknown channel ${params.channelCode}.`);
+    if (params.from && params.to) {
+      if (params.from > params.to) {
+        throw new MarketValidationError("INVALID_DATE_RANGE", "from must be on or before to (YYYY-MM-DD).");
+      }
+      // Allow multi-year workbench windows (up to 10 years).
+      assertFilterSpan(params.from, params.to, 3660);
+    } else if (params.from || params.to) {
+      if (params.from) parseObservedOn(params.from);
+      if (params.to) parseObservedOn(params.to);
+    }
+
+    const code = normalizeCommodityCode(params.commodityCode);
+    let grade = params.grade?.trim() || undefined;
+    let cultivationMethod = params.cultivationMethod?.trim() || undefined;
+    let packDescription =
+      grade || cultivationMethod ? undefined : params.packDescription?.trim() || undefined;
+
+    // Parse seriesKey "code|grade|method" when provided
+    if (params.seriesKey?.includes("|")) {
+      const parts = params.seriesKey.split("|");
+      if (parts.length >= 3) {
+        grade = parts[1] || undefined;
+        cultivationMethod = parts[2] || undefined;
+        packDescription = undefined;
+      } else if (parts.length === 2 && parts[1]) {
+        packDescription = parts[1];
+      }
+    }
+
+    const take = Math.min(Math.max(params.limit ?? 5000, 1), 8000);
+    const preferDefault =
+      params.preferValue ??
+      (channel.code.includes("amman") ? ("priceMode" as const) : ("auto" as const));
+
+    const rows = await this.db.marketPriceObservation.findMany({
+      where: {
+        tenantId: params.tenantId,
+        channelId: channel.id,
+        commodityCode: code,
+        originLabel: params.originLabel?.trim().toUpperCase() || undefined,
+        grade: grade || undefined,
+        cultivationMethod: cultivationMethod || undefined,
+        packDescription: packDescription || undefined,
+        reviewState: params.onlyApproved ? "APPROVED" : undefined,
+        observedOn: {
+          gte: params.from ? parseObservedOn(params.from) : undefined,
+          lte: params.to ? parseObservedOn(params.to) : undefined,
+        },
+      },
+      orderBy: [{ observedOn: "asc" }, { updatedAt: "asc" }],
+      take,
+    });
+
+    const points = rows.map((r) => ({
+      observedOn: toIsoDate(r.observedOn),
+      value: r.unitPrice?.toNumber() ?? r.priceMode?.toNumber() ?? r.packPrice?.toNumber() ?? null,
+      unitPrice: r.unitPrice?.toNumber() ?? null,
+      priceMode: r.priceMode?.toNumber() ?? null,
+      priceHigh: r.priceHigh?.toNumber() ?? null,
+      priceLow: r.priceLow?.toNumber() ?? null,
+      packPrice: r.packPrice?.toNumber() ?? null,
+      quantityTons: r.quantityTons?.toNumber() ?? null,
+      currency: r.currency,
+    }));
+
+    const analytics = buildMarketAnalytics(points, {
+      preferValue: preferDefault === "auto" ? "auto" : preferDefault,
+    });
+
+    const name =
+      rows[0]?.commodityNameEn ||
+      rows[0]?.commodityName ||
+      code;
+
+    return {
+      channelCode: channel.code,
+      countryCode: channel.countryCode,
+      commodityCode: code,
+      commodityName: name,
+      grade: grade ?? null,
+      cultivationMethod: cultivationMethod ?? null,
+      packDescription: packDescription ?? null,
+      seriesKey: marketSeriesKey({
+        commodityCode: code,
+        grade,
+        cultivationMethod,
+        packDescription,
+      }),
+      onlyApproved: Boolean(params.onlyApproved),
+      pointSourceCount: rows.length,
+      truncated: rows.length >= take,
+      ...analytics,
+      currency: analytics.currency || channel.currencyDefault,
     };
   }
 

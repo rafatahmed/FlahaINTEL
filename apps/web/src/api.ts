@@ -371,6 +371,104 @@ export const api = {
       points: Array<{ observedOn: string; value: number; currency: string }>;
     }>;
   }>(`/api/markets/prices/trend-bundle${query(filters)}`),
+  /** Comprehensive series analytics (multi-year, monthly, histogram, deviation). */
+  marketPriceAnalytics: (filters: {
+    channelCode: string;
+    commodityCode: string;
+    from?: string;
+    to?: string;
+    originLabel?: string;
+    grade?: string;
+    cultivationMethod?: string;
+    packDescription?: string;
+    seriesKey?: string;
+    preferValue?: "auto" | "priceMode" | "unitPrice";
+    onlyApproved?: boolean | string;
+    limit?: number;
+  }) =>
+    request<{
+      channelCode: string;
+      countryCode: string;
+      commodityCode: string;
+      commodityName: string;
+      seriesKey: string;
+      valueField: string;
+      spanDays: number;
+      firstDay: string | null;
+      lastDay: string | null;
+      multiYear: boolean;
+      recommendedView: "daily" | "by_year" | "monthly";
+      currency: string | null;
+      truncated: boolean;
+      daily: Array<{
+        observedOn: string;
+        value: number;
+        priceHigh: number | null;
+        priceLow: number | null;
+        quantityTons: number | null;
+      }>;
+      byYear: Array<{
+        year: number;
+        points: Array<{ x: string; y: number; fullDate: string }>;
+        stats: Record<string, number | null>;
+      }>;
+      monthly: Array<{
+        month: number;
+        label: string;
+        mean: number | null;
+        median: number | null;
+        min: number | null;
+        max: number | null;
+        n: number;
+      }>;
+      annual: Array<{
+        year: number;
+        mean: number | null;
+        median: number | null;
+        min: number | null;
+        max: number | null;
+        n: number;
+        meanTons: number | null;
+      }>;
+      yearMonth: Array<{
+        year: number;
+        months: Array<{ month: number; mean: number | null; n: number }>;
+      }>;
+      histogram: Array<{ from: number; to: number; count: number; label: string }>;
+      stats: {
+        n: number;
+        mean: number | null;
+        median: number | null;
+        min: number | null;
+        max: number | null;
+        stdev: number | null;
+        p25: number | null;
+        p75: number | null;
+      };
+      deviation: {
+        latest: { observedOn: string; value: number } | null;
+        vsTrailing30d: { mean: number | null; pct: number | null; abs: number | null } | null;
+        vsTrailing90d: { mean: number | null; pct: number | null; abs: number | null } | null;
+        vsSameMonthPriorYear: {
+          priorYear: number | null;
+          priorMean: number | null;
+          pct: number | null;
+          abs: number | null;
+        } | null;
+        zScoreTrailing90d: number | null;
+        flag: "normal" | "elevated" | "depressed" | "insufficient_data";
+      };
+    }>(
+      `/api/markets/prices/analytics${query({
+        ...filters,
+        onlyApproved:
+          filters.onlyApproved === undefined
+            ? undefined
+            : filters.onlyApproved === true || filters.onlyApproved === "true"
+              ? "true"
+              : "false",
+      })}`,
+    ),
   marketReviewSummary: (filters: { channelCode?: string; countryCode?: string } = {}) =>
     request<{ summary: Record<string, number> }>(`/api/markets/prices/review-summary${query(filters)}`),
   marketRetention: (filters: { targetDays?: number; countryCode?: string } = {}) =>

@@ -237,6 +237,41 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
       }
     });
 
+    /**
+     * Comprehensive analytics for one series (Amman / Mahaseel / MoCI):
+     * daily, multi-year curves, monthly/annual, histogram, deviation.
+     */
+    app.get("/markets/prices/analytics", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as Record<string, string | undefined>;
+        if (!q.channelCode || !q.commodityCode) {
+          throw new AppError(400, "ANALYTICS_PARAMS", "channelCode and commodityCode are required.");
+        }
+        return await markets.priceAnalytics({
+          tenantId: actor.tenantId,
+          channelCode: q.channelCode,
+          commodityCode: q.commodityCode,
+          from: q.from,
+          to: q.to,
+          originLabel: q.originLabel,
+          grade: q.grade,
+          cultivationMethod: q.cultivationMethod,
+          packDescription: q.packDescription,
+          seriesKey: q.seriesKey,
+          preferValue:
+            q.preferValue === "priceMode" || q.preferValue === "unitPrice" || q.preferValue === "auto"
+              ? q.preferValue
+              : undefined,
+          onlyApproved: q.onlyApproved === "1" || q.onlyApproved === "true",
+          limit: q.limit ? Number(q.limit) : undefined,
+        });
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
     app.post("/markets/prices/batch", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);

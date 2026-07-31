@@ -43,6 +43,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import { BrandedState } from "../components/BrandedState";
+import { SimpleBarChart } from "../components/SimpleBarChart";
 import { seriesColor, SimpleLineChart, type ChartSeries } from "../components/SimpleLineChart";
 import {
   buildCommodityGroups,
@@ -54,6 +55,10 @@ import {
   validateDateWindow,
   type PriceRowLike,
 } from "../markets/grouping";
+
+type AnalyticsView = "daily" | "by_year" | "monthly" | "annual" | "histogram";
+
+type MarketAnalytics = Awaited<ReturnType<typeof api.marketPriceAnalytics>>;
 
 type Channel = {
   code: string;
@@ -135,6 +140,9 @@ export function MarketsPage() {
   const [trendSeries, setTrendSeries] = useState<ChartSeries[]>([]);
   const [trendLoading, setTrendLoading] = useState(false);
   const [trendWarning, setTrendWarning] = useState("");
+  const [analytics, setAnalytics] = useState<MarketAnalytics | null>(null);
+  const [analyticsView, setAnalyticsView] = useState<AnalyticsView>("daily");
+  const [analyticsAutoView, setAnalyticsAutoView] = useState(true);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
@@ -286,16 +294,18 @@ export function MarketsPage() {
     });
   }, [selectedGroup, selectedVariant, prices]);
 
-  // One-shot multi-series trend bundle (race-safe via generation token).
+  // Analytics + chart series for selected commodity/variant (channel-agnostic).
   useEffect(() => {
     if (lane !== "prices" || !channelCode || !selectedGroup) {
       setTrendSeries([]);
+      setAnalytics(null);
       setTrendWarning("");
       return;
     }
     const dateErr = validateDateWindow(from, to);
     if (dateErr) {
       setTrendSeries([]);
+      setAnalytics(null);
       setTrendWarning(dateErr);
       return;
     }
@@ -304,48 +314,166 @@ export function MarketsPage() {
     setTrendLoading(true);
     setTrendWarning("");
 
+    const seriesKey =
+      selectedSeriesKey ||
+      (selectedGroup.variants.length === 1 ? selectedGroup.variants[0]!.key : undefined);
+    const preferValue =
+      layout === "amman" ? ("priceMode" as const) : layout === "mahaseel" ? ("unitPrice" as const) : ("auto" as const);
+
     void (async () => {
       try {
-        const bundle = await api.marketPriceTrendBundle({
+        // When multiple variants and none selected: show grade/method overlay (bundle).
+        // When one series focused: comprehensive analytics.
+        if (!seriesKey && selectedGroup.variants.length > 1) {
+          const bundle = await api.marketPriceTrendBundle({
+            channelCode,
+            commodityCode: selectedGroup.commodityCode,
+            from: from || undefined,
+            to: to || undefined,
+            limit: 400,
+          });
+          if (gen !== trendLoadGen.current) return;
+          setAnalytics(null);
+          const chart: ChartSeries[] = (bundle.series || [])
+            .map((s, i) => ({
+              id: s.seriesKey,
+              label: s.shortLabel,
+              color: seriesColor(i),
+              points: (s.points || [])
+                .filter((p) => p.value != null && Number.isFinite(p.value))
+                .map((p) => ({ x: String(p.observedOn).slice(0, 10), y: p.value as number })),
+            }))
+            .filter((s) => s.points.length > 0);
+          setTrendSeries(chart);
+          if (!chart.length) setTrendWarning("No trend points for variants in this window.");
+          else setAnalyticsView("daily");
+          return;
+        }
+
+        const a = await api.marketPriceAnalytics({
           channelCode,
           commodityCode: selectedGroup.commodityCode,
-          seriesKey: selectedSeriesKey || undefined,
+          seriesKey,
+          grade: selectedVariant?.grade,
+          cultivationMethod: selectedVariant?.cultivationMethod,
           from: from || undefined,
           to: to || undefined,
-          limit: 120,
+          preferValue,
+          limit: 5000,
         });
         if (gen !== trendLoadGen.current) return;
-        const chart: ChartSeries[] = (bundle.series || []).map((s, i) => ({
-          id: s.seriesKey,
-          label: s.shortLabel,
-          color: seriesColor(i),
-          points: (s.points || [])
-            .filter((p) => p.value != null && Number.isFinite(p.value))
-            .map((p) => ({ x: String(p.observedOn).slice(0, 10), y: p.value as number })),
-        })).filter((s) => s.points.length > 0);
-        setTrendSeries(chart);
-        if (bundle.truncated) {
-          setTrendWarning(
-            `Showing first ${bundle.maxSeries} of many variants (capped for performance). Narrow search or pick one grade/method.`,
-          );
-        } else if (!chart.length) {
-          setTrendWarning("No trend points in this window for the selection.");
+        setAnalytics(a);
+        if (analyticsAutoView) {
+          setAnalyticsView(a.recommendedView === "by_year" ? "by_year" : a.recommendedView);
         }
+        // Default daily chart from analytics
+        setTrendSeries([
+          {
+            id: a.seriesKey,
+            label: selectedVariant?.shortLabel || a.commodityName || "Price",
+            color: seriesColor(0),
+            points: a.daily.map((p) => ({ x: p.observedOn, y: p.value })),
+          },
+        ]);
+        if (!a.daily.length) setTrendWarning("No analytics points for this series/window.");
+        else if (a.truncated) setTrendWarning("Series truncated at API limit — narrow the date window for full history.");
       } catch (e) {
         if (gen !== trendLoadGen.current) return;
         setTrendSeries([]);
-        setTrendWarning(e instanceof Error ? e.message : "Trend load failed.");
+        setAnalytics(null);
+        setTrendWarning(e instanceof Error ? e.message : "Analytics load failed.");
       } finally {
         if (gen === trendLoadGen.current) setTrendLoading(false);
       }
     })();
-  }, [lane, channelCode, selectedGroup?.commodityCode, selectedSeriesKey, from, to]);
+  }, [
+    lane,
+    channelCode,
+    selectedGroup?.commodityCode,
+    selectedSeriesKey,
+    selectedVariant?.grade,
+    selectedVariant?.cultivationMethod,
+    from,
+    to,
+    layout,
+    analyticsAutoView,
+  ]);
 
   const selectedChannel = channels.find((c) => c.code === channelCode);
   const currency =
-    trendSeries[0]?.points.length
-      ? selectedChannel?.currencyDefault || selectedGroup?.currency || ""
-      : selectedGroup?.currency || selectedChannel?.currencyDefault || "";
+    analytics?.currency ||
+    selectedChannel?.currencyDefault ||
+    selectedGroup?.currency ||
+    "";
+
+  /** Chart series derived from analytics view mode. */
+  const analysisChartSeries: ChartSeries[] = useMemo(() => {
+    if (!analytics) return trendSeries;
+    if (analyticsView === "by_year" && analytics.byYear.length) {
+      return analytics.byYear.map((ys, i) => ({
+        id: `y-${ys.year}`,
+        label: String(ys.year),
+        color: seriesColor(i),
+        points: ys.points.map((p) => ({ x: p.x, y: p.y })),
+      }));
+    }
+    if (analyticsView === "monthly") {
+      return [
+        {
+          id: "monthly-mean",
+          label: "Monthly mean",
+          color: seriesColor(0),
+          points: analytics.monthly
+            .filter((m) => m.mean != null && m.n > 0)
+            .map((m) => ({ x: m.label, y: m.mean as number })),
+        },
+      ];
+    }
+    if (analyticsView === "annual") {
+      return [
+        {
+          id: "annual-mean",
+          label: "Annual mean",
+          color: seriesColor(1),
+          points: analytics.annual
+            .filter((y) => y.mean != null)
+            .map((y) => ({ x: String(y.year), y: y.mean as number })),
+        },
+      ];
+    }
+    // daily (default)
+    return [
+      {
+        id: analytics.seriesKey,
+        label: selectedVariant?.shortLabel || analytics.commodityName || "Price",
+        color: seriesColor(0),
+        points: analytics.daily.map((p) => ({ x: p.observedOn, y: p.value })),
+      },
+    ];
+  }, [analytics, analyticsView, trendSeries, selectedVariant?.shortLabel]);
+
+  const histogramBars = useMemo(() => {
+    if (!analytics?.histogram?.length) return [];
+    return analytics.histogram.map((b) => ({
+      label: b.label,
+      value: b.count,
+      color: "#00838F",
+    }));
+  }, [analytics]);
+
+  const monthlyBars = useMemo(() => {
+    if (!analytics?.monthly?.length) return [];
+    return analytics.monthly
+      .filter((m) => m.n > 0 && m.mean != null)
+      .map((m) => ({ label: m.label, value: m.mean as number }));
+  }, [analytics]);
+
+  const annualBars = useMemo(() => {
+    if (!analytics?.annual?.length) return [];
+    return analytics.annual
+      .filter((y) => y.mean != null)
+      .map((y) => ({ label: String(y.year), value: y.mean as number }));
+  }, [analytics]);
 
   const hasGradeCols = layout === "mahaseel" || prices.some((p) => p.grade || p.cultivationMethod);
   const hasAmmanCols =
@@ -849,7 +977,7 @@ export function MarketsPage() {
                       </CardContent>
                     </Card>
 
-                    {/* Trend (synced to selection) */}
+                    {/* Trend + analytics (synced to selection) */}
                     <Card variant="outlined">
                       <CardContent>
                         <Box
@@ -862,41 +990,220 @@ export function MarketsPage() {
                           }}
                         >
                           <Typography variant="subtitle1" sx={{ fontWeight: 700, flex: 1 }}>
-                            Trend
+                            Market analysis
                             {selectedGroup ? ` · ${selectedGroup.name}` : ""}
-                            {selectedVariant ? ` · ${selectedVariant.shortLabel}` : selectedGroup && selectedGroup.variants.length > 1 ? " · all variants" : ""}
+                            {selectedVariant
+                              ? ` · ${selectedVariant.shortLabel}`
+                              : selectedGroup && selectedGroup.variants.length > 1 && !selectedSeriesKey
+                                ? " · all variants"
+                                : ""}
                           </Typography>
-                          {trendLoading && (
-                            <Chip size="small" label="Loading trend…" />
-                          )}
+                          {trendLoading && <Chip size="small" label="Loading…" />}
                           {selectedSeriesKey && (
                             <Button size="small" onClick={() => setSelectedSeriesKey("")}>
                               Clear variant filter
                             </Button>
                           )}
                         </Box>
-                        <SimpleLineChart
-                          series={trendSeries}
-                          yLabel={
-                            currency
-                              ? `Price (${currency}${layout === "mahaseel" ? "/kg" : ""})`
-                              : "Price"
-                          }
-                        />
+
+                        {analytics && (
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 1.5 }}>
+                            {(
+                              [
+                                ["daily", "Daily"],
+                                ["by_year", "By year"],
+                                ["monthly", "Monthly"],
+                                ["annual", "Annual"],
+                                ["histogram", "Histogram"],
+                              ] as const
+                            ).map(([id, label]) => (
+                              <Chip
+                                key={id}
+                                size="small"
+                                label={label}
+                                color={analyticsView === id ? "primary" : "default"}
+                                variant={analyticsView === id ? "filled" : "outlined"}
+                                onClick={() => {
+                                  setAnalyticsAutoView(false);
+                                  setAnalyticsView(id);
+                                }}
+                                disabled={
+                                  (id === "by_year" && analytics.byYear.length < 2) ||
+                                  (id === "annual" && analytics.annual.length < 1)
+                                }
+                              />
+                            ))}
+                            {analytics.multiYear && (
+                              <Chip size="small" color="info" variant="outlined" label="Multi-year span" />
+                            )}
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={`Value: ${analytics.valueField}`}
+                            />
+                          </Box>
+                        )}
+
+                        {/* Stats strip */}
+                        {analytics?.stats && analytics.stats.n > 0 && (
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gap: 1,
+                              gridTemplateColumns: {
+                                xs: "1fr 1fr",
+                                sm: "repeat(4, 1fr)",
+                                md: "repeat(6, 1fr)",
+                              },
+                              mb: 1.5,
+                            }}
+                          >
+                            {[
+                              { l: "n", v: analytics.stats.n },
+                              { l: "Mean", v: analytics.stats.mean },
+                              { l: "Median", v: analytics.stats.median },
+                              { l: "Min", v: analytics.stats.min },
+                              { l: "Max", v: analytics.stats.max },
+                              { l: "σ", v: analytics.stats.stdev },
+                            ].map((c) => (
+                              <Box
+                                key={c.l}
+                                sx={{ p: 1, borderRadius: 1, bgcolor: "action.hover" }}
+                              >
+                                <Typography variant="caption" color="text.secondary">
+                                  {c.l}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                  {c.v == null ? "—" : typeof c.v === "number" ? c.v.toFixed(3) : c.v}
+                                  {typeof c.v === "number" && c.l !== "n" && currency ? ` ${currency}` : ""}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+
+                        {/* Deviation callout */}
+                        {analytics?.deviation?.latest && analytics.deviation.flag !== "insufficient_data" && (
+                          <Alert
+                            severity={
+                              analytics.deviation.flag === "elevated"
+                                ? "warning"
+                                : analytics.deviation.flag === "depressed"
+                                  ? "info"
+                                  : "success"
+                            }
+                            sx={{ mb: 1.5 }}
+                          >
+                            Latest{" "}
+                            <strong>
+                              {analytics.deviation.latest.value.toFixed(3)} {currency}
+                            </strong>{" "}
+                            on {analytics.deviation.latest.observedOn}
+                            {analytics.deviation.vsTrailing30d?.pct != null && (
+                              <>
+                                {" "}
+                                · vs 30d mean{" "}
+                                <strong>
+                                  {analytics.deviation.vsTrailing30d.pct > 0 ? "+" : ""}
+                                  {analytics.deviation.vsTrailing30d.pct.toFixed(1)}%
+                                </strong>
+                              </>
+                            )}
+                            {analytics.deviation.vsSameMonthPriorYear?.pct != null && (
+                              <>
+                                {" "}
+                                · vs same month {analytics.deviation.vsSameMonthPriorYear.priorYear}{" "}
+                                <strong>
+                                  {analytics.deviation.vsSameMonthPriorYear.pct > 0 ? "+" : ""}
+                                  {analytics.deviation.vsSameMonthPriorYear.pct.toFixed(1)}%
+                                </strong>
+                              </>
+                            )}
+                            {analytics.deviation.zScoreTrailing90d != null && (
+                              <> · z(90d)={analytics.deviation.zScoreTrailing90d.toFixed(2)}</>
+                            )}
+                            {" · "}
+                            flag: <strong>{analytics.deviation.flag}</strong>
+                          </Alert>
+                        )}
+
+                        {analyticsView === "histogram" && analytics ? (
+                          <SimpleBarChart
+                            items={histogramBars}
+                            yLabel="Count"
+                            emptyMessage="Not enough points for a histogram."
+                          />
+                        ) : analyticsView === "monthly" && analytics && monthlyBars.length ? (
+                          <SimpleBarChart
+                            items={monthlyBars}
+                            yLabel={currency ? `Mean (${currency})` : "Mean"}
+                          />
+                        ) : analyticsView === "annual" && analytics && annualBars.length ? (
+                          <SimpleBarChart
+                            items={annualBars}
+                            yLabel={currency ? `Mean (${currency})` : "Mean"}
+                            color="#2E7D32"
+                          />
+                        ) : (
+                          <SimpleLineChart
+                            series={analysisChartSeries}
+                            yLabel={
+                              currency
+                                ? `Price (${currency}${layout === "mahaseel" || layout === "amman" ? "/kg" : ""})`
+                                : "Price"
+                            }
+                            height={analyticsView === "by_year" ? 280 : 240}
+                          />
+                        )}
+
                         {trendWarning && (
                           <Alert severity="warning" sx={{ mt: 1 }} onClose={() => setTrendWarning("")}>
                             {trendWarning}
                           </Alert>
                         )}
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                          {selectedGroup
-                            ? selectedVariant
-                              ? `Focused: ${selectedVariant.shortLabel}. Clear variant filter to overlay all grades/methods.`
-                              : selectedGroup.variants.length > 1
-                                ? `Bundle: ${trendSeries.length} series for ${selectedGroup.name} (shared axis, day-deduped). Pick a grade/method to focus.`
-                                : `Series: ${selectedGroup.variants[0]?.shortLabel || selectedGroup.name}`
-                            : "Select a commodity on the left."}
-                          {from || to ? ` · Window ${from || "…"} → ${to || "…"}` : " · Full history (API limit)"}
+
+                        {/* Annual table when multi-year */}
+                        {analytics && analytics.annual.length > 0 && analyticsView !== "histogram" && (
+                          <Box sx={{ mt: 1.5, overflowX: "auto" }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Annual snapshot
+                            </Typography>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Year</TableCell>
+                                  <TableCell align="right">n</TableCell>
+                                  <TableCell align="right">Mean</TableCell>
+                                  <TableCell align="right">Median</TableCell>
+                                  <TableCell align="right">Min</TableCell>
+                                  <TableCell align="right">Max</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {analytics.annual.map((y) => (
+                                  <TableRow key={y.year}>
+                                    <TableCell>{y.year}</TableCell>
+                                    <TableCell align="right">{y.n}</TableCell>
+                                    <TableCell align="right">{y.mean?.toFixed(3) ?? "—"}</TableCell>
+                                    <TableCell align="right">{y.median?.toFixed(3) ?? "—"}</TableCell>
+                                    <TableCell align="right">{y.min?.toFixed(3) ?? "—"}</TableCell>
+                                    <TableCell align="right">{y.max?.toFixed(3) ?? "—"}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </Box>
+                        )}
+
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                          {analytics
+                            ? `${analytics.firstDay || "?"} → ${analytics.lastDay || "?"} · ${analytics.spanDays}d · ${analytics.stats.n} points · view ${analyticsView}${analytics.multiYear ? " · multi-year overlay uses MM-DD axis" : ""}`
+                            : selectedGroup
+                              ? selectedGroup.variants.length > 1 && !selectedSeriesKey
+                                ? "Pick a grade/method for full analytics (year curves, histogram, deviation). Or leave open to overlay variants."
+                                : "Loading analytics…"
+                              : "Select a commodity on the left."}
+                          {from || to ? ` · Filter ${from || "…"} → ${to || "…"}` : ""}
                           {trendLoading ? " · loading…" : ""}
                         </Typography>
                       </CardContent>
