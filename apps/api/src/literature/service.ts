@@ -19,7 +19,12 @@ import {
   parseAuthorsJson,
   type ApaAuthor,
 } from "./apa.js";
-import { CrossrefError, fetchCrossrefWorkByDoi, searchCrossrefWorks } from "./crossref.js";
+import {
+  CrossrefError,
+  fetchCrossrefWorkByDoi,
+  normalizeDoi,
+  searchCrossrefWorks,
+} from "./crossref.js";
 import { normalizeDomainTags, productLanesFromDomains, themeFromDomains } from "./domains.js";
 
 /** Local string unions so builds work before/without prisma generate (Windows DLL lock). */
@@ -262,7 +267,7 @@ export class LiteratureSourceService {
       pages: input.pages?.trim() || null,
       publisher: input.publisher?.trim() || null,
       publisherPlace: input.publisherPlace?.trim() || null,
-      doi: input.doi?.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, "") || null,
+      doi: normalizeDoi(input.doi || "") || null,
       url: input.url?.trim() || null,
       accession: input.accession?.trim() || null,
       documentType,
@@ -306,24 +311,61 @@ export class LiteratureSourceService {
     const data = this.buildData(input);
     const { citationInText: _ci, ...store } = data;
     void _ci;
-    const existing = await this.db.literatureSource.findUnique({
-      where: { tenantId_code: { tenantId: input.tenantId, code: store.code } },
-    });
+
+    // Prefer match by DOI (one work per tenant), else by code.
+    let existing = store.doi
+      ? await this.db.literatureSource.findFirst({
+          where: { tenantId: input.tenantId, doi: store.doi },
+        })
+      : null;
+    if (!existing) {
+      existing = await this.db.literatureSource.findUnique({
+        where: { tenantId_code: { tenantId: input.tenantId, code: store.code } },
+      });
+    }
+
     if (existing) {
+      // Keep stable code if DOI match found under another code.
+      const { code: _dropCode, ...patch } = store;
+      void _dropCode;
       const updated = await this.db.literatureSource.update({
         where: { id: existing.id },
-        data: store,
+        data: patch,
       });
       return { created: false, source: this.serialize(updated) };
     }
-    const created = await this.db.literatureSource.create({
-      data: {
-        tenantId: input.tenantId,
-        ownerUserId: input.ownerUserId,
-        ...store,
-      },
-    });
-    return { created: true, source: this.serialize(created) };
+    try {
+      const created = await this.db.literatureSource.create({
+        data: {
+          tenantId: input.tenantId,
+          ownerUserId: input.ownerUserId,
+          ...store,
+        },
+      });
+      return { created: true, source: this.serialize(created) };
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        throw new LiteratureError(
+          "DUPLICATE_LITERATURE",
+          "Literature code or DOI already exists for this tenant.",
+          409,
+        );
+      }
+      throw e;
+    }
+  }
+
+  private async reindexResearchBestEffort(tenantId: string, actorUserId?: string, note?: string) {
+    try {
+      const { ResearchIndexService } = await import("../research/service.js");
+      await new ResearchIndexService(this.db as PrismaClient).rebuildTenant({
+        tenantId,
+        actorUserId,
+        note: note || "literature review reindex",
+      });
+    } catch {
+      // Never block literature governance on index rebuild.
+    }
   }
 
   async list(
@@ -438,6 +480,21 @@ export class LiteratureSourceService {
         reviewedById: params.reviewerId,
       },
     });
+
+    // Index includes SOURCE_APPROVED literature as REFERENCE topics — refresh when that set changes.
+    if (
+      to === "SOURCE_APPROVED" ||
+      row.reviewState === "SOURCE_APPROVED" ||
+      to === "ARCHIVED" ||
+      to === "REJECTED"
+    ) {
+      await this.reindexResearchBestEffort(
+        params.tenantId,
+        params.reviewerId,
+        `literature ${String(row.code)} → ${to}`,
+      );
+    }
+
     return this.serialize(updated);
   }
 

@@ -1394,11 +1394,12 @@ model LiteratureSource {
   updatedAt             DateTime                    @updatedAt
 
   @@unique([tenantId, code])
+  /// One registered DOI per tenant (null DOI allowed for preprints/local-only).
+  @@unique([tenantId, doi])
   @@index([tenantId, reviewState])
   @@index([tenantId, primaryTheme])
   @@index([tenantId, trustTier])
   @@index([tenantId, year])
-  @@index([doi])
 }
 
 /// Gate 4R-B: named research collection / dossier for writing or product context.

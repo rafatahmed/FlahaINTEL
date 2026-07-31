@@ -36,6 +36,7 @@
     "knowledge:rebuild-research-index": "node --env-file=../../.env --import tsx src/research/cli.ts",
     "knowledge:register-literature": "node --env-file=../../.env --import tsx src/literature/cli.ts",
     "knowledge:crossref": "node --env-file=../../.env --import tsx src/literature/crossrefCli.ts",
+    "knowledge:crossref-bulk": "node --env-file=../../.env --import tsx src/literature/crossrefBulkCli.ts",
     "ingest:create-acquisition": "node --env-file=../../.env --import tsx src/acquisition/cli.ts create",
     "ingest:worker:once": "node --env-file=../../.env --import tsx src/acquisition/cli.ts worker-once",
     "ingest:job": "node --env-file=../../.env --import tsx src/acquisition/cli.ts job",

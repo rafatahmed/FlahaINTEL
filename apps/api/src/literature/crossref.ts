@@ -212,6 +212,33 @@ export function mapCrossrefWorkToDraft(work: CrossrefWorkMessage): CrossrefLiter
   };
 }
 
+/** Bounded in-memory cache — polite reuse; process-local only. */
+const responseCache = new Map<string, { at: number; body: unknown }>();
+const CACHE_TTL_MS = Number(process.env.FLAHA_CROSSREF_CACHE_TTL_MS || 24 * 60 * 60 * 1000);
+const CACHE_MAX = 500;
+
+function cacheGet(key: string): unknown | undefined {
+  const hit = responseCache.get(key);
+  if (!hit) return undefined;
+  if (Date.now() - hit.at > CACHE_TTL_MS) {
+    responseCache.delete(key);
+    return undefined;
+  }
+  return hit.body;
+}
+
+function cacheSet(key: string, body: unknown): void {
+  if (responseCache.size >= CACHE_MAX) {
+    const first = responseCache.keys().next().value;
+    if (first) responseCache.delete(first);
+  }
+  responseCache.set(key, { at: Date.now(), body });
+}
+
+export function clearCrossrefCache(): void {
+  responseCache.clear();
+}
+
 async function crossrefGet(pathAndQuery: string): Promise<unknown> {
   const url = pathAndQuery.startsWith("http")
     ? pathAndQuery
@@ -219,6 +246,9 @@ async function crossrefGet(pathAndQuery: string): Promise<unknown> {
 
   const sep = url.includes("?") ? "&" : "?";
   const polite = `${url}${sep}mailto=${encodeURIComponent(DEFAULT_MAILTO)}`;
+  const cacheKey = polite.replace(/mailto=[^&]+/i, "mailto=_");
+  const cached = cacheGet(cacheKey);
+  if (cached !== undefined) return cached;
 
   // Prefer AbortController + clearTimeout (AbortSignal.timeout can hard-crash on Windows Node teardown).
   const controller = new AbortController();
@@ -252,7 +282,9 @@ async function crossrefGet(pathAndQuery: string): Promise<unknown> {
       res.status >= 500 ? 502 : 400,
     );
   }
-  return res.json();
+  const json = await res.json();
+  cacheSet(cacheKey, json);
+  return json;
 }
 
 export async function fetchCrossrefWorkByDoi(doiRaw: string): Promise<CrossrefLiteratureDraft> {
@@ -265,6 +297,12 @@ export async function fetchCrossrefWorkByDoi(doiRaw: string): Promise<CrossrefLi
   };
   if (!json.message) throw new CrossrefError("BAD_RESPONSE", "Crossref response missing message.");
   return mapCrossrefWorkToDraft(json.message);
+}
+
+/** Small delay between bulk Crossref calls (ms). */
+export function crossrefPoliteDelayMs(): number {
+  const n = Number(process.env.FLAHA_CROSSREF_BULK_DELAY_MS || 350);
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 5000) : 350;
 }
 
 export async function searchCrossrefWorks(params: {

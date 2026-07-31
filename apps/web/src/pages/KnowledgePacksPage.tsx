@@ -237,6 +237,8 @@ export function KnowledgePacksPage(props?: {
   } | null>(null);
   const [crossrefSearchQ, setCrossrefSearchQ] = useState("");
   const [crossrefHits, setCrossrefHits] = useState<Array<Record<string, unknown>>>([]);
+  const [claimKind, setClaimKind] = useState("REFERENCE");
+  const [litClaims, setLitClaims] = useState<Array<Record<string, unknown>>>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -377,12 +379,17 @@ export function KnowledgePacksPage(props?: {
   useEffect(() => {
     if (!litSelectedId) {
       setLitDetail(null);
+      setLitClaims([]);
       return;
     }
     void api
       .researchLiteratureOne(litSelectedId)
       .then((r) => setLitDetail(r.source))
       .catch(() => setLitDetail(null));
+    void api
+      .researchLiteratureClaims(litSelectedId)
+      .then((r) => setLitClaims(r.items || []))
+      .catch(() => setLitClaims([]));
   }, [litSelectedId]);
 
   async function rebuildResearchIndex() {
@@ -471,10 +478,14 @@ export function KnowledgePacksPage(props?: {
     setResearchBusy(true);
     setInfo("");
     try {
-      const res = await api.researchLiteratureAttachClaim(literatureSourceId, {});
+      const res = await api.researchLiteratureAttachClaim(literatureSourceId, {
+        extractKind: claimKind || "REFERENCE",
+      });
       setInfo(
-        `Draft claim item on pack ${res.packCode} (${res.packReviewState}). Human-edit then approve pack — not product write.`,
+        `Draft ${res.extractKind || claimKind} on pack ${res.packCode} (${res.packReviewState}). Human-edit then approve pack — not product write.`,
       );
+      const claims = await api.researchLiteratureClaims(literatureSourceId);
+      setLitClaims(claims.items || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Attach claim failed.");
     } finally {
@@ -1111,6 +1122,19 @@ export function KnowledgePacksPage(props?: {
                           >
                             Add to collection
                           </Button>
+                          <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel>Claim kind</InputLabel>
+                            <Select
+                              label="Claim kind"
+                              value={claimKind}
+                              onChange={(e) => setClaimKind(e.target.value)}
+                            >
+                              <MenuItem value="REFERENCE">REFERENCE</MenuItem>
+                              <MenuItem value="METHOD">METHOD</MenuItem>
+                              <MenuItem value="NOTE">NOTE</MenuItem>
+                              <MenuItem value="THRESHOLD">THRESHOLD</MenuItem>
+                            </Select>
+                          </FormControl>
                           <Button
                             size="small"
                             variant="outlined"
@@ -1122,9 +1146,24 @@ export function KnowledgePacksPage(props?: {
                         </Box>
                         <Typography variant="caption" color="text.secondary">
                           Approving a <strong>source</strong> does not create a scientific claim.{" "}
-                          <strong>Draft claim</strong> creates a DRAFT pack item with APA evidence (4R-E) — still
-                          human-approved, never product write.
+                          <strong>Draft claim</strong> (4R-E/X) creates a validated DRAFT pack extract with APA
+                          evidence — pack must be human-approved; never product write. THRESHOLD needs full
+                          structured values (prefer REFERENCE/METHOD first).
                         </Typography>
+                        {litClaims.length > 0 && (
+                          <Box>
+                            <Typography variant="subtitle2">Linked claim items ({litClaims.length})</Typography>
+                            {litClaims.map((c) => {
+                              const pack = c.pack as Record<string, unknown> | undefined;
+                              return (
+                                <Typography key={String(c.id)} variant="caption" display="block">
+                                  {String(c.extractKind)} · {String(c.title).slice(0, 60)} · pack{" "}
+                                  {String(pack?.code || "?")} ({String(pack?.reviewState || "?")})
+                                </Typography>
+                              );
+                            })}
+                          </Box>
+                        )}
                       </Stack>
                     )}
                   </CardContent>

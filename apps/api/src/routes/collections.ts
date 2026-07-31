@@ -132,7 +132,7 @@ export function collectionRoutes(prisma: PrismaClient): FastifyPluginAsync {
       }
     });
 
-    /** Thin 4R-E: literature → draft REFERENCE pack item */
+    /** 4R-E/X: literature → validated draft pack extract (REFERENCE/METHOD/NOTE/THRESHOLD…) */
     app.post<{ Params: { id: string } }>("/research/literature/:id/attach-claim", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);
@@ -147,7 +147,23 @@ export function collectionRoutes(prisma: PrismaClient): FastifyPluginAsync {
           itemTitle: body.itemTitle != null ? String(body.itemTitle) : undefined,
           bodyText: body.bodyText != null ? String(body.bodyText) : undefined,
           extractKind: body.extractKind != null ? String(body.extractKind) : undefined,
+          structured:
+            body.structured && typeof body.structured === "object" && !Array.isArray(body.structured)
+              ? (body.structured as Record<string, unknown>)
+              : undefined,
+          method: body.method != null ? String(body.method) : undefined,
+          parameter: body.parameter != null ? String(body.parameter) : undefined,
         });
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    app.get<{ Params: { id: string } }>("/research/literature/:id/claims", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        return await cols.listClaimsForLiterature(actor.tenantId, request.params.id);
       } catch (e) {
         mapError(e);
       }

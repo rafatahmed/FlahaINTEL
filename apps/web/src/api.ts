@@ -665,18 +665,31 @@ export const api = {
     }),
   researchLiteratureAttachClaim: (
     id: string,
-    body: { packCode?: string; itemTitle?: string; bodyText?: string; extractKind?: string } = {},
+    body: {
+      packCode?: string;
+      itemTitle?: string;
+      bodyText?: string;
+      extractKind?: string;
+      method?: string;
+      parameter?: string;
+      structured?: Record<string, unknown>;
+    } = {},
   ) =>
     request<{
       packId: string;
       packCode: string;
       packReviewState: string;
+      extractKind?: string;
       item: Record<string, unknown>;
       governance: Record<string, unknown>;
     }>(`/api/research/literature/${id}/attach-claim`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  researchLiteratureClaims: (id: string) =>
+    request<{ count: number; items: Array<Record<string, unknown>> }>(
+      `/api/research/literature/${id}/claims`,
+    ),
 
   /** 4R-B research collections */
   researchCollections: (filters: { status?: string; q?: string } = {}) =>

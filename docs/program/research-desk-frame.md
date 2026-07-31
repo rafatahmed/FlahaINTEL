@@ -95,22 +95,20 @@ Charter: [`gate-4r-a-research-topic-index.md`](gates/gate-4r-a-research-topic-in
 
 ## Recommended program order
 
-1. ~~**Owner accept** full scope~~ **DONE** (`gate-4r-research-desk-scope.md`)  
-2. ~~**4R-L.1** literature records~~ **DONE**  
-3. ~~**4R-B.1** collections + APA bibliography~~ **DONE** (`gate-4r-b-research-collections.md`)  
-4. ~~**4R-E thin** attach-claim from literature~~ **DONE**  
-5. **Operate** real library → collections → draft claims → human approve packs  
-6. Scale extracts (**4R-X**) where richer claim templates are needed  
+1. ~~**Owner accept** full scope~~ **DONE**  
+2. ~~**4R-L / Crossref / 4R-B / 4R-E / 4R-X.1**~~ **DONE**  
+3. **Operate** real DOI lists → collections → draft claims → pack APPROVED → rebuild  
 
 **Parallel:** historical market fill remains Markets operate; it does not replace Stage D literature.
 
 ### Operator (Research desk)
 
 ```powershell
-npm run knowledge:register-literature -- --approve
 npm run knowledge:crossref -- --doi=10.xxxx/yyyy --register --domain=soil
+npm run knowledge:crossref-bulk -- --file=dois.txt --domain=soil
 npm run knowledge:rebuild-research-index
 # Knowledge → Research → Literature | Collections | Topics
-# Literature: Crossref DOI lookup → Register; Draft claim on pack
-# Collections: create dossier → add literature → Copy APA bibliography
+# Literature: Crossref → Register; claim kind → Draft claim; linked claims list
+# Collections: dossier → APA bibliography
+# Approve literature → topic index auto-refreshes (best-effort)
 ```

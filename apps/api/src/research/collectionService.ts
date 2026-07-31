@@ -12,8 +12,13 @@
  */
 import type { PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
+import {
+  ExtractTemplateError,
+  validateExtractItem,
+  type ExtractKind,
+} from "../knowledgePack/extractTemplate.js";
+import { formatApaInText, parseAuthorsJson } from "../literature/apa.js";
 import { buildApaBibliography } from "./bibliography.js";
-import { parseAuthorsJson } from "../literature/apa.js";
 
 export class CollectionError extends Error {
   constructor(
@@ -315,7 +320,8 @@ export class ResearchCollectionService {
   }
 
   /**
-   * Thin 4R-E: create a REFERENCE pack item linked to literature (claim draft, not auto-approved).
+   * 4R-E / 4R-X: create a validated pack extract linked to literature (claim draft).
+   * Never auto-approves pack; never writes sister products.
    */
   async attachClaimFromLiterature(params: {
     tenantId: string;
@@ -325,7 +331,12 @@ export class ResearchCollectionService {
     packTitle?: string;
     itemTitle?: string;
     bodyText?: string;
+    /** REFERENCE | METHOD | NOTE | THRESHOLD | EQUATION | COMPARISON_NOTE */
     extractKind?: string;
+    /** Merged into structured; template-validated for claim kinds. */
+    structured?: Record<string, unknown>;
+    method?: string;
+    parameter?: string;
   }) {
     const lit = await this.db.literatureSource.findFirst({
       where: { id: params.literatureSourceId, tenantId: params.tenantId },
@@ -333,7 +344,8 @@ export class ResearchCollectionService {
     if (!lit) throw new CollectionError("LIT_NOT_FOUND", "Literature source not found.", 404);
 
     const packCode =
-      slugCode(params.packCode || `lit-claims-${String(lit.code).slice(0, 40)}`) || "lit-claims";
+      slugCode(params.packCode || `lit-claims-${String(lit.primaryTheme || "x").toLowerCase()}`) ||
+      "lit-claims";
     const theme = (lit.primaryTheme as string) || "OTHER";
     let pack = await this.db.knowledgePack.findUnique({
       where: { tenantId_code: { tenantId: params.tenantId, code: packCode } },
@@ -347,8 +359,11 @@ export class ResearchCollectionService {
           ownerUserId: params.ownerUserId,
           code: packCode,
           theme,
-          title: params.packTitle?.trim() || `Literature claims — ${String(lit.code)}`,
-          summary: "Auto-created draft claim pack from literature (4R-E). Human review required.",
+          title:
+            params.packTitle?.trim() ||
+            `Literature claims — ${String(lit.primaryTheme || "multi-domain")}`,
+          summary:
+            "Draft claim pack from literature (4R-E/X). Human review required. Does not write products.",
           cropTags: lit.cropTags || [],
           regionTags: lit.regionTags || [],
           climateTags: lit.climateTags || [],
@@ -367,38 +382,76 @@ export class ResearchCollectionService {
       );
     }
 
-    const seq = ((pack.items as Array<{ sequence: number }>) || []).reduce(
-      (m, i) => Math.max(m, i.sequence),
-      0,
-    ) + 1;
+    const kindRaw = (params.extractKind || "REFERENCE").toUpperCase();
+    const paramHint =
+      params.parameter ||
+      (Array.isArray(lit.parameterKeys) && lit.parameterKeys[0]
+        ? String(lit.parameterKeys[0])
+        : undefined);
 
+    const authors = parseAuthorsJson(lit.authorsJson);
+    const citationInText = formatApaInText(authors, lit.year as number | null);
     const citation = String(lit.citationApa || lit.title || "");
+
+    const baseStructured: Record<string, unknown> = {
+      ...(params.structured || {}),
+      literatureSourceId: lit.id,
+      literatureCode: lit.code,
+      literatureDoi: lit.doi,
+      citationApa: lit.citationApa,
+      citationInText,
+      keywords: lit.keywords || [],
+      doesNotAutoUpdateFlahaSOIL: true,
+      doesNotAutoUpdateFlahaCALC: true,
+      doesNotAutoUpdateFlahaFAST: true,
+    };
+
+    if (params.method?.trim()) baseStructured.method = params.method.trim();
+    if (paramHint) baseStructured.parameter = paramHint;
+
+    // METHOD template requires method id
+    if (kindRaw === "METHOD" && !baseStructured.method) {
+      baseStructured.method = `from-literature-${String(lit.code).slice(0, 40)}`;
+    }
+
+    let validated: { extractKind: ExtractKind; structured: Record<string, unknown> };
+    try {
+      validated = validateExtractItem({
+        title: params.itemTitle?.trim() || `${kindRaw}: ${String(lit.title).slice(0, 100)}`,
+        extractKind: kindRaw,
+        structured: baseStructured,
+      });
+    } catch (e) {
+      if (e instanceof ExtractTemplateError) {
+        throw new CollectionError(e.code, e.message, 400);
+      }
+      throw e;
+    }
+
+    const seq =
+      ((pack.items as Array<{ sequence: number }>) || []).reduce((m, i) => Math.max(m, i.sequence), 0) +
+      1;
+
+    const defaultBody =
+      validated.extractKind === "REFERENCE"
+        ? `Evidence (APA):\n${citation}\n\nIn-text: ${citationInText}\n\n[Human: this is aboutness until you write a METHOD/THRESHOLD claim.]`
+        : `Claim draft (${validated.extractKind}) citing ${citationInText}.\n\nEvidence (APA):\n${citation}\n\n[Human: verify against full paper before pack APPROVED.]`;
+
     const item = await this.db.knowledgePackItem.create({
       data: {
         packId: pack.id,
         sequence: seq,
-        title: params.itemTitle?.trim() || `Reference: ${String(lit.title).slice(0, 120)}`,
-        extractKind: (params.extractKind || "REFERENCE").toUpperCase(),
-        bodyText:
-          params.bodyText?.trim() ||
-          `Evidence (APA):\n${citation}\n\n[Human: add method/threshold claim text here. Source is aboutness until you write a claim.]`,
-        structured: {
-          literatureSourceId: lit.id,
-          literatureCode: lit.code,
-          citationApa: lit.citationApa,
-          citationInText: undefined,
-          parameterKeys: lit.parameterKeys || [],
-          keywords: lit.keywords || [],
-          doesNotAutoUpdateFlahaSOIL: true,
-          doesNotAutoUpdateFlahaCALC: true,
-          doesNotAutoUpdateFlahaFAST: true,
-        } as Prisma.InputJsonValue,
-        sourceUrl: lit.sourceUrl || lit.url || null,
+        title:
+          params.itemTitle?.trim() ||
+          `${validated.extractKind}: ${String(lit.title).slice(0, 100)}`,
+        extractKind: validated.extractKind,
+        bodyText: params.bodyText?.trim() || defaultBody,
+        structured: validated.structured as Prisma.InputJsonValue,
+        sourceUrl: lit.sourceUrl || lit.url || (lit.doi ? `https://doi.org/${lit.doi}` : null),
         literatureSourceId: lit.id,
       },
     });
 
-    // bump pack version lightly via updatedAt
     await this.db.knowledgePack.update({
       where: { id: pack.id },
       data: { version: { increment: 1 } },
@@ -410,11 +463,42 @@ export class ResearchCollectionService {
       packReviewState: pack.reviewState,
       item,
       literatureSourceId: lit.id,
+      extractKind: validated.extractKind,
       governance: {
         claimIsDraft: true,
-        aboutnessVsClaim: "Item is a claim draft citing literature; pack must be human-approved.",
+        aboutnessVsClaim:
+          "Validated extract template; pack remains DRAFT until human APPROVED. Literature is evidence, not automatic truth.",
         doesNotWriteProductEngines: true,
+        citationStandard: "APA_7_ASA_CSSA_SSSA",
+        gate: "4R-E/4R-X",
       },
+    };
+  }
+
+  /** List claim items that cite a literature source. */
+  async listClaimsForLiterature(tenantId: string, literatureSourceId: string) {
+    const lit = await this.db.literatureSource.findFirst({
+      where: { id: literatureSourceId, tenantId },
+    });
+    if (!lit) throw new CollectionError("LIT_NOT_FOUND", "Literature source not found.", 404);
+    const items = await this.db.knowledgePackItem.findMany({
+      where: { literatureSourceId },
+      include: {
+        pack: {
+          select: { id: true, code: true, title: true, reviewState: true, theme: true, tenantId: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    const filtered = (items as Array<Record<string, unknown> & { pack?: { tenantId?: string } }>).filter(
+      (i) => i.pack?.tenantId === tenantId,
+    );
+    return {
+      literatureSourceId,
+      count: filtered.length,
+      items: filtered,
+      governance: { aboutnessVsClaim: true, doesNotWriteProductEngines: true },
     };
   }
 }

@@ -72,20 +72,19 @@ npm run knowledge:seed-samples
 | 4R scope | Stage D multi-domain desk | **ACCEPTED** | `gate-4r-research-desk-scope.md` · APA/ASA–CSSA–SSSA |
 | 4R-L | Literature source records (L2) | **DONE (4R-L.1)** | `LiteratureSource` + APA + `/api/research/literature/*` + UI + index hook |
 | 4R-B | Research collections (L5) | **DONE (4R-B.1)** | Dossiers + APA bibliography export + Research Collections tab |
-| 4R-E | Evidence attach (thin) | **DONE (thin)** | `literatureSourceId` on pack items + attach-claim API/UI |
+| 4R-E | Evidence attach | **DONE** | `literatureSourceId` + attach-claim |
+| 4R-X | Literature claims (extract depth) | **DONE (4R-X.1)** | Validated METHOD/NOTE/REFERENCE claims + DOI unique + reindex |
+| Crossref | DOI enricher + bulk | **DONE** | polite pool, cache, bulk CLI |
 | Markets analytics | Multi-year / monthly / histogram | **DONE** | `market-price-analytics.md` |
 
 ## Next (systemic order)
 
-1. ~~**Owner accept 4R-A frame** → implement 4R-A.1~~ **DONE**  
-2. ~~**Owner accept Stage D full scope**~~ **DONE**  
-3. ~~**4R-L.1 literature sources**~~ **DONE**  
-4. ~~**4R-B.1 collections + APA export**~~ **DONE**  
-5. **Operate:** register real multi-domain library; fill collections; approve packs; harvest/history; handoff  
-6. **Optional 4R-A.2:** soil cases in index + pack topic chips  
-7. **Later 4R-X:** richer extract templates / claim depth from literature  
-8. **Host hygiene:** free C: toward ≥5–15% when practical  
-9. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
+1. ~~Stage D scope + 4R-A/L/B/E/X + Crossref~~ **DONE**  
+2. **Operate hard:** real DOI lists via `knowledge:crossref-bulk`; collections; approve packs; rebuild index  
+3. **Markets operate:** harvest + historical fill + handoff  
+4. **Optional 4R-A.2:** soil cases in index + pack topic chips  
+5. **Host hygiene:** free C: toward ≥5–15% when practical  
+6. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
 
 ## Exit criteria for Sprint 1
 
