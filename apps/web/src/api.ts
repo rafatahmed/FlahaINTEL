@@ -280,6 +280,13 @@ export const api = {
   }>(`/api/markets/prices/trend${query(filters)}`),
   marketReviewSummary: (filters: { channelCode?: string; countryCode?: string } = {}) =>
     request<{ summary: Record<string, number> }>(`/api/markets/prices/review-summary${query(filters)}`),
+  marketRetention: (filters: { targetDays?: number; countryCode?: string } = {}) =>
+    request<{
+      targetDays: number;
+      summary: Record<string, number>;
+      channels: Array<Record<string, unknown>>;
+      schedule?: Record<string, string>;
+    }>(`/api/markets/retention${query(filters)}`),
   joAmmanCommodityMap: () =>
     request<{ channelCode: string; count: number; entries: Array<{ ar: string; en: string; code: string }> }>(
       "/api/markets/commodity-map/jo-amman",

@@ -34,8 +34,9 @@ Last modified: 2026-07-30
 | 4M UI | Markets page + simple trends | **DONE** | Grade/method for Mahaseel; high/mode/low for Amman |
 | 4S-A | Soil/irrigation pack schema | **DONE** | API + schema doc |
 | 4S samples | Soil/irrigation sample packs | **DONE** | `knowledge:seed-samples` (DRAFT) |
-| Host disk | Free space ≥15% | **OPEN** | Blocks full System READY |
-| Host tasks | Register backup + market harvest | **OPEN** | Scripts ready; elevated once |
+| Host disk | Free space ≥15% | **OPEN** | ~6 GB free (~2%) → still DEGRADED; improve when possible |
+| Host tasks | Register backup + market harvest | **DONE** | `FlahaINTEL-NightlyBackup` 02:30 · `FlahaINTEL-MarketHarvest` 05:30 (Limited) |
+| 4M-D | Schedule + retention report + trends | **DONE** (foundation) | Retention API/CLI; series builds over time to 365d |
 
 ## Verified runtime notes (this host)
 
@@ -60,11 +61,10 @@ npm run knowledge:seed-samples
 
 ## Next (systemic order)
 
-1. **Host hygiene:** free C: until free ≥ ~5–15%; clear DEGRADED disk  
-2. **Ops muscle:** register backup + market harvest Task Scheduler tasks (elevated)  
-3. **4M-D:** multi-day series retention checks + trend polish (already partial)  
-4. **4S-B:** expand soil pack extracts toward FlahaSOIL comparison notes (human review stays)  
-5. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
+1. **Host hygiene:** free C: toward ≥5–15% when practical (optional for markets)  
+2. **4S-B:** expand soil pack extracts toward FlahaSOIL comparison notes (human review stays)  
+3. Let scheduled harvest run nightly/daily to grow 365d series  
+4. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
 
 ## Exit criteria for Sprint 1
 
@@ -74,5 +74,7 @@ npm run knowledge:seed-samples
 - [x] Market/soil gate charters written  
 - [x] Owner approved 4M-0 / 4M-A / 4S-A  
 - [x] 4M-0 / 4M-A / 4S-A + harvest + review + UI + samples implemented  
+- [x] Host: Task Scheduler registered (backup + market harvest)  
+- [x] 4M-D foundation (schedule + retention report + trends)  
 - [ ] Host: free space ≥15% sustained  
-- [ ] Host: Task Scheduler registered (backup + market harvest)
+- [ ] Channels reach MEETS_TARGET (≥365d span)

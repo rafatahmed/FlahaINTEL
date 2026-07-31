@@ -163,6 +163,7 @@ Phase 3 delivers governed multi-channel ingestion under the FlahaINTEL product. 
 | 3M | Production hardening (ops, auth, workers, backup) | Complete (code) |
 | 3N | Windows production-like acceptance | **ACCEPT** — evidence in `docs/ingestion/phase-3n-evidence.md`; tag `v0.5.0-phase-3n-windows-production-like` |
 | 4M-0 | Global market data model | **Implemented** — `MarketChannel` / `MarketPriceObservation` + `/api/markets/*` + review policy (`HUMAN_REQUIRED` \| `AUTO_APPROVE_OFFICIAL`) |
+| 4M-D | Schedule + retention + trends | **Foundation** — Task Scheduler harvest; `GET /api/markets/retention`; Markets UI series + retention table |
 | 4M-A | Qatar market channel (MoCI daily vegetables) | **Implemented** (source) — registry + seed; daily extract muscle pending |
 | 4S-A | Soil/irrigation knowledge pack schema | **Implemented** — `KnowledgePack` + `/api/knowledge-packs` + sample packs (`knowledge:seed-samples`) |
 

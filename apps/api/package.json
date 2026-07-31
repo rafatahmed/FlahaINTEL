@@ -23,6 +23,7 @@
     "markets:seed-channels": "node --env-file=../../.env --import tsx src/market/seedChannelsFromRegistry.ts",
     "markets:backfill-jo-names": "node --env-file=../../.env --import tsx src/market/backfillJoAmmanNames.ts",
     "markets:harvest": "node --env-file=../../.env --import tsx src/market/harvest/cli.ts",
+    "markets:retention": "node --env-file=../../.env --import tsx src/market/retentionReport.ts",
     "knowledge:seed-samples": "node --env-file=../../.env --import tsx src/knowledgePack/seedSamples.ts",
     "ingest:create-acquisition": "node --env-file=../../.env --import tsx src/acquisition/cli.ts create",
     "ingest:worker:once": "node --env-file=../../.env --import tsx src/acquisition/cli.ts worker-once",

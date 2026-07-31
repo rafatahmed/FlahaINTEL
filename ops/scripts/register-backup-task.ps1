@@ -5,6 +5,9 @@ param(
   [string]$TaskName = "FlahaINTEL-NightlyBackup",
   [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
   [string]$Time = "02:30",
+  # Highest requires elevated shell; Limited works for current-user interactive tasks.
+  [ValidateSet("Limited", "Highest")]
+  [string]$RunLevel = "Limited",
   [switch]$Unregister
 )
 
@@ -29,10 +32,21 @@ $action = New-ScheduledTaskAction -Execute "powershell.exe" `
 
 $trigger = New-ScheduledTaskTrigger -Daily -At $Time
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel $RunLevel
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
-Write-Host "Registered scheduled task: $TaskName daily at $Time"
+try {
+  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
+} catch {
+  Write-Error @"
+Access denied registering $TaskName (RunLevel=$RunLevel).
+Open an elevated PowerShell (Run as administrator) and re-run:
+  npm run ops:register-backup-task
+Or: powershell -File ops\scripts\register-backup-task.ps1 -RunLevel Highest
+$($_.Exception.Message)
+"@
+  exit 1
+}
+Write-Host "Registered scheduled task: $TaskName daily at $Time (RunLevel=$RunLevel)"
 Write-Host "Wrapper: $wrapper"
 Write-Host "Ensure ARTIFACT_STORE_ROOT, FLAHA_BACKUP_ROOT, and DATABASE_URL are available via .env / runtime-paths.env"
 Write-Host "After first night, confirm FLAHA_STATE_DIR\last-backup.json and off-host copy."

@@ -5,6 +5,8 @@ param(
   [string]$TaskName = "FlahaINTEL-MarketHarvest",
   [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
   [string]$Time = "05:30",
+  [ValidateSet("Limited", "Highest")]
+  [string]$RunLevel = "Limited",
   [switch]$Unregister
 )
 
@@ -24,9 +26,20 @@ $action = New-ScheduledTaskAction -Execute "powershell.exe" `
   -WorkingDirectory $RepoRoot
 $trigger = New-ScheduledTaskTrigger -Daily -At $Time
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel $RunLevel
 
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
-Write-Host "Registered scheduled task: $TaskName daily at $Time"
+try {
+  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
+} catch {
+  Write-Error @"
+Access denied registering $TaskName (RunLevel=$RunLevel).
+Open an elevated PowerShell (Run as administrator) and re-run:
+  npm run ops:register-market-harvest-task
+Or: powershell -File ops\scripts\register-market-harvest-task.ps1 -RunLevel Highest
+$($_.Exception.Message)
+"@
+  exit 1
+}
+Write-Host "Registered scheduled task: $TaskName daily at $Time (RunLevel=$RunLevel)"
 Write-Host "Cadence inside harvest: JO+MoCI daily, Mahaseel every 3 days; product filter max 3 days."
 Write-Host "Log: FLAHA_STATE_DIR\scheduled-market-harvest.log"

@@ -58,6 +58,23 @@ export function marketRoutes(prisma: PrismaClient): FastifyPluginAsync {
       }
     });
 
+    /** Gate 4M-D: 365-day retention / series health per channel (report only). */
+    app.get("/markets/retention", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as { targetDays?: string; countryCode?: string };
+        const report = await markets.retentionReport({
+          tenantId: actor.tenantId,
+          targetDays: q.targetDays ? Number(q.targetDays) : 365,
+          countryCode: q.countryCode,
+        });
+        return report;
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
     app.post("/markets/channels", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);

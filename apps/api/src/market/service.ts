@@ -714,4 +714,103 @@ export class MarketService {
     });
     return { updated: result.count, reviewState: params.reviewState, reviewDecisionSource: "HUMAN" as const };
   }
+
+  /**
+   * Gate 4M-D: retention / series health per channel (target ≥ 365 calendar days of history).
+   * Does not delete rows — report only. Product filter windows remain ≤ filterMaxSpanDays.
+   */
+  async retentionReport(params: { tenantId: string; targetDays?: number; countryCode?: string }) {
+    const targetDays = Math.min(Math.max(params.targetDays ?? 365, 30), 3660);
+    const channels = await this.db.marketChannel.findMany({
+      where: params.countryCode
+        ? { countryCode: normalizeCountryCode(params.countryCode) }
+        : undefined,
+      orderBy: [{ countryCode: "asc" }, { marketCode: "asc" }],
+    });
+
+    const channelsOut = [];
+    for (const ch of channels) {
+      const agg = await this.db.marketPriceObservation.aggregate({
+        where: { tenantId: params.tenantId, channelId: ch.id },
+        _count: { id: true },
+        _min: { observedOn: true },
+        _max: { observedOn: true },
+      });
+      const observationCount = agg._count.id;
+      const firstObservedOn = agg._min.observedOn ? toIsoDate(agg._min.observedOn) : null;
+      const lastObservedOn = agg._max.observedOn ? toIsoDate(agg._max.observedOn) : null;
+      let spanDays = 0;
+      if (agg._min.observedOn && agg._max.observedOn) {
+        const a = Date.UTC(
+          agg._min.observedOn.getUTCFullYear(),
+          agg._min.observedOn.getUTCMonth(),
+          agg._min.observedOn.getUTCDate(),
+        );
+        const b = Date.UTC(
+          agg._max.observedOn.getUTCFullYear(),
+          agg._max.observedOn.getUTCMonth(),
+          agg._max.observedOn.getUTCDate(),
+        );
+        spanDays = Math.floor((b - a) / 86_400_000) + 1;
+      }
+      const distinctSeries = await this.db.marketPriceObservation.groupBy({
+        by: ["commodityCode", "grade", "cultivationMethod", "packDescription", "originLabel"],
+        where: { tenantId: params.tenantId, channelId: ch.id },
+      });
+      const daysBehindTarget = Math.max(0, targetDays - spanDays);
+      const retentionStatus =
+        observationCount === 0
+          ? "EMPTY"
+          : spanDays >= targetDays
+            ? "MEETS_TARGET"
+            : spanDays >= 30
+              ? "BUILDING"
+              : "EARLY";
+
+      channelsOut.push({
+        channelCode: ch.code,
+        countryCode: ch.countryCode,
+        name: ch.name,
+        enabled: ch.enabled,
+        harvestIntervalDays: ch.harvestIntervalDays,
+        filterMaxSpanDays: ch.filterMaxSpanDays,
+        reviewMode: ch.reviewMode,
+        observationCount,
+        distinctSeries: distinctSeries.length,
+        firstObservedOn,
+        lastObservedOn,
+        spanDays,
+        targetDays,
+        daysBehindTarget,
+        retentionStatus,
+        note:
+          retentionStatus === "MEETS_TARGET"
+            ? `History span ${spanDays}d meets ≥${targetDays}d target.`
+            : retentionStatus === "EMPTY"
+              ? "No observations yet — run markets:harvest."
+              : `Building series: ${spanDays}d of ${targetDays}d target (${daysBehindTarget}d to go). Keep daily/3-day harvest on schedule.`,
+      });
+    }
+
+    const meets = channelsOut.filter((c) => c.retentionStatus === "MEETS_TARGET").length;
+    const building = channelsOut.filter((c) => c.retentionStatus === "BUILDING" || c.retentionStatus === "EARLY").length;
+    const empty = channelsOut.filter((c) => c.retentionStatus === "EMPTY").length;
+
+    return {
+      targetDays,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        channels: channelsOut.length,
+        meetsTarget: meets,
+        building,
+        empty,
+        totalObservations: channelsOut.reduce((n, c) => n + c.observationCount, 0),
+      },
+      channels: channelsOut,
+      schedule: {
+        taskName: "FlahaINTEL-MarketHarvest",
+        note: "Daily Task Scheduler run; channel harvestIntervalDays still gates JO/MoCI (1d) vs Mahaseel (3d).",
+      },
+    };
+  }
 }

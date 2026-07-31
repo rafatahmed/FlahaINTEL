@@ -128,6 +128,11 @@ export function MarketsPage() {
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retention, setRetention] = useState<{
+    targetDays: number;
+    summary: Record<string, number>;
+    channels: Array<Record<string, unknown>>;
+  } | null>(null);
 
   const layout = channelLayout(channelCode);
 
@@ -143,6 +148,11 @@ export function MarketsPage() {
           list.find((c) => c.code === "qa-moci-daily-vegetables") ||
           list[0];
         if (preferred) setChannelCode(preferred.code);
+        try {
+          setRetention(await api.marketRetention({ targetDays: 365 }));
+        } catch {
+          setRetention(null);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load channels.");
       } finally {
@@ -321,6 +331,63 @@ export function MarketsPage() {
             </Card>
           ))}
         </Box>
+      )}
+
+      {retention && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Retention (4M-D · target {retention.targetDays}d)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Building ≥1 year of history per market. Scheduled harvest: FlahaINTEL-MarketHarvest daily 05:30.
+              Meets target: {retention.summary.meetsTarget ?? 0} · Building: {retention.summary.building ?? 0} · Empty:{" "}
+              {retention.summary.empty ?? 0}
+            </Typography>
+            <Box sx={{ overflowX: "auto" }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Channel</TableCell>
+                    <TableCell align="right">Rows</TableCell>
+                    <TableCell align="right">Span (d)</TableCell>
+                    <TableCell>First → last</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {retention.channels.map((ch) => (
+                    <TableRow key={String(ch.channelCode)}>
+                      <TableCell>
+                        <Typography variant="body2">{String(ch.channelCode)}</Typography>
+                      </TableCell>
+                      <TableCell align="right">{String(ch.observationCount ?? 0)}</TableCell>
+                      <TableCell align="right">{String(ch.spanDays ?? 0)}</TableCell>
+                      <TableCell>
+                        <Typography variant="caption">
+                          {String(ch.firstObservedOn || "—")} → {String(ch.lastObservedOn || "—")}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={String(ch.retentionStatus || "—")}
+                          color={
+                            ch.retentionStatus === "MEETS_TARGET"
+                              ? "success"
+                              : ch.retentionStatus === "EMPTY"
+                                ? "default"
+                                : "warning"
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          </CardContent>
+        </Card>
       )}
 
       <Card>
