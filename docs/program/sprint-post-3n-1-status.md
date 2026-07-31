@@ -63,8 +63,10 @@ npm run knowledge:seed-samples
 
 1. **Host hygiene:** free C: toward ≥5–15% when practical (optional for markets)  
 2. **4S-B:** **DONE** — template validation, human review API/UI, comparison pack samples  
-3. Let scheduled harvest run nightly/daily to grow 365d series  
-4. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
+3. **4S-C:** **DONE** (foundation) — literature threshold bank; human APPROVE for live  
+4. **4S-D:** FlahaSOIL comparison workflow (next soil gate)  
+5. Let scheduled harvest run nightly/daily to grow 365d series  
+6. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
 
 ## Exit criteria for Sprint 1
 

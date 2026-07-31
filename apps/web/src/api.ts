@@ -305,4 +305,23 @@ export const api = {
       `/api/knowledge-packs/${id}/review`,
       { method: "POST", body: JSON.stringify(body) },
     ),
+  knowledgeThresholdBank: (filters: {
+    parameter?: string;
+    soilTestLevel?: string;
+    onlyApproved?: boolean;
+    packCode?: string;
+  } = {}) =>
+    request<{
+      count: number;
+      live: boolean;
+      onlyApproved: boolean;
+      note?: string;
+      entries: Array<Record<string, unknown>>;
+    }>(
+      `/api/knowledge-packs/threshold-bank${query({
+        ...filters,
+        onlyApproved:
+          filters.onlyApproved === undefined ? undefined : filters.onlyApproved ? "true" : "false",
+      })}`,
+    ),
 };

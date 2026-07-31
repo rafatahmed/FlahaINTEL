@@ -294,4 +294,89 @@ export class KnowledgePackService {
     }
     return { count: notes.length, notes };
   }
+
+  /**
+   * Gate 4S-C: literature threshold bank.
+   * Live bank for consumers defaults to APPROVED packs only (human gate).
+   * Set onlyApproved=false to inspect DRAFT bank pack during curation.
+   */
+  async listThresholdBank(
+    tenantId: string,
+    filter?: {
+      parameter?: string;
+      soilTestLevel?: string;
+      onlyApproved?: boolean;
+      packCode?: string;
+    },
+  ) {
+    const onlyApproved = filter?.onlyApproved !== false;
+    const packCode = filter?.packCode?.trim() || "literature-threshold-bank-v1";
+    const level = filter?.soilTestLevel?.trim().toUpperCase() || undefined;
+    const paramFilter = filter?.parameter?.trim();
+
+    const packs = await this.db.knowledgePack.findMany({
+      where: {
+        tenantId,
+        OR: [{ code: packCode }, { code: { contains: "threshold-bank" } }],
+        ...(onlyApproved ? { reviewState: "APPROVED" } : {}),
+      },
+      include: { items: { orderBy: { sequence: "asc" } } },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const entries = [];
+    for (const pack of packs) {
+      for (const item of pack.items) {
+        if (item.extractKind !== "THRESHOLD") continue;
+        const structured = (item.structured ?? {}) as Record<string, unknown>;
+        const parameter = String(structured.parameter ?? "");
+        if (paramFilter && parameter !== paramFilter && !parameter.toLowerCase().includes(paramFilter.toLowerCase())) {
+          continue;
+        }
+        const levels = Array.isArray(structured.soilTestLevels)
+          ? (structured.soilTestLevels as string[]).map((l) => String(l).toUpperCase())
+          : [];
+        if (level && levels.length && !levels.includes(level)) continue;
+
+        entries.push({
+          packId: pack.id,
+          packCode: pack.code,
+          packTitle: pack.title,
+          packReviewState: pack.reviewState,
+          itemId: item.id,
+          title: item.title,
+          bodyText: item.bodyText,
+          parameter: structured.parameter ?? null,
+          unit: structured.unit ?? null,
+          operator: structured.operator ?? null,
+          value: structured.value ?? null,
+          valueMin: structured.valueMin ?? null,
+          valueMax: structured.valueMax ?? null,
+          soilTestLevels: levels,
+          appliesFromLevel: structured.appliesFromLevel ?? null,
+          crop: structured.crop ?? null,
+          confidence: structured.confidence ?? null,
+          doesNotAutoUpdateFlahaSOIL: structured.doesNotAutoUpdateFlahaSOIL === true,
+          structured,
+          sourceUrl: item.sourceUrl,
+        });
+      }
+    }
+
+    return {
+      gate: "4S-C",
+      onlyApproved,
+      packCodeFilter: packCode,
+      live: onlyApproved && entries.length > 0,
+      humanApprovalRequired: true,
+      doesNotAutoUpdateFlahaSOIL: true,
+      count: entries.length,
+      entries,
+      note: onlyApproved
+        ? entries.length
+          ? "Live bank from APPROVED packs only."
+          : "No APPROVED threshold bank yet. Seed bank pack, then human-approve literature-threshold-bank-v1."
+        : "Including non-approved packs (curation mode).",
+    };
+  }
 }

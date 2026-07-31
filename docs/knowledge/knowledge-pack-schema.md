@@ -95,3 +95,4 @@ No auto-approve. Content re-seed of an APPROVED pack returns it to DRAFT.
 - `GET /api/knowledge-packs/:id`
 - `POST /api/knowledge-packs`
 - `POST /api/knowledge-packs/:id/review` — body `{ reviewState, note? }` (`governance_review`)
+- `GET /api/knowledge-packs/threshold-bank` — 4S-C literature bank (`onlyApproved` default true; `parameter`, `soilTestLevel`)

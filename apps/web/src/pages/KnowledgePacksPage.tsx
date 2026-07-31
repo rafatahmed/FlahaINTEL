@@ -75,6 +75,15 @@ export function KnowledgePacksPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [bankLevel, setBankLevel] = useState<string>("");
+  const [bankCuration, setBankCuration] = useState(true);
+  const [bank, setBank] = useState<{
+    count: number;
+    live: boolean;
+    onlyApproved: boolean;
+    note?: string;
+    entries: Array<Record<string, unknown>>;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,9 +103,25 @@ export function KnowledgePacksPage() {
     }
   }, [theme, extractKind]);
 
+  const loadBank = useCallback(async () => {
+    try {
+      const b = await api.knowledgeThresholdBank({
+        soilTestLevel: bankLevel || undefined,
+        onlyApproved: !bankCuration,
+      });
+      setBank(b);
+    } catch {
+      setBank(null);
+    }
+  }, [bankLevel, bankCuration]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadBank();
+  }, [loadBank]);
 
   const selected = packs.find((p) => p.id === selectedId);
   const comparisonCount = (selected?.items || []).filter((i) => i.extractKind === "COMPARISON_NOTE").length;
@@ -113,6 +138,7 @@ export function KnowledgePacksPage() {
       setInfo(`Review → ${to}. Auto-approve: ${String(res.governance?.autoApprove)} · FlahaSOIL auto-update blocked.`);
       setNote("");
       await load();
+      await loadBank();
       setSelectedId(selected.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Review failed.");
@@ -137,9 +163,84 @@ export function KnowledgePacksPage() {
       {info && <Alert severity="success" onClose={() => setInfo("")}>{info}</Alert>}
 
       <Alert severity="info">
-        Comparison notes are discussion artifacts for PA and product owners. APPROVED means governed knowledge — not a
-        write into FlahaSOIL code.
+        Comparison notes and the threshold bank inform PA / FlahaSOIL discussion. APPROVED means governed knowledge —
+        not a write into FlahaSOIL code. Reports use three test levels: PRELIMINARY · MODERATE · ADVANCED.
       </Alert>
+
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Literature threshold bank (4S-C)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {bank?.note || "Loading bank…"} Live: {String(bank?.live ?? false)} · entries: {bank?.count ?? 0}
+          </Typography>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1.5, alignItems: "center" }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Bank level filter</InputLabel>
+              <Select
+                label="Bank level filter"
+                value={bankLevel}
+                onChange={(e) => setBankLevel(e.target.value)}
+              >
+                <MenuItem value="">All levels</MenuItem>
+                <MenuItem value="PRELIMINARY">PRELIMINARY</MenuItem>
+                <MenuItem value="MODERATE">MODERATE</MenuItem>
+                <MenuItem value="ADVANCED">ADVANCED</MenuItem>
+              </Select>
+            </FormControl>
+            <Button size="small" variant={bankCuration ? "contained" : "outlined"} onClick={() => setBankCuration(true)}>
+              Curation (include DRAFT)
+            </Button>
+            <Button size="small" variant={!bankCuration ? "contained" : "outlined"} onClick={() => setBankCuration(false)}>
+              Live (APPROVED only)
+            </Button>
+          </Box>
+          <Box sx={{ overflowX: "auto", maxHeight: 280, overflowY: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: 4 }}>Parameter</th>
+                  <th style={{ textAlign: "left", padding: 4 }}>Threshold</th>
+                  <th style={{ textAlign: "left", padding: 4 }}>Levels</th>
+                  <th style={{ textAlign: "left", padding: 4 }}>Pack state</th>
+                  <th style={{ textAlign: "left", padding: 4 }}>Title</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(bank?.entries || []).map((e) => (
+                  <tr key={String(e.itemId)}>
+                    <td style={{ padding: 4 }}>
+                      <code>{String(e.parameter || "—")}</code>
+                    </td>
+                    <td style={{ padding: 4 }}>
+                      {String(e.operator || "")}{" "}
+                      {e.value != null
+                        ? String(e.value)
+                        : e.valueMin != null
+                          ? `${String(e.valueMin)}–${String(e.valueMax)}`
+                          : "—"}{" "}
+                      {String(e.unit || "")}
+                    </td>
+                    <td style={{ padding: 4 }}>
+                      {Array.isArray(e.soilTestLevels) ? (e.soilTestLevels as string[]).join(", ") : "—"}
+                    </td>
+                    <td style={{ padding: 4 }}>{String(e.packReviewState || "—")}</td>
+                    <td style={{ padding: 4 }}>{String(e.title || "—")}</td>
+                  </tr>
+                ))}
+                {!bank?.entries?.length && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: 8, color: "#6B7280" }}>
+                      Empty. Seed: npm run knowledge:seed-threshold-bank — then human-approve pack for Live mode.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </Box>
+        </CardContent>
+      </Card>
 
       <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
         <FormControl size="small" sx={{ minWidth: 160 }}>

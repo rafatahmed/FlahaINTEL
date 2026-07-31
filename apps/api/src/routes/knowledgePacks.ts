@@ -67,6 +67,28 @@ export function knowledgePackRoutes(prisma: PrismaClient): FastifyPluginAsync {
       }
     });
 
+    /** Gate 4S-C: literature threshold bank (APPROVED by default). */
+    app.get("/knowledge-packs/threshold-bank", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "inspect");
+        const q = request.query as {
+          parameter?: string;
+          soilTestLevel?: string;
+          onlyApproved?: string;
+          packCode?: string;
+        };
+        return await packs.listThresholdBank(actor.tenantId, {
+          parameter: q.parameter,
+          soilTestLevel: q.soilTestLevel,
+          onlyApproved: q.onlyApproved === "false" || q.onlyApproved === "0" ? false : true,
+          packCode: q.packCode,
+        });
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
     app.get<{ Params: { id: string } }>("/knowledge-packs/:id", async (request) => {
       try {
         const actor = await resolveProductActor(prisma, request);

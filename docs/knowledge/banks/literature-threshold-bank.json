@@ -1,0 +1,232 @@
+{
+  "bankVersion": 1,
+  "code": "literature-threshold-bank-v1",
+  "theme": "SOIL",
+  "title": "Literature threshold bank (4S-C)",
+  "summary": "Curated illustrative literature-oriented thresholds aligned to FlahaSOIL wire keys and PRELIMINARY/MODERATE/ADVANCED test levels. DRAFT until human APPROVED. Never auto-updates FlahaSOIL. Entries are orientation notes for PA comparison — not product defaults.",
+  "language": "en",
+  "cropTags": ["tomato", "cucumber", "pepper", "lettuce", "vegetables-general"],
+  "regionTags": ["QA", "JO", "CA", "global"],
+  "climateTags": ["arid", "greenhouse", "open-field"],
+  "gate": "4S-C",
+  "doesNotAutoUpdateFlahaSOIL": true,
+  "entries": [
+    {
+      "id": "thr-ph-vegetables-band",
+      "title": "Soil pH band — many vegetables (literature orientation)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Common agronomy guidance places many vegetables near pH 6.0–7.0 for nutrient availability. Calcareous arid soils (QA/JO) often run higher — use region tags and local judgment.",
+      "structured": {
+        "parameter": "pH",
+        "unit": "pH",
+        "operator": "range",
+        "valueMin": 6.0,
+        "valueMax": 7.0,
+        "soilTestLevels": ["PRELIMINARY", "MODERATE", "ADVANCED"],
+        "appliesFromLevel": "PRELIMINARY",
+        "crop": "vegetables-general",
+        "context": "mineral soil; literature orientation",
+        "confidence": "literature-note",
+        "regionTags": ["global", "QA", "JO"],
+        "doesNotAutoUpdateFlahaSOIL": true
+      },
+      "sourceUrl": "https://example.invalid/literature/soil-ph-band"
+    },
+    {
+      "id": "thr-ece-general-upper",
+      "title": "ECe general crop stress band (literature orientation)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Many field guides treat soil ECe rising toward ~2–4 dS/m as increasing salinity management pressure for sensitive crops. Method must be ECe (or converted); not interchangeable with 1:5 without context.",
+      "structured": {
+        "parameter": "ecDsM",
+        "unit": "dS/m",
+        "operator": "<=",
+        "value": 2.0,
+        "soilTestLevels": ["PRELIMINARY", "MODERATE", "ADVANCED"],
+        "appliesFromLevel": "PRELIMINARY",
+        "context": "general sensitive-crop orientation; method=ECe preferred",
+        "confidence": "literature-note",
+        "methodHint": "ECe",
+        "doesNotAutoUpdateFlahaSOIL": true
+      },
+      "sourceUrl": "https://example.invalid/literature/ece-stress"
+    },
+    {
+      "id": "thr-ece-tomato-soilless",
+      "title": "Substrate EC tomato soilless upper note",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Greenhouse tomato guides often flag substrate EC above ~2.5 dS/m as elevated risk depending on stage and cultivar. Not a FlahaSOIL product default.",
+      "structured": {
+        "parameter": "ecDsM",
+        "unit": "dS/m",
+        "operator": "<=",
+        "value": 2.5,
+        "soilTestLevels": ["PRELIMINARY", "MODERATE", "ADVANCED"],
+        "appliesFromLevel": "PRELIMINARY",
+        "crop": "tomato",
+        "climateTags": ["greenhouse"],
+        "context": "soilless / substrate illustrative",
+        "confidence": "literature-note",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-om-arid-floor",
+      "title": "Organic matter floor — arid open-field orientation",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Arid open-field systems often start with low OM; literature sometimes cites ~1–2% as a management floor to improve, not a universal optimum.",
+      "structured": {
+        "parameter": "organicMatterPercent",
+        "unit": "%",
+        "operator": ">=",
+        "value": 1.5,
+        "soilTestLevels": ["PRELIMINARY", "MODERATE", "ADVANCED"],
+        "appliesFromLevel": "PRELIMINARY",
+        "climateTags": ["arid", "open-field"],
+        "context": "arid open-field illustrative floor",
+        "confidence": "literature-note",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-sand-silt-clay-sum",
+      "title": "Texture fraction sum integrity",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Sand + silt + clay must equal 100% (±0.5) for valid USDA texture classification (FlahaSOIL engine rule).",
+      "structured": {
+        "parameter": "sandPercent",
+        "unit": "%",
+        "operator": "range",
+        "valueMin": 0,
+        "valueMax": 100,
+        "soilTestLevels": ["PRELIMINARY", "MODERATE", "ADVANCED"],
+        "appliesFromLevel": "PRELIMINARY",
+        "context": "integrity rule for texture inputs; pair with silt/clay",
+        "confidence": "product-aligned-rule",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-cec-moderate-band",
+      "title": "CEC buffering orientation (MODERATE+)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "CEC interpretation is texture- and method-dependent. Illustrative moderate buffering often discussed around mid-teens cmol(+)/kg — not a crop yield model.",
+      "structured": {
+        "parameter": "cec",
+        "unit": "cmol(+)/kg",
+        "operator": ">=",
+        "value": 12,
+        "soilTestLevels": ["MODERATE", "ADVANCED"],
+        "appliesFromLevel": "MODERATE",
+        "context": "orientation only; lab CEC preferred when available",
+        "confidence": "literature-note",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-na-exchangeable-caution",
+      "title": "Exchangeable Na caution (MODERATE+)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Elevated exchangeable sodium on the complex raises sodicity concern; interpret with SAR/ESP at ADVANCED and with Ca/Mg balance.",
+      "structured": {
+        "parameter": "na",
+        "unit": "cmol(+)/kg",
+        "operator": "<=",
+        "value": 1.0,
+        "soilTestLevels": ["MODERATE", "ADVANCED"],
+        "appliesFromLevel": "MODERATE",
+        "context": "illustrative caution; not a universal cutoff",
+        "confidence": "expert-draft",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-n-macro-orientation",
+      "title": "Soil N orientation (MODERATE+)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Soil N is strongly method- and crop-dependent. Entry exists for bank completeness; always pair with method and crop demand.",
+      "structured": {
+        "parameter": "n",
+        "unit": "mg/kg",
+        "operator": ">=",
+        "value": 20,
+        "soilTestLevels": ["MODERATE", "ADVANCED"],
+        "appliesFromLevel": "MODERATE",
+        "crop": "vegetables-general",
+        "context": "illustrative; method-dependent",
+        "confidence": "expert-draft",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-p-macro-orientation",
+      "title": "Soil P orientation (MODERATE+)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Phosphorus sufficiency bands vary by extract method (Olsen, Bray, Mehlich). Treat as placeholder for method-tagged literature.",
+      "structured": {
+        "parameter": "p",
+        "unit": "mg/kg",
+        "operator": ">=",
+        "value": 15,
+        "soilTestLevels": ["MODERATE", "ADVANCED"],
+        "appliesFromLevel": "MODERATE",
+        "context": "method-dependent placeholder",
+        "confidence": "expert-draft",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-sar-advanced",
+      "title": "SAR caution (ADVANCED panel)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "SAR is an ADVANCED-panel sodicity indicator. Literature cautions often appear near mid-single digits for structure risk; always interpret with ESP, EC, and texture.",
+      "structured": {
+        "parameter": "sar",
+        "unit": "ratio",
+        "operator": "<=",
+        "value": 6,
+        "soilTestLevels": ["ADVANCED"],
+        "appliesFromLevel": "ADVANCED",
+        "context": "ADVANCED reports only; not PRELIMINARY-scoped",
+        "confidence": "literature-note",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-esp-advanced",
+      "title": "ESP caution (ADVANCED panel)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "ESP above low teens often raises sodicity management discussion. ADVANCED evidence required in FlahaSOIL matrix.",
+      "structured": {
+        "parameter": "esp",
+        "unit": "%",
+        "operator": "<=",
+        "value": 15,
+        "soilTestLevels": ["ADVANCED"],
+        "appliesFromLevel": "ADVANCED",
+        "context": "ADVANCED reports; pair with SAR and EC",
+        "confidence": "literature-note",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    },
+    {
+      "id": "thr-irrigation-water-ec",
+      "title": "Irrigation water EC caution (not soil ECe)",
+      "extractKind": "THRESHOLD",
+      "bodyText": "Irrigation water EC is not soil ECe. Sensitive vegetables often need salinity-aware scheduling above ~1.5 dS/m water EC. Domain=irrigation_water.",
+      "structured": {
+        "parameter": "irrigationWaterEcDsM",
+        "unit": "dS/m",
+        "operator": "<=",
+        "value": 1.5,
+        "soilTestLevels": ["PRELIMINARY", "MODERATE", "ADVANCED"],
+        "appliesFromLevel": "PRELIMINARY",
+        "parameterDomain": "irrigation_water",
+        "crop": "vegetables-general",
+        "context": "irrigation water quality orientation",
+        "confidence": "literature-note",
+        "doesNotAutoUpdateFlahaSOIL": true
+      }
+    }
+  ]
+}
