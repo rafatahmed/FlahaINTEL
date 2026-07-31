@@ -343,6 +343,7 @@ try {
         sourceBatchId: batchId,
         correlationId: batchId,
         rows,
+        writeMode: rows.length >= 150 ? "create_skip" : "upsert",
       });
       totalRecorded += result.count;
       filesImported += 1;
