@@ -25,6 +25,10 @@ export type HarvestResult = {
   reason?: string;
   count?: number;
   observedOn?: string;
+  periodFrom?: string;
+  periodTo?: string;
+  days?: string[];
+  periodSource?: string;
   sourceBatchId?: string;
   cadence?: { harvestIntervalDays: number; filterMaxSpanDays: number; note?: string };
   reviewPolicy?: {

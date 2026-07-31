@@ -219,6 +219,12 @@ export class MarketService {
     sourceBatchId: string;
     correlationId?: string;
     rows: PriceRowInput[];
+    /**
+     * create_skip: bulk createMany (fast; for new historical days).
+     * upsert: per-row upsert (default for small live harvest batches).
+     * Auto: create_skip when rows >= 150.
+     */
+    writeMode?: "auto" | "upsert" | "create_skip";
   }) {
     if (!params.rows.length) {
       throw new MarketValidationError("EMPTY_BATCH", "At least one price row is required.");
@@ -235,6 +241,24 @@ export class MarketService {
       enabled: channel.enabled,
     };
     const autoEligible = canAutoApproveOfficial(policyChannel);
+    const mode =
+      params.writeMode === "upsert" || params.writeMode === "create_skip"
+        ? params.writeMode
+        : params.rows.length >= 150
+          ? "create_skip"
+          : "upsert";
+
+    if (mode === "create_skip") {
+      return this.recordPriceBatchCreateSkip({
+        ...params,
+        channel: channel as Parameters<MarketService["recordPriceBatchCreateSkip"]>[0]["channel"],
+        policyChannel: policyChannel as Parameters<
+          MarketService["recordPriceBatchCreateSkip"]
+        >[0]["policyChannel"],
+        autoEligible,
+      });
+    }
+
     const created = [];
     const reviewReasons: Record<string, number> = {};
     for (const row of params.rows) {
@@ -434,6 +458,7 @@ export class MarketService {
       channel,
       count: created.length,
       rows: created,
+      writeMode: "upsert" as const,
       reviewPolicy: {
         reviewMode: channel.reviewMode,
         autoApproveEligible: autoEligible,
@@ -453,6 +478,203 @@ export class MarketService {
               : channel.countryCode === "QA"
                 ? "Qatar MoCI daily lists: harvest daily; filter window max 3 days."
                 : "Use channel harvestIntervalDays and filterMaxSpanDays.",
+      },
+    };
+  }
+
+  /**
+   * Fast path for large historical imports (Amman yearbooks, multi-day Mahaseel).
+   * createMany + skipDuplicates — does not update existing rows.
+   */
+  private async recordPriceBatchCreateSkip(params: {
+    tenantId: string;
+    createdById: string;
+    channelCode: string;
+    sourceBatchId: string;
+    correlationId?: string;
+    rows: PriceRowInput[];
+    channel: {
+      id: string;
+      code: string;
+      reviewMode: ChannelReviewMode;
+      verificationStatus: "PENDING" | "ACCEPTED" | "DEGRADED" | "REJECTED";
+      ownershipVerified: boolean;
+      enabled: boolean;
+      currencyDefault: string;
+      harvestIntervalDays: number;
+      filterMaxSpanDays: number;
+      countryCode: string;
+      marketCode: string;
+      language: string;
+    };
+    policyChannel: {
+      code: string;
+      reviewMode: ChannelReviewMode;
+      verificationStatus: "PENDING" | "ACCEPTED" | "DEGRADED" | "REJECTED";
+      ownershipVerified: boolean;
+      enabled: boolean;
+    };
+    autoEligible: boolean;
+  }) {
+    const { channel, policyChannel, autoEligible } = params;
+    const harvestReview = resolveHarvestReview({
+      channel: policyChannel,
+      existing: null,
+      fingerprint: "bulk",
+    });
+    const prepared: Prisma.MarketPriceObservationCreateManyInput[] = [];
+    const reviewReasons: Record<string, number> = {};
+    let skippedInvalid = 0;
+
+    for (const row of params.rows) {
+      try {
+        requireEvidence(row);
+        const observedOn = parseObservedOn(row.observedOn);
+        const periodFrom = row.periodFrom ? parseObservedOn(row.periodFrom) : null;
+        const periodTo = row.periodTo ? parseObservedOn(row.periodTo) : null;
+        if (periodFrom && periodTo) assertFilterSpan(toIsoDate(periodFrom), toIsoDate(periodTo), 366);
+
+        const commodityCode = normalizeCommodityCode(
+          row.commodityCode || row.commodityNameEn || row.commodityName,
+        );
+        const currency = normalizeCurrency(row.currency || channel.currencyDefault);
+        const unit = row.unit.trim();
+        if (!unit) throw new MarketValidationError("INVALID_UNIT", "unit is required.");
+        const packDescription = (row.packDescription ?? "").trim();
+        const originLabel = (row.originLabel ?? "").trim().toUpperCase();
+
+        let priceHigh = row.priceHigh ?? null;
+        let priceMode = row.priceMode ?? null;
+        let priceLow = row.priceLow ?? null;
+        let unitPrice = row.unitPrice ?? null;
+        let packPrice = row.packPrice ?? null;
+        const nativeUnit = row.nativePriceUnit?.trim().toUpperCase() || null;
+        const factor =
+          row.nativeToCurrencyFactor ??
+          (nativeUnit === "QRSH" || nativeUnit === "PIASTER" || nativeUnit === "QIRSH"
+            ? QRSH_TO_JOD
+            : null);
+
+        if (factor != null) {
+          if (row.priceHighNative != null) priceHigh = convertNativeToCurrency(row.priceHighNative, factor);
+          if (row.priceModeNative != null) priceMode = convertNativeToCurrency(row.priceModeNative, factor);
+          if (row.priceLowNative != null) priceLow = convertNativeToCurrency(row.priceLowNative, factor);
+          if (unitPrice == null && priceMode != null) unitPrice = priceMode;
+        }
+
+        requireAnyPrice({
+          packPrice,
+          unitPrice,
+          priceHigh,
+          priceMode,
+          priceLow,
+          priceHighNative: row.priceHighNative,
+          priceModeNative: row.priceModeNative,
+          priceLowNative: row.priceLowNative,
+        });
+
+        const fingerprint = priceContentFingerprint({
+          channelCode: channel.code,
+          observedOn: toIsoDate(observedOn),
+          commodityCode,
+          unit,
+          currency,
+          packDescription,
+          originLabel,
+          packPrice: packPrice != null ? packPrice.toFixed(4) : null,
+          unitPrice: unitPrice != null ? unitPrice.toFixed(4) : null,
+          priceHigh: priceHigh != null ? priceHigh.toFixed(4) : null,
+          priceMode: priceMode != null ? priceMode.toFixed(4) : null,
+          priceLow: priceLow != null ? priceLow.toFixed(4) : null,
+          grade: (row.grade ?? "").trim(),
+          cultivationMethod: (row.cultivationMethod ?? "").trim(),
+        });
+
+        const nameEn =
+          row.commodityNameEn?.trim() || (channel.language === "en" ? row.commodityName.trim() : null);
+        const nameAr = row.commodityNameAr?.trim() || null;
+
+        reviewReasons[harvestReview.reason] = (reviewReasons[harvestReview.reason] ?? 0) + 1;
+
+        prepared.push({
+          tenantId: params.tenantId,
+          channelId: channel.id,
+          observedOn,
+          periodFrom,
+          periodTo,
+          commodityCode,
+          commodityName: row.commodityName.trim(),
+          commodityNameAr: nameAr,
+          commodityNameEn: nameEn,
+          originLabel,
+          unit,
+          packDescription,
+          packPrice: dec(packPrice),
+          unitPrice: dec(unitPrice),
+          priceHigh: dec(priceHigh),
+          priceMode: dec(priceMode),
+          priceLow: dec(priceLow),
+          nativePriceUnit: nativeUnit,
+          nativeToCurrencyFactor: factor != null ? new Prisma.Decimal(factor) : null,
+          priceHighNative: dec(row.priceHighNative),
+          priceModeNative: dec(row.priceModeNative),
+          priceLowNative: dec(row.priceLowNative),
+          currency,
+          grade: row.grade?.trim() || null,
+          cultivationMethod: row.cultivationMethod?.trim() || null,
+          quantityTons:
+            row.quantityTons != null ? new Prisma.Decimal(row.quantityTons.toFixed(3)) : null,
+          evidenceUrl: row.evidenceUrl?.trim() || null,
+          evidenceArtifactId: row.evidenceArtifactId || null,
+          sourceBatchId: params.sourceBatchId,
+          contentFingerprint: fingerprint,
+          reviewState: harvestReview.reviewState,
+          reviewDecisionSource: harvestReview.reviewDecisionSource,
+          reviewedById: harvestReview.reviewedById,
+          reviewedAt: harvestReview.reviewedAt,
+          reviewNote: harvestReview.reviewNote,
+          createdById: params.createdById,
+          correlationId: params.correlationId || null,
+        });
+      } catch {
+        skippedInvalid += 1;
+      }
+    }
+
+    if (!prepared.length) {
+      throw new MarketValidationError("EMPTY_BATCH", "No valid price rows after validation.");
+    }
+
+    const CHUNK = 500;
+    let inserted = 0;
+    for (let i = 0; i < prepared.length; i += CHUNK) {
+      const chunk = prepared.slice(i, i + CHUNK);
+      const res = await this.db.marketPriceObservation.createMany({
+        data: chunk,
+        skipDuplicates: true,
+      });
+      inserted += res.count;
+    }
+
+    return {
+      channel,
+      count: inserted,
+      rows: [] as never[],
+      writeMode: "create_skip" as const,
+      prepared: prepared.length,
+      skippedInvalid,
+      reviewPolicy: {
+        reviewMode: channel.reviewMode,
+        autoApproveEligible: autoEligible,
+        decisionBreakdown: reviewReasons,
+        note: autoEligible
+          ? "Bulk create_skip: CHANNEL_POLICY auto-approve when eligible."
+          : "Bulk create_skip: rows PENDING_REVIEW.",
+      },
+      cadence: {
+        harvestIntervalDays: channel.harvestIntervalDays,
+        filterMaxSpanDays: channel.filterMaxSpanDays,
+        note: "Bulk historical write (createMany skipDuplicates).",
       },
     };
   }

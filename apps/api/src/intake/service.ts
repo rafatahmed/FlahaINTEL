@@ -542,8 +542,17 @@ export class EvidenceIntakeService {
     const buf = await this.readLandedBuffer(row);
     const artifactId = await this.sealLandedArtifact(row, buf);
 
-    const { tables } = readWorkbookTables(abs);
-    if (!tables.length) throw new IntakeError("EMPTY_SHEET", "No usable sheets in workbook.");
+    // Amman yearbooks (e.g. 2021.xlsx): monthly sheets jan…dec + Master aggregate.
+    // Import month sheets only — Master would double-count.
+    const { tables, sheetNames, skippedSheets } = readWorkbookTables(abs, {
+      skipAggregateSheets: true,
+    });
+    if (!tables.length) {
+      throw new IntakeError(
+        "EMPTY_SHEET",
+        `No usable month sheets in workbook. Sheets: ${sheetNames.join(", ") || "none"}. Skipped: ${skippedSheets.map((s) => `${s.name}(${s.reason})`).join(", ") || "—"}`,
+      );
+    }
 
     const channel = await this.db.marketChannel.findUnique({
       where: { code: "jo-amman-central-market" },
@@ -563,11 +572,20 @@ export class EvidenceIntakeService {
     const evidenceUrl = `intake://${row.id}/${row.originalFilename || "file.xlsx"}`;
     const byDay = new Map<string, ReturnType<typeof mapAmmanRow>[]>();
     let parseErrors = 0;
+    const sheetsUsed: string[] = [];
+    const sheetsSkippedEmpty: string[] = [];
 
     for (const table of tables) {
-      if (!table.rows.length) continue;
+      if (!table.rows.length) {
+        sheetsSkippedEmpty.push(table.sheetName);
+        continue;
+      }
       const cm = detectColumnMap(table.headers);
-      if (!cm.priceDate || (!cm.commodityNameAr && !cm.commodityNameEn)) continue;
+      if (!cm.priceDate || (!cm.commodityNameAr && !cm.commodityNameEn)) {
+        sheetsSkippedEmpty.push(table.sheetName);
+        continue;
+      }
+      let sheetMapped = 0;
       for (const raw of table.rows) {
         try {
           const amman = excelRowToAmmanRaw(raw, cm, evidenceUrl, "LOCAL", "dmy");
@@ -578,15 +596,21 @@ export class EvidenceIntakeService {
           const list = byDay.get(mapped.observedOn) || [];
           list.push(mapped);
           byDay.set(mapped.observedOn, list);
+          sheetMapped += 1;
         } catch {
           parseErrors += 1;
         }
       }
+      if (sheetMapped > 0) sheetsUsed.push(`${table.sheetName}:${sheetMapped}`);
+      else sheetsSkippedEmpty.push(table.sheetName);
     }
 
     const days = [...byDay.keys()].sort();
     if (!days.length) {
-      throw new IntakeError("NO_ROWS", "No Amman price rows parsed from workbook.");
+      throw new IntakeError(
+        "NO_ROWS",
+        `No Amman price rows parsed. Used sheets: ${sheetsUsed.join(", ") || "none"}. Check Arabic headers (التاريخ, الصنف, أسعار قرش).`,
+      );
     }
 
     const dayPlan = planJoAmmanDays({
@@ -602,6 +626,9 @@ export class EvidenceIntakeService {
         skipped: true,
         reason: "all_days_already_in_database",
         daysInFile: days.length,
+        dayRange: `${days[0]} → ${days[days.length - 1]}`,
+        sheetsUsed,
+        skippedSheets,
         parseErrors,
         inputArtifactId: artifactId,
         intakeId: row.id,
@@ -610,6 +637,7 @@ export class EvidenceIntakeService {
 
     const rows = daysToWrite.flatMap((d) => byDay.get(d) || []);
     const sourceBatchId = `intake-amman-${row.contentSha256?.slice(0, 12) || row.id.slice(0, 8)}`;
+    // Large yearbooks: bulk createMany (not sequential upserts).
     const result = await this.markets.recordPriceBatch({
       tenantId: actor.tenantId,
       createdById: actor.userId,
@@ -617,14 +645,21 @@ export class EvidenceIntakeService {
       sourceBatchId,
       correlationId: row.correlationId,
       rows,
+      writeMode: "create_skip",
     });
     return {
       kind: "MARKET_JO_AMMAN_EXCEL",
       recorded: result.count,
+      prepared: "prepared" in result ? result.prepared : rows.length,
+      writeMode: result.writeMode,
       daysImported: daysToWrite.length,
       daysSkipped: days.length - daysToWrite.length,
       dayRange: `${daysToWrite[0]} → ${daysToWrite[daysToWrite.length - 1]}`,
+      sheetsUsed,
+      skippedSheets,
+      sheetsSkippedEmpty,
       parseErrors,
+      note: "Month sheets only (Master skipped). Prices in قرش → JOD. Day de-dupe if already in DB.",
       channelCode: "jo-amman-central-market",
       sourceBatchId,
       inputArtifactId: artifactId,
