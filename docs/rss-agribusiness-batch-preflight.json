@@ -1,0 +1,66 @@
+{
+  "reviewedAt": "2026-07-31T21:44:51.820Z",
+  "created": 0,
+  "results": [
+    {
+      "code": "brownfield-ag-news",
+      "status": "ALREADY_IN_DB",
+      "id": "3dba1d5a-69ce-4b07-a3e2-7434bbe3aa7b",
+      "itemCount": 20,
+      "note": "US farm news; market mentions are editorial, not price series."
+    },
+    {
+      "code": "agri-pulse-news",
+      "status": "ALREADY_IN_DB",
+      "id": "46965d93-fe8d-4fa8-b190-3bd9603a7443",
+      "itemCount": 30,
+      "note": "US agribusiness and policy news topic feed."
+    },
+    {
+      "code": "agri-pulse-economy",
+      "status": "ALREADY_IN_DB",
+      "id": "266d6e22-0ebe-4da9-b908-89e0bd739bff",
+      "itemCount": 30,
+      "note": "Economy/trade topic feed; not a price API."
+    },
+    {
+      "code": "agri-pulse-regulatory",
+      "status": "ALREADY_IN_DB",
+      "id": "27fa1e0b-9d9c-43de-9077-52b7ceb9ead7",
+      "itemCount": 30,
+      "note": "Regulatory topic feed for food/ag laws."
+    },
+    {
+      "code": "fertilizerworks-news",
+      "status": "ALREADY_IN_DB",
+      "id": "f49e2b5e-0f69-4404-af15-0eab4f9892ed",
+      "itemCount": 10,
+      "note": "Fertilizer industry news; not Qatar/local fertilizer price series."
+    },
+    {
+      "code": "world-grain-trade",
+      "status": "ALREADY_IN_DB",
+      "id": "ecaa9299-9f06-415b-9c64-e30d5f306f1a",
+      "itemCount": 30,
+      "note": "Grain trade news topic feed; live futures require market data services."
+    },
+    {
+      "code": "world-grain-fao-topic",
+      "status": "ALREADY_IN_DB",
+      "id": "3a337392-5512-4139-a482-34d4b24bd014",
+      "itemCount": 30,
+      "note": "Secondary FAO-related grain industry coverage (not official FAO newsroom)."
+    },
+    {
+      "code": "efsa-journal-rss",
+      "status": "ALREADY_IN_DB",
+      "id": "9b9fcd44-6b62-494d-928b-12a7f5f6bdf6",
+      "itemCount": 20,
+      "note": "EU food safety / pesticide scientific outputs; not a price feed."
+    }
+  ],
+  "policy": {
+    "rssFor": "news, announcements, alerts, regulatory updates",
+    "notRss": "vegetable/fertilizer/seed/pesticide unit prices — Markets API/CSV/official reports"
+  }
+}
