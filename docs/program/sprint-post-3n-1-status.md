@@ -76,15 +76,26 @@ npm run knowledge:seed-samples
 | 4R-X | Literature claims (extract depth) | **DONE (4R-X.1)** | Validated METHOD/NOTE/REFERENCE claims + DOI unique + reindex |
 | Crossref | DOI enricher + bulk | **DONE** | polite pool, cache, bulk CLI |
 | Markets analytics | Multi-year / monthly / histogram | **DONE** | `market-price-analytics.md` |
+| RSS agribusiness batch | News/alerts feeds | **DONE (PENDING accept)** | Brownfield, Agri-Pulse, FertilizerWorks, World Grain, EFSA · register doc |
+| Milestone readiness | v0.6 product surface | **READY to tag** | `milestone-v0.6-product-surface-release-readiness.md` |
+
+## Release posture
+
+| Tag | Meaning |
+|-----|---------|
+| `v0.5.0-phase-3n-windows-production-like` | Backbone ACCEPT |
+| **`v0.6.0-post-3n-product-surface`** (recommended) | Markets + knowledge + research desk + handoff + RSS expand |
+
+**Not product-complete.** Disk DEGRADED + content fill remain **operate**.  
+Full go/no-go: `docs/program/milestone-v0.6-product-surface-release-readiness.md`.
 
 ## Next (systemic order)
 
-1. ~~Stage D scope + 4R-A/L/B/E/X + Crossref~~ **DONE**  
-2. **Operate hard:** real DOI lists via `knowledge:crossref-bulk`; collections; approve packs; rebuild index  
-3. **Markets operate:** harvest + historical fill + handoff  
-4. **Optional 4R-A.2:** soil cases in index + pack topic chips  
-5. **Host hygiene:** free C: toward ≥5–15% when practical  
-6. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
+1. ~~Stage D + 4R + Crossref + agri RSS batch~~ **DONE**  
+2. **Owner: tag v0.6 or delay** (see readiness note)  
+3. **Operate hard:** DOI bulk · approve packs · RSS two-run ACCEPTED · market span  
+4. **Host hygiene:** free C: toward ≥5–15% when practical  
+5. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
 
 ## Exit criteria for Sprint 1
 
