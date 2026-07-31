@@ -620,6 +620,8 @@ model UserAccount {
   marketPricesCreated MarketPriceObservation[] @relation("MarketPriceCreator")
   marketPricesReviewed MarketPriceObservation[] @relation("MarketPriceReviewer")
   knowledgePacksOwned KnowledgePack[] @relation("KnowledgePackOwner")
+  flahaSoilComparisonsCreated FlahaSoilComparisonCase[] @relation("FlahaSoilComparisonCreator")
+  flahaSoilComparisonsReviewed FlahaSoilComparisonCase[] @relation("FlahaSoilComparisonReviewer")
 
   @@index([active])
 }
@@ -639,6 +641,7 @@ model Tenant {
   marketPriceObservations MarketPriceObservation[]
   marketDaySummaries MarketDaySummary[]
   knowledgePacks KnowledgePack[]
+  flahaSoilComparisons FlahaSoilComparisonCase[]
 
   @@index([active])
 }
@@ -1158,4 +1161,66 @@ model KnowledgePackItem {
 
   @@unique([packId, sequence])
   @@index([packId])
+}
+
+/// Gate 4S-D: human FlahaSOIL comparison / deviation case (never auto-writes product).
+enum FlahaSoilComparisonStatus {
+  DRAFT
+  READY_FOR_REVIEW
+  APPROVED
+  REJECTED
+  PRODUCT_TICKET_OPEN
+  CLOSED
+}
+
+model FlahaSoilComparisonCase {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  code      String
+  title     String
+
+  /// FlahaSOIL wire key (e.g. ecDsM, pH, sar)
+  parameter String
+  unit      String?
+  soilTestLevels   String[] @default([])
+  appliesFromLevel String?
+
+  literatureValue    Float?
+  literatureValueMin Float?
+  literatureValueMax Float?
+  literatureRange    String?
+  literatureOperator String?
+  literatureSource   String?
+  thresholdPackItemId String? @db.Uuid
+
+  flahaSoilObservation  String?
+  flahaSoilValue        Float?
+  flahaSoilReportNumber String?
+  flahaSoilTestLevel    String?
+  flahaSoilSampleRef    String?
+
+  deviationSummary         String
+  recommendedHumanAction   String
+  autoApplyBlocked         Boolean @default(true)
+  doesNotAutoUpdateFlahaSOIL Boolean @default(true)
+
+  status           FlahaSoilComparisonStatus @default(DRAFT)
+  productTicketRef String?
+  version          Int                       @default(1)
+
+  createdById  String      @db.Uuid
+  createdBy    UserAccount @relation("FlahaSoilComparisonCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  reviewedById String?     @db.Uuid
+  reviewedBy   UserAccount? @relation("FlahaSoilComparisonReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNote   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+  @@index([tenantId, parameter])
+  @@index([createdById])
 }

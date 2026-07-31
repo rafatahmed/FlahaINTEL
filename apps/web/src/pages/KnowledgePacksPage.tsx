@@ -84,6 +84,8 @@ export function KnowledgePacksPage() {
     note?: string;
     entries: Array<Record<string, unknown>>;
   } | null>(null);
+  const [cases, setCases] = useState<Array<Record<string, unknown>>>([]);
+  const [caseBusy, setCaseBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,6 +117,15 @@ export function KnowledgePacksPage() {
     }
   }, [bankLevel, bankCuration]);
 
+  const loadCases = useCallback(async () => {
+    try {
+      const res = await api.flahaSoilComparisons();
+      setCases(res.cases || []);
+    } catch {
+      setCases([]);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -122,6 +133,10 @@ export function KnowledgePacksPage() {
   useEffect(() => {
     void loadBank();
   }, [loadBank]);
+
+  useEffect(() => {
+    void loadCases();
+  }, [loadCases]);
 
   const selected = packs.find((p) => p.id === selectedId);
   const comparisonCount = (selected?.items || []).filter((i) => i.extractKind === "COMPARISON_NOTE").length;
@@ -146,6 +161,68 @@ export function KnowledgePacksPage() {
       setBusy(false);
     }
   }
+
+  async function openCaseFromBank(packItemId: string, parameter: string) {
+    setCaseBusy(true);
+    setInfo("");
+    try {
+      // Demo values from recon report FLH-2026-001 where known
+      const demo: Record<string, number> = {
+        ecDsM: 1.0,
+        pH: 7.2,
+        sar: 0.15,
+        organicMatterPercent: 2.5,
+      };
+      await api.createFlahaSoilComparisonFromThreshold({
+        packItemId,
+        flahaSoilValue: demo[parameter] ?? null,
+        flahaSoilObservation: `Opened from threshold bank for ${parameter}. Optional demo observation from report FLH-2026-001 when available.`,
+        flahaSoilReportNumber: "FLH-2026-001",
+        flahaSoilTestLevel: "ADVANCED",
+        recommendedHumanAction: "review-in-PA",
+      });
+      setInfo(`Comparison case opened for ${parameter} (DRAFT). Human workflow only — FlahaSOIL not updated.`);
+      await loadCases();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to open comparison case.");
+    } finally {
+      setCaseBusy(false);
+    }
+  }
+
+  async function transitionCase(id: string, status: string) {
+    setCaseBusy(true);
+    try {
+      const body: { status: string; note?: string; productTicketRef?: string } = {
+        status,
+        note: note.trim() || undefined,
+      };
+      if (status === "PRODUCT_TICKET_OPEN") {
+        body.productTicketRef = note.trim() || `SOIL-TICKET-${id.slice(0, 8)}`;
+      }
+      await api.transitionFlahaSoilComparison(id, body);
+      setInfo(`Case → ${status}. doesNotAutoUpdateFlahaSOIL=true`);
+      await loadCases();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Case transition failed.");
+    } finally {
+      setCaseBusy(false);
+    }
+  }
+
+  const CASE_NEXT: Record<string, Array<{ status: string; label: string }>> = {
+    DRAFT: [{ status: "READY_FOR_REVIEW", label: "Submit case" }],
+    READY_FOR_REVIEW: [
+      { status: "APPROVED", label: "Approve case" },
+      { status: "REJECTED", label: "Reject" },
+    ],
+    APPROVED: [
+      { status: "PRODUCT_TICKET_OPEN", label: "Open product ticket" },
+      { status: "CLOSED", label: "Close" },
+    ],
+    PRODUCT_TICKET_OPEN: [{ status: "CLOSED", label: "Close" }],
+    REJECTED: [{ status: "DRAFT", label: "Back to draft" }],
+  };
 
   if (loading && !packs.length) return <BrandedState label="Loading knowledge packs…" loading />;
 
@@ -226,7 +303,16 @@ export function KnowledgePacksPage() {
                       {Array.isArray(e.soilTestLevels) ? (e.soilTestLevels as string[]).join(", ") : "—"}
                     </td>
                     <td style={{ padding: 4 }}>{String(e.packReviewState || "—")}</td>
-                    <td style={{ padding: 4 }}>{String(e.title || "—")}</td>
+                    <td style={{ padding: 4 }}>
+                      {String(e.title || "—")}{" "}
+                      <Button
+                        size="small"
+                        disabled={caseBusy || !e.itemId}
+                        onClick={() => void openCaseFromBank(String(e.itemId), String(e.parameter || ""))}
+                      >
+                        Open case
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {!bank?.entries?.length && (
@@ -239,6 +325,69 @@ export function KnowledgePacksPage() {
               </tbody>
             </table>
           </Box>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            FlahaSOIL comparison cases (4S-D)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Deviation cases link literature thresholds to report/product observations. Human transitions only — never
+            auto-writes FlahaSOIL.
+          </Typography>
+          {!cases.length ? (
+            <Typography variant="body2" color="text.secondary">
+              No cases yet. Use <strong>Open case</strong> on a bank row, or seed: npm run knowledge:seed-comparison-cases
+            </Typography>
+          ) : (
+            <Stack spacing={1}>
+              {cases.map((c) => (
+                <Box
+                  key={String(c.id)}
+                  sx={{
+                    p: 1,
+                    border: 1,
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    display: "flex",
+                    flexDirection: { xs: "column", md: "row" },
+                    gap: 1,
+                    alignItems: { md: "center" },
+                  }}
+                >
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {String(c.title)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                      <code>{String(c.parameter)}</code> · lit {String(c.literatureValue ?? c.literatureRange ?? "—")} ·
+                      SOIL {String(c.flahaSoilValue ?? "—")} · report {String(c.flahaSoilReportNumber || "—")} ·{" "}
+                      {String(c.flahaSoilTestLevel || "—")}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: "block" }}>
+                      {String(c.deviationSummary || "").slice(0, 160)}
+                    </Typography>
+                  </Box>
+                  <Chip size="small" label={String(c.status)} color={c.status === "APPROVED" ? "success" : "default"} />
+                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                    {(CASE_NEXT[String(c.status)] || []).map((a) => (
+                      <Button
+                        key={a.status}
+                        size="small"
+                        variant="outlined"
+                        disabled={caseBusy}
+                        onClick={() => void transitionCase(String(c.id), a.status)}
+                      >
+                        {a.label}
+                      </Button>
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
+          )}
         </CardContent>
       </Card>
 

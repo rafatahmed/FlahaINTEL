@@ -26,6 +26,7 @@
     "markets:retention": "node --env-file=../../.env --import tsx src/market/retentionReport.ts",
     "knowledge:seed-samples": "node --env-file=../../.env --import tsx src/knowledgePack/seedSamples.ts",
     "knowledge:seed-threshold-bank": "node --env-file=../../.env --import tsx src/knowledgePack/seedThresholdBank.ts",
+    "knowledge:seed-comparison-cases": "node --env-file=../../.env --import tsx src/knowledgePack/seedComparisonCases.ts",
     "ingest:create-acquisition": "node --env-file=../../.env --import tsx src/acquisition/cli.ts create",
     "ingest:worker:once": "node --env-file=../../.env --import tsx src/acquisition/cli.ts worker-once",
     "ingest:job": "node --env-file=../../.env --import tsx src/acquisition/cli.ts job",

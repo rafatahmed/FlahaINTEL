@@ -324,4 +324,21 @@ export const api = {
           filters.onlyApproved === undefined ? undefined : filters.onlyApproved ? "true" : "false",
       })}`,
     ),
+  flahaSoilComparisons: (filters: { status?: string; parameter?: string } = {}) =>
+    request<{ count: number; cases: Array<Record<string, unknown>> }>(
+      `/api/flahasoil-comparisons${query(filters)}`,
+    ),
+  createFlahaSoilComparisonFromThreshold: (body: Record<string, unknown>) =>
+    request<{ case: Record<string, unknown> }>("/api/flahasoil-comparisons/from-threshold", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  transitionFlahaSoilComparison: (
+    id: string,
+    body: { status: string; note?: string; productTicketRef?: string },
+  ) =>
+    request<{ case: Record<string, unknown>; governance: Record<string, unknown> }>(
+      `/api/flahasoil-comparisons/${id}/transition`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
 };
