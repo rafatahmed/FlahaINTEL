@@ -65,9 +65,10 @@ npm run knowledge:seed-samples
 2. **4S-B:** **DONE** — template validation, human review API/UI, comparison pack samples  
 3. **4S-C:** **DONE** — literature threshold bank; human APPROVE for live  
 4. **4S-D:** **DONE** (foundation) — comparison cases vs FlahaSOIL observations / tickets  
-5. Let scheduled harvest run nightly/daily to grow 365d series  
-6. **4M-E** market analyst pack · **4I** irrigation handoff · **4B** product feed policies  
-7. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
+5. **4S-D2:** **DONE** — PDF/JSON report upload + optional read-only SOIL API import  
+6. Let scheduled harvest run nightly/daily to grow 365d series  
+7. **4M-E** market analyst pack · **4I** irrigation handoff · **4B** product feed policies  
+8. **Do not** open YouTube/X until markets + soil packs are used end-to-end  
 
 ## Exit criteria for Sprint 1
 
