@@ -9,7 +9,7 @@ Tracks systemic execution of the first post-Phase-3N sprint (backbone ops + prod
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-31
+Last modified: 2026-08-01
 -->
 
 # Post–3N Sprint 1 status
@@ -74,11 +74,13 @@ npm run knowledge:seed-samples
 ## Next (systemic order)
 
 1. ~~**Owner accept 4R-A frame** → implement 4R-A.1~~ **DONE**  
-2. **Operate:** harvest + historical fill + approve packs + `knowledge:rebuild-research-index` + handoff exports  
-3. **Optional 4R-A.2:** soil cases in index + pack topic chips  
-4. **Host hygiene:** free C: toward ≥5–15% when practical  
-5. **4R-B** research collections (after desk is in daily use)  
-6. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
+2. **Owner accept Stage D full scope** — `docs/program/gates/gate-4r-research-desk-scope.md` (multi-domain library + APA/ASA–CSSA–SSSA citation; not packs-only)  
+3. **Charter 4R-L** (literature source records) after scope accept — design before bulk import  
+4. **Operate:** harvest + historical fill + approve packs + `knowledge:rebuild-research-index` + handoff exports  
+5. **Optional 4R-A.2:** soil cases in index + pack topic chips  
+6. **Host hygiene:** free C: toward ≥5–15% when practical  
+7. **4R-B** collections + APA bibliography export (after L2/L4 usable)  
+8. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
 
 ## Exit criteria for Sprint 1
 

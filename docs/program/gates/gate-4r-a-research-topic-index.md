@@ -19,6 +19,12 @@ Last modified: 2026-07-31
 
 **IMPLEMENTED (4R-A.1 MVP)** (2026-07-31) · Materialized topics + API + Knowledge Research tab + CLI rebuild
 
+**Position:** 4R-A is the **index muscle (partial L4)** only. Full multi-domain Stage D scope (library, APA/ASA–CSSA–SSSA citation, literature records, collections map) lives in:
+
+→ [`gate-4r-research-desk-scope.md`](gate-4r-research-desk-scope.md) (2026-08-01)
+
+Do **not** treat 4R-A.1 or any single paper/parameter as the outer boundary of Research.
+
 ---
 
 ## 1. One sentence
