@@ -36,6 +36,7 @@ Do **not** run `install-small-host.sh` again on a live box. That script is first
 | `/etc/flahaintel/crawl-policy.json` | Copy from repo | Replace only when crawl policy in git changes. |
 | `/opt/flahaintel/runtimes/` | **No** | Java/Tika/Docling/Scrapy/Playwright/Chromium (~6 GB). Re-provision with `--runtimes`. |
 | `/var/lib/flahaintel/artifacts` | **No** | Immutable ArtifactStore. |
+| `/var/lib/flahaintel/intakes` | **No** | Submit file land (`FLAHA_INTAKE_ROOT`). API cannot write under `/opt/flahaintel/current`. |
 | `/var/lib/flahaintel/state` | **No** | `last-backup.json`, `pipeline-heartbeat.json`, sessions. |
 | `/var/lib/flahaintel/web` | Built | `rsync` from `apps/web/dist` on each update. |
 | `/var/lib/flahaintel/backups` | **No** | Monthly (1st, 03:00 UTC) dumps. Copy off-host when you trust the host. |

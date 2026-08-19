@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-19
  */
 import type { EvidenceIntakeClass, EvidenceIntakeStatus, PrismaClient } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
@@ -130,11 +130,17 @@ export function intakeRoutes(
         const chunks: Buffer[] = [];
         for await (const c of file.file) chunks.push(c);
         const buffer = Buffer.concat(chunks);
-        const fields = file.fields as Record<string, { value?: string } | undefined>;
-        const intakeClass = (fields.intakeClass?.value || undefined) as EvidenceIntakeClass | undefined;
-        const autoPromote = fields.autoPromote?.value === "true";
-        const notes = fields.notes?.value;
-        const idempotencyKey = fields.idempotencyKey?.value;
+        const fields = file.fields as Record<string, { value?: string } | Array<{ value?: string }> | undefined>;
+        const fieldValue = (name: string): string | undefined => {
+          const raw = fields[name];
+          const item = Array.isArray(raw) ? raw[0] : raw;
+          const value = item?.value;
+          return typeof value === "string" && value.trim() ? value.trim() : undefined;
+        };
+        const intakeClass = fieldValue("intakeClass") as EvidenceIntakeClass | undefined;
+        const autoPromote = fieldValue("autoPromote") === "true";
+        const notes = fieldValue("notes");
+        const idempotencyKey = fieldValue("idempotencyKey");
         if (intakeClass && !CLASSES.includes(intakeClass)) {
           throw new AppError(400, "INVALID_CLASS", `Unknown intakeClass: ${intakeClass}`);
         }

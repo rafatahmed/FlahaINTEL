@@ -27,7 +27,7 @@ CURRENT="${INSTALL_ROOT}/current"
 MEASURE_LOG="${MEASURE_LOG:-/var/log/flahaintel/install-measure.log}"
 SWAP_MB="${SWAP_MB:-2048}"
 
-mkdir -p /var/log/flahaintel /etc/flahaintel /var/lib/flahaintel/{artifacts,state,web,backups}
+mkdir -p /var/log/flahaintel /etc/flahaintel /var/lib/flahaintel/{artifacts,state,web,backups,intakes}
 touch "${MEASURE_LOG}"
 chmod 755 /var/log/flahaintel
 
@@ -124,7 +124,7 @@ step_user_dirs() {
   if ! id flahaintel >/dev/null 2>&1; then
     useradd --system --home /var/lib/flahaintel --shell /usr/sbin/nologin flahaintel
   fi
-  mkdir -p "${INSTALL_ROOT}" /var/lib/flahaintel/{artifacts,state,web,backups} /var/log/flahaintel /etc/flahaintel
+  mkdir -p "${INSTALL_ROOT}" /var/lib/flahaintel/{artifacts,state,web,backups,intakes} /var/log/flahaintel /etc/flahaintel
   chown -R flahaintel:flahaintel /var/lib/flahaintel /var/log/flahaintel
 }
 
@@ -240,6 +240,7 @@ CSRF_HEADER_NAME=x-flaha-csrf
 ARTIFACT_STORE_ROOT=/var/lib/flahaintel/artifacts
 FLAHA_ARTIFACT_ROOT=/var/lib/flahaintel/artifacts
 FLAHA_STATE_DIR=/var/lib/flahaintel/state
+FLAHA_INTAKE_ROOT=/var/lib/flahaintel/intakes
 FLAHA_WEB_ROOT=/var/lib/flahaintel/web
 FLAHA_BACKUP_ROOT=/var/lib/flahaintel/backups
 FLAHA_WORKER_MODE=serial

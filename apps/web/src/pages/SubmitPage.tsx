@@ -458,6 +458,10 @@ export function SubmitPage(props: {
               <Typography variant="h6" gutterBottom>
                 File (land → classify → promote)
               </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Choose the evidence type, then a file, then <strong>Land file → promote</strong>. Choosing a file
+                alone does not upload. Eyes documents finish at human Approve (not RSS).
+              </Typography>
               <Stack spacing={1.5}>
                 <FormControl size="small" fullWidth>
                   <InputLabel>Evidence type</InputLabel>
@@ -489,8 +493,8 @@ export function SubmitPage(props: {
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
                 </Button>
-                <Typography variant="body2">
-                  {file ? `${file.name} (${file.type || "unknown"}, ${file.size} bytes)` : "No file selected"}
+                <Typography variant="body2" sx={{ fontWeight: file ? 600 : 400 }}>
+                  {file ? `Selected: ${file.name} (${file.type || "unknown"}, ${file.size} bytes)` : "No file selected yet"}
                 </Typography>
                 <FormControlLabel
                   control={<Switch checked={autoPromote} onChange={(e) => setAutoPromote(e.target.checked)} />}

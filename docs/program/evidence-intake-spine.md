@@ -57,7 +57,7 @@ LAND (spine) → CLASSIFY → PROMOTE (typed domain engine)
 
 ## Storage
 
-- Landed files: `FLAHA_INTAKE_ROOT` or default `.flaha-intakes/{tenantId}/{intakeId}/`  
+- Landed files: `FLAHA_INTAKE_ROOT` (production: `/var/lib/flahaintel/intakes`) or default `.flaha-intakes/{tenantId}/{intakeId}/`  
 - DB: `EvidenceIntake`  
 - Eyes still use ArtifactStore via product submissions  
 

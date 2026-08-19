@@ -58,11 +58,14 @@ function sha256(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex");
 }
 
-function intakeRoot(): string {
-  return (
-    process.env.FLAHA_INTAKE_ROOT?.trim() ||
-    path.resolve(process.cwd(), "../../.flaha-intakes")
-  );
+export function intakeRoot(): string {
+  const explicit = process.env.FLAHA_INTAKE_ROOT?.trim();
+  if (explicit) return explicit;
+  const stateDir = process.env.FLAHA_STATE_DIR?.trim();
+  if (stateDir) return path.join(stateDir, "intakes");
+  const artifactRoot = process.env.ARTIFACT_STORE_ROOT?.trim() || process.env.FLAHA_ARTIFACT_ROOT?.trim();
+  if (artifactRoot) return path.join(path.dirname(artifactRoot), "intakes");
+  return path.resolve(process.cwd(), "../../.flaha-intakes");
 }
 
 export class EvidenceIntakeService {
@@ -252,8 +255,17 @@ export class EvidenceIntakeService {
     const intakeId = randomUUID();
     const rel = path.join(actor.tenantId, intakeId, filename);
     const abs = path.join(intakeRoot(), rel);
-    await mkdir(path.dirname(abs), { recursive: true });
-    await writeFile(abs, params.buffer);
+    try {
+      await mkdir(path.dirname(abs), { recursive: true });
+      await writeFile(abs, params.buffer);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      throw new IntakeError(
+        "INTAKE_STORAGE",
+        `Cannot write landed file under ${intakeRoot()}. Set FLAHA_INTAKE_ROOT to a writable volume (e.g. /var/lib/flahaintel/intakes). ${detail}`,
+        503,
+      );
+    }
 
     const intakeClass = params.intakeClass ?? "UNCLASSIFIED";
     const status: EvidenceIntakeStatus =

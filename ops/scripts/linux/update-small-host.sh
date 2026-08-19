@@ -50,6 +50,11 @@ if [[ -f "${CURRENT}/ops/config/crawl-policy.json" ]]; then
   cp "${CURRENT}/ops/config/crawl-policy.json" /etc/flahaintel/crawl-policy.json
   chmod 644 /etc/flahaintel/crawl-policy.json
 fi
+mkdir -p /var/lib/flahaintel/intakes
+chown flahaintel:flahaintel /var/lib/flahaintel/intakes
+if ! grep -q '^FLAHA_INTAKE_ROOT=' /etc/flahaintel/production.env 2>/dev/null; then
+  echo "FLAHA_INTAKE_ROOT=/var/lib/flahaintel/intakes" >> /etc/flahaintel/production.env
+fi
 
 echo "==== build ===="
 cd "${CURRENT}"
