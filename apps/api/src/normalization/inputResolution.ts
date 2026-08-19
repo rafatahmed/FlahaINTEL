@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 import { createHash } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
@@ -28,6 +28,19 @@ async function readAll(store: FilesystemArtifactStore, artifactId: string): Prom
   const chunks: Buffer[] = [];
   for await (const chunk of store.read(artifactId, { verifyChecksum: true })) chunks.push(chunk);
   return Buffer.concat(chunks);
+}
+
+export function locatorToUrl(locator: unknown): string | null {
+  if (!locator || typeof locator !== "object" || Array.isArray(locator)) return null;
+  const rec = locator as Record<string, unknown>;
+  if (typeof rec.url === "string" && /^https?:\/\//i.test(rec.url.trim())) return rec.url.trim();
+  const scheme = typeof rec.scheme === "string" ? rec.scheme : "";
+  const host = typeof rec.host === "string" ? rec.host : "";
+  if (!scheme || !host) return null;
+  const port = typeof rec.port === "number" && rec.port !== 80 && rec.port !== 443 ? `:${rec.port}` : "";
+  const route = typeof rec.relativeRoute === "string" && rec.relativeRoute ? rec.relativeRoute : "/";
+  const path = route.startsWith("/") ? route : `/${route}`;
+  return `${scheme}://${host}${port}${path}`;
 }
 
 function parseMaybeJson(bytes: Buffer, mediaType: string): { json: unknown | null; text: string | null } {
@@ -167,6 +180,18 @@ export async function resolveNormalizationInputs(
           } catch {
             acquisitionMetadata = null;
           }
+        }
+        const acquiredUrl = locatorToUrl(acquisitionJob.sourceLocator);
+        if (acquiredUrl) {
+          acquisitionMetadata = {
+            ...(acquisitionMetadata ?? {}),
+            url: typeof acquisitionMetadata?.url === "string" ? acquisitionMetadata.url : acquiredUrl,
+            finalUrl: typeof acquisitionMetadata?.finalUrl === "string" ? acquisitionMetadata.finalUrl : acquiredUrl,
+            canonicalSourceLocator:
+              typeof acquisitionMetadata?.canonicalSourceLocator === "string"
+                ? acquisitionMetadata.canonicalSourceLocator
+                : acquiredUrl,
+          };
         }
       }
     }

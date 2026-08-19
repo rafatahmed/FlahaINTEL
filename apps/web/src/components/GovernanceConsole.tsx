@@ -73,6 +73,35 @@ function isAdHocDocument(candidate: GovernanceCandidate): boolean {
   return !candidate.sourceId;
 }
 
+function looksLikeUrl(value: string | null | undefined): value is string {
+  return Boolean(value && /^https?:\/\//i.test(value.trim()));
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function sourceLine(candidate: GovernanceCandidate, preview: GovernancePreview | null): string {
+  if (candidate.source?.name) {
+    return `${candidate.source.name}${candidate.source.url ? ` · ${candidate.source.url}` : ""}`;
+  }
+  const url = preview?.canonicalSourceLocator || preview?.finalAcquiredLocator
+    || (looksLikeUrl(candidate.titlePreview) ? candidate.titlePreview : null);
+  if (url) return `${hostOf(url)} · one-shot website (not a registered RSS source)`;
+  return "One-shot submit (not a registered RSS source)";
+}
+
+function locatorLine(candidate: GovernanceCandidate, preview: GovernancePreview | null): string {
+  return preview?.canonicalSourceLocator
+    || preview?.finalAcquiredLocator
+    || (looksLikeUrl(candidate.titlePreview) ? candidate.titlePreview.trim() : "")
+    || "not recorded on this candidate";
+}
+
 export function GovernanceConsole(props: { initialCandidateId?: string | null; hideAuthForm?: boolean } = {}) {
   const { auth } = useAuth();
   const [userId, setUserId] = useState(auth?.userId ?? localStorage.getItem("flaha.governance.userId") ?? "");
@@ -262,7 +291,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                   </Box>
                   <Typography sx={{ mt: 1, fontWeight: 600 }}>{candidate.documentTitle || candidate.titlePreview || "Untitled"}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {candidate.source?.name ?? "No source"} · {candidate.contentType} · {candidate.language} · age {ageLabel(candidate.createdAt)}
+                    {sourceLine(candidate, null)} · {candidate.contentType} · {candidate.language} · age {ageLabel(candidate.createdAt)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     warnings: {asStringList(candidate.warningSummary).length} · reviewer: {candidate.assignedReviewerId ?? "unassigned"}
@@ -329,8 +358,15 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
 
                 <Box>
                   <Typography variant="subtitle2">Source and lineage</Typography>
-                  <Typography variant="body2">Source: {detail.source?.name ?? detail.sourceId ?? "n/a"} · {detail.source?.url ?? ""}</Typography>
-                  <Typography variant="body2">Locator: {preview?.publicationDate ? `published ${preview.publicationDate}` : "n/a"}</Typography>
+                  <Typography variant="body2">Source: {sourceLine(detail, preview)}</Typography>
+                  <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
+                    Locator: {locatorLine(detail, preview)}
+                  </Typography>
+                  <Typography variant="body2">
+                    Published: {preview?.publicationDate || "not in extracted metadata"}
+                    {preview?.authors?.length ? ` · authors: ${preview.authors.join(", ")}` : ""}
+                    {preview?.publisher ? ` · publisher: ${preview.publisher}` : ""}
+                  </Typography>
                   <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: 12 }}>
                     acquisition={evidence?.lineage.acquisitionJobId ?? "—"} · extraction={evidence?.lineage.extractionJobId ?? "—"} · normalization={evidence?.lineage.normalizationJobId}
                   </Typography>
@@ -342,12 +378,25 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                 <Box>
                   <Typography variant="subtitle2">Evidence panel</Typography>
                   <Typography variant="body2">Completeness: {evidence?.evidenceCompleteness}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    {evidence?.evidenceCompleteness === "PARTIAL"
+                      ? "PARTIAL is expected for one-shot website submits: no RSS source id. Acquire → extract → normalize still completed. Review here; do not expect RSS promotion policy."
+                      : null}
+                  </Typography>
                   <Typography variant="body2">Warnings: {asStringList(evidence?.warnings).join("; ") || "none"}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    “Invalid link skipped” means an empty or unsafe href on the page was dropped (for example Yara’s leave-site dialog). It is not a failed extract.
+                  </Typography>
                   <Typography variant="body2">Quality: {asStringList(evidence?.qualityIndicators).join(", ") || "none"}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    MISSING_DATE / MISSING_AUTHOR mean no article date or byline was selected from metadata. Visible page text is not inferred. Corporate releases often have no author field.
+                  </Typography>
                   <Typography variant="body2">
                     Policy: {evidence?.sourcePolicy
                       ? `${evidence.sourcePolicy.sourceStatus} / ${evidence.sourcePolicy.trustTier} v${evidence.sourcePolicy.version}`
-                      : "none configured"}
+                      : isAdHocDocument(detail)
+                        ? "not applicable — one-shot website/document, not a registered RSS source"
+                        : "RSS source has no governance policy"}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">Storage paths and secrets are never exposed.</Typography>
                 </Box>

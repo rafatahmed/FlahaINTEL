@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 import type { FieldProvenance, ResolvedInputArtifact } from "./contracts.js";
 
@@ -17,11 +17,14 @@ export interface SelectedField<T> {
   provenance: FieldProvenance | null;
 }
 
-const DATE_KEYS = ["publicationDate", "datePublished", "published", "pubDate", "dc:date", "dcterms:created", "Creation-Date", "created"];
-const MODIFIED_KEYS = ["modifiedDate", "dateModified", "modified", "dcterms:modified", "Last-Modified", "modDate"];
+const DATE_KEYS = [
+  "publicationDate", "datePublished", "published", "pubDate", "dc:date", "dcterms:created",
+  "Creation-Date", "created", "article:published_time", "og:article:published_time", "date",
+];
+const MODIFIED_KEYS = ["modifiedDate", "dateModified", "modified", "dcterms:modified", "Last-Modified", "modDate", "article:modified_time"];
 const TITLE_KEYS = ["title", "dc:title", "og:title", "Title", "documentTitle"];
 const SUBTITLE_KEYS = ["subtitle", "description", "dc:description", "og:description"];
-const AUTHOR_KEYS = ["author", "authors", "dc:creator", "Creator", "meta:author"];
+const AUTHOR_KEYS = ["author", "authors", "dc:creator", "Creator", "meta:author", "article:author"];
 const PUBLISHER_KEYS = ["publisher", "dc:publisher", "og:site_name", "Producer"];
 const LANGUAGE_KEYS = ["language", "lang", "dc:language", "Content-Language"];
 const CANONICAL_KEYS = ["canonical", "canonicalUrl", "canonicalSourceLocator", "url", "og:url"];

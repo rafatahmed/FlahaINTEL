@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import type {
@@ -459,6 +459,9 @@ export class ContentGovernanceService {
         truncated: (read.content.plainText ?? "").length > PREVIEW_PLAIN_TEXT_CHARS,
         authors: read.content.authors?.slice(0, 20) ?? [],
         publicationDate: read.content.publicationDate,
+        publisher: read.content.publisher ?? null,
+        canonicalSourceLocator: read.content.canonicalSourceLocator ?? null,
+        finalAcquiredLocator: read.content.finalAcquiredLocator ?? null,
         contentHash: read.hash,
         headings: (read.content.headings ?? []).slice(0, 30),
       };

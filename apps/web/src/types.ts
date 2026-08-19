@@ -318,6 +318,9 @@ export interface GovernancePreview {
   truncated: boolean;
   authors: string[];
   publicationDate: string | null;
+  publisher?: string | null;
+  canonicalSourceLocator?: string | null;
+  finalAcquiredLocator?: string | null;
   contentHash: string;
 }
 
