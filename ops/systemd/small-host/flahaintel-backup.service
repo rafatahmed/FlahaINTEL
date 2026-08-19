@@ -1,0 +1,25 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: Daily backup oneshot (small host)
+# Introduction: Writes Postgres dump, artifacts archive, and last-backup.json for readiness.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-08-19
+# Last modified: 2026-08-19
+
+[Unit]
+Description=FlahaINTEL coordinated backup
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/flahaintel/production.env
+EnvironmentFile=/etc/flahaintel/migrator.env
+Environment=FLAHA_BACKUP_ROOT=/var/lib/flahaintel/backups
+ExecStart=/opt/flahaintel/current/ops/scripts/linux/backup-once.sh
+Nice=10
+TimeoutStartSec=600

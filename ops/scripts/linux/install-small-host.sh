@@ -241,6 +241,8 @@ ARTIFACT_STORE_ROOT=/var/lib/flahaintel/artifacts
 FLAHA_ARTIFACT_ROOT=/var/lib/flahaintel/artifacts
 FLAHA_STATE_DIR=/var/lib/flahaintel/state
 FLAHA_WEB_ROOT=/var/lib/flahaintel/web
+FLAHA_BACKUP_ROOT=/var/lib/flahaintel/backups
+FLAHA_WORKER_MODE=serial
 MAX_UPLOAD_BYTES=25000000
 MAX_PREVIEW_BYTES=64000
 QUARANTINE_RETENTION_DAYS=30
@@ -320,10 +322,13 @@ step_systemd() {
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline.timer" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-harvest.service" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-harvest.timer" /etc/systemd/system/
+  cp "${CURRENT}/ops/systemd/small-host/flahaintel-backup.service" /etc/systemd/system/
+  cp "${CURRENT}/ops/systemd/small-host/flahaintel-backup.timer" /etc/systemd/system/
   systemctl daemon-reload
   systemctl enable --now flahaintel-api.service
   systemctl enable --now flahaintel-pipeline.timer
   systemctl enable --now flahaintel-harvest.timer
+  systemctl enable --now flahaintel-backup.timer
 }
 
 step_caddy() {

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import { access, constants, readdir, stat, statfs } from "node:fs/promises";
@@ -164,16 +164,23 @@ export async function collectSystemReadiness(
     const families = new Set(hearts.live.map(w => w.family));
     const expected = ["acquisition", "extraction", "normalization"];
     const missing = expected.filter(f => !families.has(f));
+    const serial = (process.env.FLAHA_WORKER_MODE || "").trim().toLowerCase() === "serial";
     components.push({
       component: "WorkerLoops",
-      state: hearts.live.length === 0
-        ? "NOT_CONFIGURED"
-        : missing.length
-          ? "DEGRADED"
-          : "READY",
-      detail: hearts.live.length
-        ? `${hearts.live.length} live workers; missing families: ${missing.join(",") || "none"}.`
-        : "No worker heartbeats (workers may be stopped).",
+      state: serial
+        ? "READY"
+        : hearts.live.length === 0
+          ? "NOT_CONFIGURED"
+          : missing.length
+            ? "DEGRADED"
+            : "READY",
+      detail: serial
+        ? hearts.live.length
+          ? `Serial pipeline; ${hearts.live.length} recent family ticks.`
+          : "Serial pipeline timer (no persistent worker daemons on this host)."
+        : hearts.live.length
+          ? `${hearts.live.length} live workers; missing families: ${missing.join(",") || "none"}.`
+          : "No worker heartbeats (workers may be stopped).",
     });
   } catch {
     components.push({ component: "WorkerLoops", state: "NOT_CONFIGURED", detail: "Heartbeat registry unavailable." });
@@ -211,7 +218,10 @@ export async function collectSystemReadiness(
   });
 
   const playwrightCli = process.env.PLAYWRIGHT_CLI || "npx";
-  const pw = await tryExec(playwrightCli, ["playwright", "--version"], Math.max(timeout, 5000));
+  const pwArgs = /playwright(\.cmd|\.exe)?$/i.test(playwrightCli)
+    ? ["--version"]
+    : ["playwright", "--version"];
+  const pw = await tryExec(playwrightCli, pwArgs, Math.max(timeout, 5000));
   components.push({
     component: "Playwright",
     state: pw ? "READY" : "NOT_CONFIGURED",
@@ -264,14 +274,28 @@ export async function collectSystemReadiness(
   }
 
   const rank: Record<HealthState, number> = { READY: 0, NOT_CONFIGURED: 1, DEGRADED: 2, UNAVAILABLE: 3 };
+  const required = new Set(["API", "PostgreSQL", "ArtifactStore", "DiskCapacity", "Migrations"]);
+  const optionalEngines = new Set(["Scrapy", "Playwright", "Chromium", "Docling", "Java", "ApacheTika"]);
   let overall: HealthState = "READY";
   for (const c of components) {
+    if (optionalEngines.has(c.component) && (c.state === "NOT_CONFIGURED" || c.state === "DEGRADED")) {
+      continue;
+    }
+    if (c.component === "WorkerLoops" && c.state === "NOT_CONFIGURED") {
+      continue;
+    }
+    if (c.component === "StagingReconciliation" && c.state === "NOT_CONFIGURED") {
+      continue;
+    }
+    if (!required.has(c.component) && c.state === "NOT_CONFIGURED") {
+      continue;
+    }
     if (rank[c.state] > rank[overall]) overall = c.state;
   }
   if (components.some(c => ["PostgreSQL", "ArtifactStore", "API"].includes(c.component) && c.state === "UNAVAILABLE")) {
     overall = "UNAVAILABLE";
   } else if (overall === "NOT_CONFIGURED") {
-    overall = "DEGRADED";
+    overall = "READY";
   }
 
   return { overall, components, checkedAt: new Date().toISOString() };

@@ -8,13 +8,17 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 import { createHash } from "node:crypto";
 import { lstat, open } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import playwright from "../../../.benchmark-runtime/browser-playwright-1.61.1/node_modules/playwright/index.js";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const playwright = process.env.PLAYWRIGHT_MODULE
+  ? require(process.env.PLAYWRIGHT_MODULE)
+  : require("../../../.benchmark-runtime/browser-playwright-1.61.1/node_modules/playwright");
 
 const reader=createInterface({input:process.stdin,crlfDelay:Infinity});
 const request=JSON.parse(await new Promise(resolve=>reader.once("line",resolve)));reader.close();
@@ -35,7 +39,9 @@ try{
   if(request.operation!=="BROWSER_ACQUISITION"||payload.operation!==request.operation||request.provider.providerId!=="acquisition.playwright"||!["JAVASCRIPT_RENDERING","RENDERED_DOM_CAPTURE"].includes(payload.capability))throw new Error("closed operation authority mismatch");
   emit({...ctx("WORKER_PROGRESS",0),occurredAt:request.sentAt,stage:"PROBE",status:"STARTED",completedUnits:0,totalUnits:1,unit:"STEPS",metrics});
   const l=payload.governedLocator,url=`${l.scheme}://${l.host}:${l.port}${l.relativeRoute}`,origin=new URL(url);const allowed=value=>{try{const u=new URL(value);return u.protocol===origin.protocol&&u.hostname===origin.hostname&&u.port===origin.port&&!u.username&&!u.password}catch{return false}};
-  browser=await playwright.chromium.launch({headless:true,args:["--disable-extensions","--disable-webrtc"]});const context=await browser.newContext({acceptDownloads:false,serviceWorkers:"block",permissions:[]});const page=await context.newPage(),network=[],downloads=[],popups=[];
+  const launchOpts={headless:true,args:["--disable-extensions","--disable-webrtc","--no-sandbox","--disable-dev-shm-usage"]};
+  if(process.env.PLAYWRIGHT_CHROMIUM_PATH) launchOpts.executablePath=process.env.PLAYWRIGHT_CHROMIUM_PATH;
+  browser=await playwright.chromium.launch(launchOpts);const context=await browser.newContext({acceptDownloads:false,serviceWorkers:"block",permissions:[]});const page=await context.newPage(),network=[],downloads=[],popups=[];
   await context.route("**/*",route=>{const target=route.request().url();network.push({url:target,classification:allowed(target)?"ALLOWED":"BLOCKED"});return allowed(target)?route.continue():route.abort("blockedbyclient")});await context.routeWebSocket("**",socket=>socket.close());
   page.on("popup",popup=>{popups.push({url:popup.url(),disposition:"CLOSED"});void popup.close()});page.on("download",download=>{downloads.push({suggestedName:download.suggestedFilename(),disposition:"DETECTED_AND_CANCELLED"});void download.cancel()});
   const response=await page.goto(url,{waitUntil:"networkidle",timeout:payload.executionLimits.wallTimeoutMs});const raw=Buffer.from(await(await context.request.get(url)).body()),rendered=Buffer.from(await page.content());const headers=await response?.allHeaders()??{},discoveredLinks=await page.locator("a").evaluateAll(nodes=>nodes.slice(0,100).map(node=>node.href));

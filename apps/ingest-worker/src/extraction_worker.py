@@ -9,7 +9,7 @@ Runs one closed offline HTML or document extraction operation and writes only al
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-16
-Last modified: 2026-07-16
+Last modified: 2026-08-19
 """
 from __future__ import annotations
 import hashlib,json,os,stat,subprocess,sys
@@ -81,9 +81,15 @@ def html_extract(provider,path):
 def document_extract(provider,path,payload):
  if provider=='document.docling-slim':
   os.environ.update({'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','HF_DATASETS_OFFLINE':'1','DO_NOT_TRACK':'1','NO_PROXY':'*','no_proxy':'*'});from docling.datamodel.accelerator_options import AcceleratorDevice,AcceleratorOptions;from docling.datamodel.base_models import InputFormat;from docling.datamodel.pipeline_options import PdfPipelineOptions;from docling.document_converter import DocumentConverter,PdfFormatOption
-  options=PdfPipelineOptions(artifacts_path=ROOT/'.benchmark-models/document-docling-slim-2.111.0',do_ocr=False,do_table_structure=True,enable_remote_services=False,allow_external_plugins=False,accelerator_options=AcceleratorOptions(device=AcceleratorDevice.CPU,num_threads=2));doc=DocumentConverter(format_options={InputFormat.PDF:PdfFormatOption(pipeline_options=options)}).convert(path).document;text=doc.export_to_text();markdown=doc.export_to_markdown();meta={'pages':len(doc.pages),'ocrEnabled':False,'remoteServicesEnabled':False};structure={'markdown':markdown};tables=[]
+  cache=os.environ.get('DOCLING_CACHE_PATH') or str(ROOT/'.benchmark-models/document-docling-slim-2.111.0')
+  options=PdfPipelineOptions(artifacts_path=cache,do_ocr=False,do_table_structure=True,enable_remote_services=False,allow_external_plugins=False,accelerator_options=AcceleratorOptions(device=AcceleratorDevice.CPU,num_threads=2));doc=DocumentConverter(format_options={InputFormat.PDF:PdfFormatOption(pipeline_options=options)}).convert(path).document;text=doc.export_to_text();markdown=doc.export_to_markdown();meta={'pages':len(doc.pages),'ocrEnabled':False,'remoteServicesEnabled':False};structure={'markdown':markdown};tables=[]
  elif provider=='document.apache-tika':
-  runtime=ROOT/'.benchmark-runtime/document-tika-3.3.1';java=next((runtime/'jre').glob('*/bin/java.exe'));jar=runtime/'tika-app-3.3.1.jar';config=ROOT/'benchmarks/ingestion/config/document-tika-parser-allowlist.xml';temp=Path(os.environ['TEMP']);command=[str(java),'-Xms64m','-Xmx512m',f'-Djava.io.tmpdir={temp}',f'-Dpdfbox.fontcache={temp}',f'-Duser.home={temp}','-Djava.awt.headless=true','-jar',str(jar),f'--config={config}','-t',str(path)];completed=subprocess.run(command,capture_output=True,timeout=max(1,payload['executionLimits']['wallTimeoutMs']//1000),check=False);text=completed.stdout.decode('utf-8','replace');meta={'exitCode':completed.returncode};structure={};tables=[]
+  runtime=ROOT/'.benchmark-runtime/document-tika-3.3.1'
+  java=os.environ.get('JAVA_BIN') or next(iter(list((runtime/'jre').glob('*/bin/java'))+list((runtime/'jre').glob('*/bin/java.exe'))), 'java')
+  jar=os.environ.get('TIKA_JAR') or str(runtime/'tika-app-3.3.1.jar')
+  config=os.environ.get('TIKA_ALLOWLIST') or str(ROOT/'benchmarks/ingestion/config/document-tika-parser-allowlist.xml')
+  temp=Path(os.environ.get('TEMP') or os.environ.get('TMPDIR') or '/tmp')
+  command=[str(java),'-Xms64m','-Xmx384m',f'-Djava.io.tmpdir={temp}',f'-Dpdfbox.fontcache={temp}',f'-Duser.home={temp}','-Djava.awt.headless=true','-jar',str(jar),f'--config={config}','-t',str(path)];completed=subprocess.run(command,capture_output=True,timeout=max(1,payload['executionLimits']['wallTimeoutMs']//1000),check=False);text=completed.stdout.decode('utf-8','replace');meta={'exitCode':completed.returncode};structure={};tables=[]
   if completed.returncode!=0: raise RuntimeError('TIKA_PARSE_FAILURE')
  elif provider=='document.pypdf-inspection':
   from pypdf import PdfReader
