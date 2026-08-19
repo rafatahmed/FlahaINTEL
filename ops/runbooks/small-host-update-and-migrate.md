@@ -138,6 +138,15 @@ Use **Sign out** in any of:
 
 That calls `POST /api/auth/logout` (revokes the session id, clears cookies) and drops `flaha.product.auth` in the browser. Email and tenant code stay as login hints for the next sign-in.
 
+### Website Submit (Eyes)
+
+Submit → **Website (Eyes)** lands a URL, then the **serial pipeline** acquires → extracts → normalizes → opens a Governance candidate.
+
+- Jobs sitting in **READY** are waiting for `flahaintel-pipeline.timer` (every 15 minutes). Do **not** start `npm run worker:*` on this host.
+- Run one tick now: `systemctl start flahaintel-pipeline.service`
+- Intake **PROMOTED** means queued, not finished. Finished work is in **Content / Governance**.
+- Production only accepts **allowlisted** hosts/paths in `ops/config/crawl-policy.json` (copied to `/etc/flahaintel/crawl-policy.json` on update). Current Eyes hosts: MoCI, Mahaseel, Amman market, Yara `/corporate-releases/`. Adding a new site is an allowlist change, not a free crawl.
+
 ---
 
 ## 4. DigitalOcean host monitor vs Flaha readiness

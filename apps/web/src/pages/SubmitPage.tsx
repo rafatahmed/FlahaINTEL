@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-01
+ * Last modified: 2026-08-19
  */
 import {
   Alert,
@@ -152,7 +152,9 @@ function describePromote(row: IntakeRow): { severity: "success" | "warning" | "i
     if (overall === "RUNNING" || overall === "ACCEPTED" || !pipe?.finished) {
       return {
         severity: "warning",
-        text: `Eyes pipeline live: submission ${subId}… · stage ${stage || "?"} · ${overall || "RUNNING"}${jobState ? ` · extract job ${jobState}` : ""}. Intake PROMOTED ≠ finished. Run: npm run ops:pipeline-once (or worker:extraction / normalization). Then Content → Governance.`,
+        text: import.meta.env.PROD
+          ? `Eyes pipeline live: submission ${subId}… · stage ${stage || "?"} · ${overall || "RUNNING"}${jobState ? ` · extract job ${jobState}` : ""}. Intake PROMOTED ≠ finished. The serial pipeline (every 15 minutes) will advance it; then open Content → Governance.`
+          : `Eyes pipeline live: submission ${subId}… · stage ${stage || "?"} · ${overall || "RUNNING"}${jobState ? ` · extract job ${jobState}` : ""}. Intake PROMOTED ≠ finished. Run: npm run ops:pipeline-once (or worker:extraction / normalization). Then Content → Governance.`,
       };
     }
     return {

@@ -8,9 +8,11 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { assertUrlAllowedByPolicy, crawlLimitsFromPolicy, type CrawlPolicy } from "./crawlPolicy.js";
 
@@ -44,6 +46,19 @@ describe("crawl policy", () => {
 
   it("rejects disallowed path prefix", () => {
     expect(() => assertUrlAllowedByPolicy("https://example.com/private", policy)).toThrow(/Path is not on the controlled crawl allowlist/i);
+  });
+
+  it("allows the Yara corporate-releases prefix from the shipped policy", () => {
+    const raw = JSON.parse(
+      readFileSync(path.resolve(import.meta.dirname, "../../../../ops/config/crawl-policy.json"), "utf8"),
+    ) as CrawlPolicy;
+    expect(() =>
+      assertUrlAllowedByPolicy(
+        "https://www.yara.com/corporate-releases/yara-acquires-gulf-coast-ammonia-plant/",
+        raw,
+      ),
+    ).not.toThrow();
+    expect(() => assertUrlAllowedByPolicy("https://www.yara.com/about/", raw)).toThrow(/Path is not/i);
   });
 
   it("caps limits", () => {

@@ -46,6 +46,10 @@ git -C "${CURRENT}" pull --ff-only origin "${GIT_REF}"
 find "${CURRENT}/ops/scripts/linux" -name '*.sh' -exec sed -i 's/\r$//' {} \;
 chmod +x "${CURRENT}/ops/scripts/linux/"*.sh
 ln -sfn /etc/flahaintel/production.env "${CURRENT}/.env"
+if [[ -f "${CURRENT}/ops/config/crawl-policy.json" ]]; then
+  cp "${CURRENT}/ops/config/crawl-policy.json" /etc/flahaintel/crawl-policy.json
+  chmod 644 /etc/flahaintel/crawl-policy.json
+fi
 
 echo "==== build ===="
 cd "${CURRENT}"

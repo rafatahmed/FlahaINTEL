@@ -33,7 +33,7 @@ import { isGovernanceError } from "../contentGovernance/errors.js";
 import { getProductionConfig } from "../production/config.js";
 import { assertLoginRateLimit, assertSubmissionRateLimit } from "../production/rateLimit.js";
 import { incMetric, observeLatency, snapshotMetrics } from "../production/metrics.js";
-import { assertUrlAllowedByPolicy, loadCrawlPolicy } from "../production/crawlPolicy.js";
+import { assertWebsiteUrlIfEnforced } from "../production/crawlPolicy.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
 
@@ -289,13 +289,7 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
       try {
         assertSubmissionRateLimit(actor.userId, actor.tenantId, actor.correlationId);
         const body = request.body as { url: string };
-        const policy = await loadCrawlPolicy();
-        const enforcePolicy =
-          getProductionConfig().isProduction
-          || process.env.CRAWL_POLICY_ENFORCE === "true";
-        if (enforcePolicy) {
-          assertUrlAllowedByPolicy(body.url, policy);
-        }
+        await assertWebsiteUrlIfEnforced(body.url);
         const submission = await orchestrator.createWebsiteSubmission(actor, request.body as never);
         incMetric("submissions.website");
         observeLatency("submissions.website", Date.now() - started);

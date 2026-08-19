@@ -19,7 +19,9 @@
     "mahaseel.qa",
     "www.mahaseel.qa",
     "www.ammancity.gov.jo",
-    "ammancity.gov.jo"
+    "ammancity.gov.jo",
+    "www.yara.com",
+    "yara.com"
   ],
   "allowedPathPrefixes": {
     "example.com": ["/", "/index.html"],
@@ -35,7 +37,9 @@
     "mahaseel.qa": ["/en/prices-of-vegetables/", "/wp-content/uploads/"],
     "www.mahaseel.qa": ["/en/prices-of-vegetables/", "/wp-content/uploads/"],
     "www.ammancity.gov.jo": ["/ar/market/"],
-    "ammancity.gov.jo": ["/ar/market/"]
+    "ammancity.gov.jo": ["/ar/market/"],
+    "www.yara.com": ["/corporate-releases/"],
+    "yara.com": ["/corporate-releases/"]
   },
   "allowedAttachmentTypes": [
     "application/pdf",

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import { readFile } from "node:fs/promises";
@@ -83,6 +83,15 @@ export async function loadCrawlPolicy(pathOverride?: string): Promise<CrawlPolic
     if (!pathOverride) cached = DEFAULT_POLICY;
     return DEFAULT_POLICY;
   }
+}
+
+export async function assertWebsiteUrlIfEnforced(urlText: string): Promise<void> {
+  const enforce =
+    getProductionConfig().isProduction
+    || process.env.CRAWL_POLICY_ENFORCE === "true";
+  if (!enforce) return;
+  const policy = await loadCrawlPolicy();
+  assertUrlAllowedByPolicy(urlText, policy);
 }
 
 export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): {

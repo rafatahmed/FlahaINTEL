@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-08-01
+ * Last modified: 2026-08-19
  */
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -38,6 +38,7 @@ import { ReportImportService } from "../knowledgePack/reportImportService.js";
 import { KnowledgePackService } from "../knowledgePack/service.js";
 import type { ProductActor } from "../product/auth.js";
 import { assertPermission } from "../product/auth.js";
+import { assertWebsiteUrlIfEnforced } from "../production/crawlPolicy.js";
 import { ProductError } from "../product/errors.js";
 import { SubmissionOrchestrator } from "../product/submission/orchestrator.js";
 import { PROMOTABLE_CLASSES } from "./contracts.js";
@@ -309,6 +310,8 @@ export class EvidenceIntakeService {
       }
       return existing;
     }
+
+    await assertWebsiteUrlIfEnforced(params.url);
 
     const submission = await this.submissions.createWebsiteSubmission(actor, {
       url: params.url,

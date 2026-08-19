@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-01
+ * Last modified: 2026-08-19
  */
 import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
@@ -65,10 +65,21 @@ export function JobsPage() {
       {error && <Alert severity="error">{error}</Alert>}
       {items.some((j) => String(j.state) === "READY") && (
         <Alert severity="warning">
-          One or more jobs are <strong>READY</strong> but not running. Start workers, e.g.{" "}
-          <code>npm run worker:extraction --workspace=@flaha-intel/api</code> and{" "}
-          <code>npm run worker:normalization --workspace=@flaha-intel/api</code>. Without workers, Content/Governance
-          stay empty even if Submit shows PROMOTED.
+          {import.meta.env.PROD ? (
+            <>
+              One or more jobs are <strong>READY</strong> and waiting for the serial pipeline
+              (every 15 minutes on this host, or <code>systemctl start flahaintel-pipeline.service</code>).
+              Do not start long-lived npm workers here. Content / Governance fill after acquire → extract → normalize.
+            </>
+          ) : (
+            <>
+              One or more jobs are <strong>READY</strong> but not running. Start workers, e.g.{" "}
+              <code>npm run worker:extraction --workspace=@flaha-intel/api</code> and{" "}
+              <code>npm run worker:normalization --workspace=@flaha-intel/api</code>, or{" "}
+              <code>npm run ops:pipeline-once</code>. Without workers, Content/Governance stay empty even if Submit
+              shows PROMOTED.
+            </>
+          )}
         </Alert>
       )}
       <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 2 }}>
