@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import { createHash, randomUUID } from "node:crypto";
@@ -528,5 +528,26 @@ suite("Phase 3L product API", () => {
     });
     expect(me.statusCode).toBe(200);
     expect((me.json() as { userId: string }).userId).toBe(admin.userId);
+  });
+
+  it("session login accepts email and tenant code", async () => {
+    const user = await prisma.userAccount.findUniqueOrThrow({ where: { id: admin.userId } });
+    const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: admin.tenantId } });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/session",
+      headers: { "content-type": "application/json" },
+      payload: { email: user.email.toUpperCase(), tenantCode: tenant.code },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { token: string; user: { id: string }; tenant: { id: string } };
+    expect(body.user.id).toBe(admin.userId);
+    expect(body.tenant.id).toBe(admin.tenantId);
+    const me = await app.inject({
+      method: "GET",
+      url: "/api/auth/me",
+      headers: { authorization: `Bearer ${body.token}` },
+    });
+    expect(me.statusCode).toBe(200);
   });
 });

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-01
+ * Last modified: 2026-08-19
  */
 import {
   Article,
@@ -27,6 +27,7 @@ import {
 import {
   AppBar,
   Box,
+  Button,
   Chip,
   Divider,
   Drawer,
@@ -79,7 +80,7 @@ export function AppShell(props: {
   children: ReactNode;
   readiness?: string;
 }) {
-  const { auth } = useAuth();
+  const { auth, signOut } = useAuth();
   let lastGroup = "";
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
@@ -105,9 +106,14 @@ export function AppShell(props: {
             />
           )}
           {auth && (
-            <Typography variant="body2" sx={{ color: "common.white" }}>
-              {auth.displayName || auth.userId.slice(0, 8)} · {auth.role || "member"}
-            </Typography>
+            <>
+              <Typography variant="body2" sx={{ color: "common.white" }}>
+                {auth.displayName || auth.userId.slice(0, 8)} · {auth.role || "member"}
+              </Typography>
+              <Button color="inherit" size="small" onClick={() => void signOut()}>
+                Sign out
+              </Button>
+            </>
           )}
         </Toolbar>
       </AppBar>

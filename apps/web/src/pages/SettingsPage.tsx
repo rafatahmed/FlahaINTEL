@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -47,7 +47,7 @@ export function SettingsPage() {
           <Typography variant="body2">Tenant: {auth?.tenantId}</Typography>
           <Typography variant="body2">Role: {auth?.role}</Typography>
           <Typography variant="caption" color="text.secondary">
-            Identity modes: internal signed session cookie/token and development headers. Actor IDs are never taken from request bodies.
+            Production identity is the signed session cookie or Bearer token. Development headers are disabled on the live site. Actor IDs are never taken from request bodies.
           </Typography>
         </CardContent>
       </Card>

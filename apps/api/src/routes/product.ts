@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import type { PrismaClient } from "@prisma/client";
@@ -97,30 +97,58 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
         body: {
           type: "object",
           additionalProperties: false,
-          required: ["userId", "tenantId"],
-          properties: { userId: uuid, tenantId: uuid },
+          properties: {
+            userId: uuid,
+            tenantId: uuid,
+            email: { type: "string", minLength: 3, maxLength: 320 },
+            tenantCode: { type: "string", minLength: 1, maxLength: 80 },
+          },
         },
       },
     }, async (request, reply) => {
-      const body = request.body as { userId: string; tenantId: string };
+      const body = request.body as {
+        userId?: string;
+        tenantId?: string;
+        email?: string;
+        tenantCode?: string;
+      };
       const correlationId = (typeof request.headers["x-flaha-correlation-id"] === "string"
         ? request.headers["x-flaha-correlation-id"]
         : `login-${Date.now()}`).slice(0, 200);
+      const rateKey = (body.userId || body.email || "unknown").trim().toLowerCase();
       try {
-        assertLoginRateLimit(`${body.userId}:${request.ip}`, correlationId);
+        assertLoginRateLimit(`${rateKey}:${request.ip}`, correlationId);
       } catch (error) {
         mapError(error);
       }
+      let userId = body.userId?.trim();
+      let tenantId = body.tenantId?.trim();
+      if ((!userId || !tenantId) && body.email && body.tenantCode) {
+        const tenant = await prisma.tenant.findFirst({
+          where: { code: { equals: body.tenantCode.trim(), mode: "insensitive" }, active: true },
+        });
+        const user = await prisma.userAccount.findFirst({
+          where: { email: { equals: body.email.trim(), mode: "insensitive" }, active: true },
+        });
+        if (tenant && user) {
+          userId = user.id;
+          tenantId = tenant.id;
+        }
+      }
+      if (!userId || !tenantId) {
+        incMetric("auth.login.failed");
+        throw new AppError(400, "LOGIN_IDENTITY_REQUIRED", "Provide user and tenant UUIDs, or email and tenant code.");
+      }
       // Establish session only after membership verification (controlled bootstrap; no public IdP)
       const membership = await prisma.tenantMembership.findUnique({
-        where: { userId_tenantId: { userId: body.userId, tenantId: body.tenantId } },
+        where: { userId_tenantId: { userId, tenantId } },
         include: { user: true, tenant: true },
       });
       if (!membership?.active || !membership.user.active || !membership.tenant.active) {
         incMetric("auth.login.failed");
         throw new AppError(403, "FORBIDDEN_TENANT", "Active membership is required.");
       }
-      const session = setSessionCookie(reply, body.userId, body.tenantId);
+      const session = setSessionCookie(reply, userId, tenantId);
       incMetric("auth.login.success");
       return {
         token: session.token,

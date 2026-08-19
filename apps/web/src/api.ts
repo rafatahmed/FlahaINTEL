@@ -1,3 +1,15 @@
+/**
+ * Flaha Agri Tech
+ * Precision Agriculture Division
+ * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+ *
+ * Title: FlahaINTEL Web API Client
+ * Introduction: Browser fetch client for product APIs. Production uses session cookie/Bearer only.
+ *
+ * Created by: Rafat Al Khashan
+ * Created date: 2026-07-16
+ * Last modified: 2026-08-19
+ */
 import type {
   ArticleFilters,
   ArticlePage,
@@ -22,9 +34,19 @@ import type {
 } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3003";
+const CSRF_COOKIE = "flaha_csrf";
+const CSRF_HEADER = "x-flaha-csrf";
+const SESSION_AUTH_CODES = new Set(["HEADER_AUTH_DISABLED", "UNAUTHENTICATED"]);
 
 interface ApiErrorBody { error?: { code?: string; message?: string } }
 interface Items<T> { items: T[] }
+
+export type ProductAuthContext = {
+  userId: string;
+  tenantId: string;
+  token?: string;
+  csrf?: string;
+};
 
 export class ApiError extends Error {
   constructor(public readonly code: string, message: string, public readonly status: number) {
@@ -34,15 +56,54 @@ export class ApiError extends Error {
 }
 
 let governanceAuth: GovernanceAuthContext | null = null;
-let productAuth: { userId: string; tenantId: string; token?: string } | null = null;
+let productAuth: ProductAuthContext | null = null;
+let authFailureHandler: ((error: ApiError) => void) | null = null;
 
 export function setGovernanceAuth(context: GovernanceAuthContext | null) {
   governanceAuth = context;
 }
 
-export function setProductAuth(context: { userId: string; tenantId: string; token?: string } | null) {
+export function setProductAuth(context: ProductAuthContext | null) {
   productAuth = context;
   if (context) governanceAuth = { userId: context.userId, tenantId: context.tenantId };
+}
+
+export function setAuthFailureHandler(handler: ((error: ApiError) => void) | null) {
+  authFailureHandler = handler;
+}
+
+function readBrowserCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const prefix = `${name}=`;
+  for (const part of document.cookie.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(prefix)) return decodeURIComponent(trimmed.slice(prefix.length));
+  }
+  return undefined;
+}
+
+function applyAuthHeaders(headers: Headers, method: string): void {
+  const identity = productAuth || governanceAuth;
+  const allowDevHeaders = !import.meta.env.PROD && !productAuth?.token;
+  if (identity && allowDevHeaders) {
+    headers.set("X-Flaha-User-Id", identity.userId);
+    headers.set("X-Flaha-Tenant-Id", identity.tenantId);
+  }
+  if (identity) {
+    headers.set("X-Flaha-Correlation-Id", `web-${Date.now()}`);
+  }
+  if (productAuth?.token) headers.set("Authorization", `Bearer ${productAuth.token}`);
+  if (!["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase())) {
+    const csrf = productAuth?.csrf || readBrowserCookie(CSRF_COOKIE);
+    if (csrf) headers.set(CSRF_HEADER, csrf);
+  }
+}
+
+function notifyAuthFailure(path: string, error: ApiError): void {
+  if (path.includes("/auth/session") || path.includes("/auth/logout")) return;
+  if (error.status !== 401) return;
+  if (!SESSION_AUTH_CODES.has(error.code)) return;
+  authFailureHandler?.(error);
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -50,24 +111,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (options?.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const identity = productAuth || governanceAuth;
-  if (identity) {
-    headers.set("X-Flaha-User-Id", identity.userId);
-    headers.set("X-Flaha-Tenant-Id", identity.tenantId);
-    headers.set("X-Flaha-Correlation-Id", `web-${Date.now()}`);
-  }
-  if (productAuth?.token) headers.set("Authorization", `Bearer ${productAuth.token}`);
+  applyAuthHeaders(headers, options?.method ?? "GET");
   const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
   const body = response.status === 204
     ? {}
     : await response.json().catch(() => ({})) as ApiErrorBody;
   if (!response.ok) {
     const errorBody = body as ApiErrorBody;
-    throw new ApiError(
+    const error = new ApiError(
       errorBody.error?.code ?? "REQUEST_FAILED",
       errorBody.error?.message ?? "Request failed.",
       response.status,
     );
+    notifyAuthFailure(path, error);
+    throw error;
   }
   return body as T;
 }
@@ -213,11 +270,18 @@ export const api = {
     body: JSON.stringify(body),
   }),
 
-  createSession: (userId: string, tenantId: string) =>
-    request<{ token: string; user: { id: string; email: string; displayName: string }; tenant: { id: string; code: string; name: string }; role: string }>(
+  createSession: (identity: { userId?: string; tenantId?: string; email?: string; tenantCode?: string }) =>
+    request<{
+      token: string;
+      csrf: string;
+      user: { id: string; email: string; displayName: string };
+      tenant: { id: string; code: string; name: string };
+      role: string;
+    }>(
       "/api/auth/session",
-      { method: "POST", body: JSON.stringify({ userId, tenantId }) },
+      { method: "POST", body: JSON.stringify(identity) },
     ),
+  logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST", body: "{}" }),
   me: () => request<{ userId: string; tenantId: string; email: string; displayName: string; role: string }>("/api/auth/me"),
   dashboard: () => request<Record<string, unknown>>("/api/dashboard"),
   systemReadiness: () => request<{ overall: string; components: Array<{ component: string; state: string; detail: string }>; checkedAt: string }>("/api/system/readiness"),
@@ -247,24 +311,7 @@ export const api = {
   intakeLandFile: async (form: FormData) => {
     const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3003";
     const headers = new Headers();
-    let userId = "";
-    let tenantId = "";
-    let token = "";
-    try {
-      const raw = localStorage.getItem("flaha.product.auth");
-      if (raw) {
-        const a = JSON.parse(raw) as { userId?: string; tenantId?: string; token?: string };
-        userId = a.userId || "";
-        tenantId = a.tenantId || "";
-        token = a.token || "";
-      }
-    } catch {
-      /* ignore */
-    }
-    if (userId) headers.set("X-Flaha-User-Id", userId);
-    if (tenantId) headers.set("X-Flaha-Tenant-Id", tenantId);
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    headers.set("X-Flaha-Correlation-Id", `web-intake-${Date.now()}`);
+    applyAuthHeaders(headers, "POST");
     const response = await fetch(`${API_URL}/api/intake/land/file`, {
       method: "POST",
       headers,
@@ -276,11 +323,13 @@ export const api = {
       intake?: Record<string, unknown>;
     };
     if (!response.ok) {
-      throw new ApiError(
+      const error = new ApiError(
         body.error?.code ?? "REQUEST_FAILED",
         body.error?.message ?? "Intake land failed.",
         response.status,
       );
+      notifyAuthFailure("/api/intake/land/file", error);
+      throw error;
     }
     return body as { intake: Record<string, unknown> };
   },
@@ -891,25 +940,7 @@ export const api = {
     const form = new FormData();
     form.append("file", file);
     const headers = new Headers();
-    const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3003";
-    let userId = "";
-    let tenantId = "";
-    let token = "";
-    try {
-      const raw = localStorage.getItem("flaha.product.auth");
-      if (raw) {
-        const a = JSON.parse(raw) as { userId?: string; tenantId?: string; token?: string };
-        userId = a.userId || "";
-        tenantId = a.tenantId || "";
-        token = a.token || "";
-      }
-    } catch {
-      /* ignore */
-    }
-    if (userId) headers.set("X-Flaha-User-Id", userId);
-    if (tenantId) headers.set("X-Flaha-Tenant-Id", tenantId);
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    headers.set("X-Flaha-Correlation-Id", `web-import-${Date.now()}`);
+    applyAuthHeaders(headers, "POST");
     const response = await fetch(`${API_URL}/api/flahasoil-comparisons/import-report`, {
       method: "POST",
       headers,
@@ -920,11 +951,13 @@ export const api = {
       error?: { code?: string; message?: string };
     };
     if (!response.ok) {
-      throw new ApiError(
+      const error = new ApiError(
         body.error?.code ?? "REQUEST_FAILED",
         body.error?.message ?? "Report import failed.",
         response.status,
       );
+      notifyAuthFailure("/api/flahasoil-comparisons/import-report", error);
+      throw error;
     }
     return body as {
       casesCreated: number;

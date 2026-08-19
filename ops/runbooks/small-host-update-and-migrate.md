@@ -108,7 +108,7 @@ Recorded after first production-like install. Re-check after each update.
 | Runtimes disk | Docling ~5.1 G · Chromium/Playwright ~0.66 G · Scrapy 96 M · Tika 63 M |
 | Docling models dir | `/opt/flahaintel/runtimes/docling-models` (fills on first PDF extract) |
 
-**Bootstrap identity (change when you add a real operator):** tenant `flaha-local`; login uses user UUID + tenant UUID from Settings/session (not a password).
+**Bootstrap identity (change when you add a real operator):** tenant `flaha-local`; sign in with `admin@flaha.local` and tenant code `flaha-local`, or with the membership user UUID and tenant UUID. No password.
 
 ---
 
