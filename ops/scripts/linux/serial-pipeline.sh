@@ -16,6 +16,6 @@ export NODE_ENV="${NODE_ENV:-production}"
 families=(acquisition extraction normalization submission-advance stale-recovery)
 for family in "${families[@]}"; do
   echo "[pipeline] start ${family} $(date -u +%FT%TZ)"
-  /usr/bin/node dist/production/workers/cli.js "${family}" || echo "[pipeline] ${family} exited $?"
+  /usr/bin/node --import tsx src/production/workers/cli.ts "${family}" || echo "[pipeline] ${family} exited $?"
   echo "[pipeline] end ${family} $(date -u +%FT%TZ)"
 done

@@ -13,4 +13,4 @@
 set -euo pipefail
 cd /opt/flahaintel/current/apps/api
 export NODE_ENV="${NODE_ENV:-production}"
-exec /usr/bin/node dist/market/harvest/cli.js
+exec /usr/bin/node --import tsx src/market/harvest/cli.ts

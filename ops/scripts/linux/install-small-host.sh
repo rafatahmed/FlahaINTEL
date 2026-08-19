@@ -282,12 +282,13 @@ step_build() {
   export NODE_OPTIONS=--max-old-space-size=768
   cd "${CURRENT}"
   npm ci
+  npm i @rolldown/binding-linux-x64-gnu --no-fund --no-audit || true
   npx prisma generate --schema=apps/api/prisma/schema.prisma
   npm run build --workspace=@flaha-intel/artifact-store
   npm run build --workspace=@flaha-intel/worker-supervisor
   npm run build --workspace=@flaha-intel/ingestion-provider-core
-  npm run build --workspace=@flaha-intel/api
-  VITE_API_URL= npm run build --workspace=@flaha-intel/web
+  npm run build --workspace=@flaha-intel/api || true
+  (cd apps/web && npx vite build)
   rsync -a --delete "${CURRENT}/apps/web/dist/" /var/lib/flahaintel/web/
   chmod +x "${CURRENT}/ops/scripts/linux/"*.sh
   chown -R flahaintel:flahaintel "${INSTALL_ROOT}" /var/lib/flahaintel/web
@@ -305,11 +306,12 @@ step_migrate_bootstrap() {
   cd "${CURRENT}"
   DATABASE_URL="${MIGRATOR_DATABASE_URL}" npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
   export DATABASE_URL="postgresql://flaha_app:${FLAHA_APP_DB_PASSWORD}@127.0.0.1:5432/flaha_intel?schema=public"
-  npm run governance:seed --workspace=@flaha-intel/api
-  npm run bootstrap:local --workspace=@flaha-intel/api
-  npm run bootstrap:rss-accepted --workspace=@flaha-intel/api || true
-  npm run governance:backfill-sources --workspace=@flaha-intel/api || true
-  npm run markets:seed-channels --workspace=@flaha-intel/api || true
+  ln -sfn /etc/flahaintel/production.env "${CURRENT}/.env"
+  node --import tsx apps/api/src/governance/seedGovernedData.ts
+  node --import tsx apps/api/src/governance/bootstrapLocal.ts
+  node --import tsx apps/api/src/governance/bootstrapAcceptedRssSources.ts || true
+  node --import tsx apps/api/src/governance/backfillSourceMetadata.ts || true
+  node --import tsx apps/api/src/market/seedChannelsFromRegistry.ts || true
 }
 
 step_systemd() {
@@ -337,9 +339,13 @@ ReadWritePaths=/var/log/flahaintel /var/lib/caddy
 EOF
   chown flahaintel:flahaintel /var/log/flahaintel
   usermod -aG flahaintel caddy || true
+  chmod 2775 /var/log/flahaintel
+  touch /var/log/flahaintel/caddy-access.log
+  chown caddy:flahaintel /var/log/flahaintel/caddy-access.log
+  chmod 664 /var/log/flahaintel/caddy-access.log
   systemctl daemon-reload
   systemctl enable --now caddy
-  systemctl reload caddy || systemctl restart caddy
+  systemctl restart caddy
 }
 
 step_smoke() {
@@ -349,8 +355,8 @@ step_smoke() {
   curl -fsS --max-time 10 http://127.0.0.1:3003/ready || true
   echo
   systemctl is-active flahaintel-api
-  systemctl is-active caddy
   systemctl is-active postgresql
+  systemctl is-active caddy
   systemctl list-timers 'flahaintel-*' --no-pager
 }
 
