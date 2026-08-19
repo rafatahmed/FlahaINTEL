@@ -251,4 +251,4 @@ npm run governance:backfill-sources
 npm run ops:provision-verify
 ```
 
-Default bootstrap admin email is `admin@flaha.local` under tenant code `flaha-local` (override with `FLAHA_BOOTSTRAP_*` env vars). Never commit real production secrets.
+Default bootstrap admin email is `admin@flaha.local` under tenant code `flaha-local` (override with `FLAHA_BOOTSTRAP_*` env vars). Live sign-in (`intel.flaha.org`) uses that email + tenant code, or the UUIDs printed by `bootstrap:local`. Sign out from the header, sidebar, or Settings. Never commit real production secrets.

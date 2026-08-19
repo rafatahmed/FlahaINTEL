@@ -9,7 +9,7 @@ Defines the operational product shell over acquisition, extraction, normalizatio
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-16
-Last modified: 2026-07-16
+Last modified: 2026-08-19
 -->
 
 # Phase 3L — FlahaINTEL API and Web Application
@@ -62,7 +62,9 @@ Routes under `/api` include submissions, jobs, content, artifacts, dashboard, sy
 ## Authentication
 
 - Internal signed session cookie / Bearer token (`POST /api/auth/session`)
-- Development headers still accepted after membership verification
+- Sign-in body is either membership **user UUID + tenant UUID**, or **email + tenant code** (case-insensitive). No password and no external IdP.
+- `POST /api/auth/logout` revokes the session id and clears the session/CSRF cookies. The web shell **Sign out** control (header, sidebar, Settings) always drops local storage even if the API call fails.
+- Production (`AUTH_MODE=production`) rejects `X-Flaha-User-Id` / `X-Flaha-Tenant-Id` headers. The web client sends those headers only in development builds without a session token.
 - Actor IDs never accepted from request bodies
 
 ## Authorization
@@ -85,7 +87,7 @@ Safe messages with optional failed stage and correlation ID. No stack traces, se
 
 - Full website E2E requires acquisition workers (Scrapy/Playwright) and network/fixture hosts
 - Docling/Tika/Java readiness may be `NOT_CONFIGURED` on the API host when workers run separately
-- No external IdP; session binds verified membership UUIDs
+- No external IdP; session binds verified membership (email + tenant code, or UUIDs)
 
 ## Relationship to Phase 3M
 

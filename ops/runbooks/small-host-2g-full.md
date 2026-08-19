@@ -47,6 +47,6 @@ Measure log: `/var/log/flahaintel/install-measure.log`
 | Harvest now | `systemctl start flahaintel-harvest.service` |
 | Timers | `systemctl list-timers 'flahaintel-*'` |
 
-Bootstrap admin: `admin@flaha.local` under tenant `flaha-local`. Change email/secret after first login.
+Bootstrap admin: sign in at `https://intel.flaha.org` with email `admin@flaha.local` and tenant code `flaha-local` (or the user/tenant UUIDs from `bootstrap:local`). No password. Use **Sign out** in the header, sidebar, or Settings. Change the bootstrap email when you add a real operator.
 
 Lookback rules: `docs/markets/harvest-lookback-qa-jo.md` (MoCI daily only; Amman ≤ 3-day windows).

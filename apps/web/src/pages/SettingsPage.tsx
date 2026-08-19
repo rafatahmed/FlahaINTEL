@@ -10,14 +10,14 @@
  * Created date: 2026-07-16
  * Last modified: 2026-08-19
  */
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { BrandedState } from "../components/BrandedState";
 
 export function SettingsPage() {
-  const { auth } = useAuth();
+  const { auth, signOut } = useAuth();
   const [readiness, setReadiness] = useState<{ overall: string; components: Array<{ component: string; state: string; detail: string }> } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -44,11 +44,15 @@ export function SettingsPage() {
         <CardContent>
           <Typography variant="h6">Session</Typography>
           <Typography variant="body2">User: {auth?.displayName || auth?.userId}</Typography>
-          <Typography variant="body2">Tenant: {auth?.tenantId}</Typography>
+          <Typography variant="body2">Email: {auth?.email || "—"}</Typography>
+          <Typography variant="body2">Tenant: {auth?.tenantCode || auth?.tenantId}</Typography>
           <Typography variant="body2">Role: {auth?.role}</Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
             Production identity is the signed session cookie or Bearer token. Development headers are disabled on the live site. Actor IDs are never taken from request bodies.
           </Typography>
+          <Button variant="outlined" sx={{ mt: 2 }} onClick={() => void signOut()}>
+            Sign out
+          </Button>
         </CardContent>
       </Card>
       <Card>

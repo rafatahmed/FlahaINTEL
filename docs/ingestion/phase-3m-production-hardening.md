@@ -9,7 +9,7 @@ Documents production topology, configuration, workers, security, backup, and ope
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-16
-Last modified: 2026-07-16
+Last modified: 2026-08-19
 -->
 
 # Phase 3M — Production Hardening and Deployment Readiness
@@ -49,8 +49,9 @@ Canonical artifact root: `ARTIFACT_STORE_ROOT` (must equal `FLAHA_ARTIFACT_ROOT`
 ## Authentication
 
 - `AUTH_MODE=production` disables `X-Flaha-User-Id` / `X-Flaha-Tenant-Id` headers.
+- Sign-in: `POST /api/auth/session` with email + tenant code **or** user UUID + tenant UUID (membership-verified; no password).
 - Signed session cookie: `HttpOnly`, `SameSite=Lax`, `Secure` in production.
-- Session TTL + idle timeout; logout revocation via file-backed sid list.
+- Session TTL + idle timeout; `POST /api/auth/logout` revokes the sid (file-backed list) and clears cookies.
 - CSRF for mutating cookie/session requests (`x-flaha-csrf` / CSRF cookie).
 - Membership + role checks unchanged; actor IDs never trusted from bodies.
 

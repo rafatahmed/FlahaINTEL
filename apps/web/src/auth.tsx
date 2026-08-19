@@ -18,6 +18,7 @@ export type AuthState = {
   tenantId: string;
   displayName?: string;
   email?: string;
+  tenantCode?: string;
   role?: string;
   token?: string;
   csrf?: string;
@@ -38,12 +39,23 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 const STORAGE_KEY = "flaha.product.auth";
+const HINT_ACCOUNT_KEY = "flaha.login.account";
+const HINT_TENANT_KEY = "flaha.login.tenant";
 const HINT_USER_KEY = "flaha.governance.userId";
-const HINT_TENANT_KEY = "flaha.governance.tenantId";
+const HINT_TENANT_ID_KEY = "flaha.governance.tenantId";
 
-function persistLoginHints(userId?: string, tenantId?: string) {
-  if (userId) localStorage.setItem(HINT_USER_KEY, userId);
-  if (tenantId) localStorage.setItem(HINT_TENANT_KEY, tenantId);
+function persistLoginHints(next?: Pick<AuthState, "email" | "tenantCode" | "userId" | "tenantId"> | null) {
+  if (!next) return;
+  const account = next.email || next.userId;
+  const tenant = next.tenantCode || next.tenantId;
+  if (account) {
+    localStorage.setItem(HINT_ACCOUNT_KEY, account);
+    localStorage.setItem(HINT_USER_KEY, account);
+  }
+  if (tenant) {
+    localStorage.setItem(HINT_TENANT_KEY, tenant);
+    localStorage.setItem(HINT_TENANT_ID_KEY, tenant);
+  }
 }
 
 function applyClientAuth(next: AuthState | null) {
@@ -64,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthState(next);
     if (next) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      persistLoginHints(next.userId, next.tenantId);
+      persistLoginHints(next);
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -97,14 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               tenantId: me.tenantId,
               displayName: me.displayName,
               email: me.email,
+              tenantCode: me.tenantCode ?? parsed.tenantCode,
               role: me.role,
             };
             setAuthState(next);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-            persistLoginHints(next.userId, next.tenantId);
+            persistLoginHints(next);
             applyClientAuth(next);
           } catch {
-            persistLoginHints(parsed.userId, parsed.tenantId);
+            persistLoginHints(parsed);
             localStorage.removeItem(STORAGE_KEY);
             applyClientAuth(null);
             if (!cancelled) setAuthState(null);
@@ -122,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setAuthFailureHandler(() => {
-      persistLoginHints(auth?.userId, auth?.tenantId);
+      persistLoginHints(auth);
       localStorage.removeItem(STORAGE_KEY);
       applyClientAuth(null);
       setAuthState(null);

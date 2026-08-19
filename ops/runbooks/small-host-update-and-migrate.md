@@ -110,6 +110,34 @@ Recorded after first production-like install. Re-check after each update.
 
 **Bootstrap identity (change when you add a real operator):** tenant `flaha-local`; sign in with `admin@flaha.local` and tenant code `flaha-local`, or with the membership user UUID and tenant UUID. No password.
 
+### Sign in (live web)
+
+Public UI: `https://intel.flaha.org`
+
+| Field | Value |
+|-------|--------|
+| Email or user ID | `admin@flaha.local` |
+| Tenant code or tenant ID | `flaha-local` |
+
+UUIDs also work (printed by `bootstrap:local` on the host). There is no password. Production rejects development `X-Flaha-User-Id` / `X-Flaha-Tenant-Id` headers.
+
+To reprint live UUIDs without changing membership:
+
+```bash
+ssh -i ~/.ssh/rafat root@67.205.137.148
+sudo -u postgres psql -d flaha_intel -c "SELECT u.id AS user_id, u.email, t.id AS tenant_id, t.code FROM \"UserAccount\" u JOIN \"TenantMembership\" m ON m.\"userId\"=u.id JOIN \"Tenant\" t ON t.id=m.\"tenantId\" WHERE u.email='admin@flaha.local';"
+```
+
+### Sign out
+
+Use **Sign out** in any of:
+
+- the top header (right of **System READY**)
+- the sidebar footer
+- **Settings → Session**
+
+That calls `POST /api/auth/logout` (revokes the session id, clears cookies) and drops `flaha.product.auth` in the browser. Email and tenant code stay as login hints for the next sign-in.
+
 ---
 
 ## 4. DigitalOcean host monitor vs Flaha readiness

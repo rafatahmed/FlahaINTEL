@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
@@ -27,6 +27,7 @@ export type ProductActor = {
   role: GovernanceRole;
   email: string;
   displayName: string;
+  tenantCode?: string;
   correlationId: string;
   sessionId?: string;
 };
@@ -202,6 +203,7 @@ export async function resolveProductActor(db: PrismaClient, request: FastifyRequ
     role: membership.role,
     email: membership.user.email,
     displayName: membership.user.displayName,
+    tenantCode: membership.tenant.code,
     correlationId,
     sessionId,
   };

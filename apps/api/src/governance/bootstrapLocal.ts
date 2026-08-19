@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-30
+ * Last modified: 2026-08-19
  */
 import { PrismaClient } from "@prisma/client";
 
@@ -62,7 +62,7 @@ try {
         userId: user.id,
         email: user.email,
         role: membership.role,
-        note: "Use POST /api/auth/session with userId + tenantId in development AUTH_MODE, or product login path in production.",
+        note: "Sign in on the web with email + tenantCode (this email and this tenant code), or POST /api/auth/session with userId + tenantId. Production rejects development identity headers.",
       },
       null,
       2,

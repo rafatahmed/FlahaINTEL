@@ -282,7 +282,7 @@ export const api = {
       { method: "POST", body: JSON.stringify(identity) },
     ),
   logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST", body: "{}" }),
-  me: () => request<{ userId: string; tenantId: string; email: string; displayName: string; role: string }>("/api/auth/me"),
+  me: () => request<{ userId: string; tenantId: string; email: string; displayName: string; role: string; tenantCode?: string }>("/api/auth/me"),
   dashboard: () => request<Record<string, unknown>>("/api/dashboard"),
   systemReadiness: () => request<{ overall: string; components: Array<{ component: string; state: string; detail: string }>; checkedAt: string }>("/api/system/readiness"),
   submissions: (page = 1) => request<Page<Record<string, unknown>>>(`/api/submissions${query({ page, limit: 20 })}`),

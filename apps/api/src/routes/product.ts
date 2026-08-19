@@ -174,6 +174,7 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
         email: actor.email,
         displayName: actor.displayName,
         role: actor.role,
+        tenantCode: actor.tenantCode,
       };
     });
 

@@ -18,6 +18,7 @@ import {
   Feed,
   Gavel,
   Inventory2,
+  Logout,
   MenuBook,
   Settings,
   Source,
@@ -107,10 +108,16 @@ export function AppShell(props: {
           )}
           {auth && (
             <>
-              <Typography variant="body2" sx={{ color: "common.white" }}>
+              <Typography variant="body2" sx={{ color: "common.white", display: { xs: "none", md: "block" } }}>
                 {auth.displayName || auth.userId.slice(0, 8)} · {auth.role || "member"}
               </Typography>
-              <Button color="inherit" size="small" onClick={() => void signOut()}>
+              <Button
+                color="inherit"
+                size="small"
+                variant="outlined"
+                onClick={() => void signOut()}
+                sx={{ borderColor: "rgba(255,255,255,0.5)", flexShrink: 0 }}
+              >
                 Sign out
               </Button>
             </>
@@ -125,6 +132,8 @@ export function AppShell(props: {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
             borderRightColor: "divider",
+            display: "flex",
+            flexDirection: "column",
           },
         }}
       >
@@ -141,7 +150,7 @@ export function AppShell(props: {
           </Typography>
         </Box>
         <Divider />
-        <List dense>
+        <List dense sx={{ flex: 1 }}>
           {NAV.map((item) => {
             const showGroup = item.group !== lastGroup;
             lastGroup = item.group;
@@ -167,6 +176,27 @@ export function AppShell(props: {
             );
           })}
         </List>
+        {auth && (
+          <>
+            <Divider />
+            <Box sx={{ px: 2, py: 1.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                {auth.displayName || auth.email || "Signed in"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                {auth.email || auth.userId} · {auth.role}
+              </Typography>
+            </Box>
+            <List dense>
+              <ListItemButton onClick={() => void signOut()}>
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Logout />
+                </ListItemIcon>
+                <ListItemText primary="Sign out" />
+              </ListItemButton>
+            </List>
+          </>
+        )}
       </Drawer>
       <Box
         component="main"

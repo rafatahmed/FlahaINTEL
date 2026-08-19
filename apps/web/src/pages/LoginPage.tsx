@@ -19,8 +19,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 export function LoginPage() {
   const { setAuth } = useAuth();
-  const [account, setAccount] = useState(localStorage.getItem("flaha.governance.userId") ?? "");
-  const [tenant, setTenant] = useState(localStorage.getItem("flaha.governance.tenantId") ?? "");
+  const [account, setAccount] = useState(
+    localStorage.getItem("flaha.login.account")
+      ?? localStorage.getItem("flaha.governance.userId")
+      ?? "",
+  );
+  const [tenant, setTenant] = useState(
+    localStorage.getItem("flaha.login.tenant")
+      ?? localStorage.getItem("flaha.governance.tenantId")
+      ?? "",
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -39,6 +47,7 @@ export function LoginPage() {
         tenantId: session.tenant.id,
         displayName: session.user.displayName,
         email: session.user.email,
+        tenantCode: session.tenant.code,
         role: session.role,
         token: session.token,
         csrf: session.csrf,

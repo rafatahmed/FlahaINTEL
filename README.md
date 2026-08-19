@@ -58,6 +58,8 @@ API default: `127.0.0.1:3003` · Web default: port `5174`.
 
 Development uses `AUTH_MODE=development` (membership-verified session; optional bootstrap user from `bootstrap:local`).
 
+**Sign-in (web):** email + tenant code (default `admin@flaha.local` / `flaha-local`) or the membership user UUID + tenant UUID printed by `bootstrap:local`. **Sign out** is in the header, the sidebar footer, and Settings. Production rejects development identity headers; use a session cookie or Bearer token.
+
 ## Product surface
 
 ### Web navigation
@@ -70,7 +72,7 @@ Dashboard · Sources · Submit · Jobs · Content · Governance · Artifacts · 
 |------|----------|
 | Health | `GET /health`, `GET /ready` |
 | RSS | `/api/sources`, `/api/articles`, `/api/collect`, `/api/scheduler` |
-| Auth / product | `/api/auth/session`, `/api/dashboard`, `/api/submissions/*`, `/api/jobs/*` |
+| Auth / product | `/api/auth/session`, `/api/auth/logout`, `/api/auth/me`, `/api/dashboard`, `/api/submissions/*`, `/api/jobs/*` |
 | Governance | `/api/governance/candidates/*`, decisions, eligibility, policies |
 | Taxonomy / entities | `/api/taxonomy`, events, organizations, products (manual; no auto-inference) |
 | System | `/api/system/readiness`, metrics (role-gated) |

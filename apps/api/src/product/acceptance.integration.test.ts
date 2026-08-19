@@ -550,4 +550,27 @@ suite("Phase 3L product API", () => {
     });
     expect(me.statusCode).toBe(200);
   });
+
+  it("logout revokes the bearer session", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/session",
+      headers: { "content-type": "application/json" },
+      payload: { userId: admin.userId, tenantId: admin.tenantId },
+    });
+    expect(res.statusCode).toBe(200);
+    const token = (res.json() as { token: string }).token;
+    const logout = await app.inject({
+      method: "POST",
+      url: "/api/auth/logout",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(logout.statusCode).toBe(200);
+    const me = await app.inject({
+      method: "GET",
+      url: "/api/auth/me",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(me.statusCode).toBe(401);
+  });
 });
