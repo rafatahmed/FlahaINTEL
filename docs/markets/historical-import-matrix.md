@@ -10,14 +10,16 @@ and future formats) with layered de-duplication and channel-safe ingestion.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-31
-Last modified: 2026-07-31
+Last modified: 2026-08-19
 -->
 
 # Historical market import — comprehensive matrix
 
 ## Purpose
 
-Live harvest keeps **today forward**. Historical import fills **past years** so retention, trends, and analyst packs become useful **without waiting a calendar year**.
+Live harvest keeps **today forward** except where the publisher itself allows a short lookback (Amman from–to, **≤ 3 days** per query — `docs/markets/harvest-lookback-qa-jo.md`). Historical import fills **past years** so retention, trends, and analyst packs become useful **without waiting a calendar year**.
+
+**Publisher lookback (2026-08-19):** MoCI JSON has **no** date filter — missed days are not recoverable from the live API. Amman has a date picker; months of gap = many 3-day harvest windows **or** Excel. Mahaseel live page is the current PDF only.
 
 **Rules (LOCKED)**
 
@@ -35,8 +37,9 @@ Live harvest keeps **today forward**. Historical import fills **past years** so 
 |---------|---------|--------------|-------|-------------------------------|-----|
 | **qa-mahaseel-pdf** | QA | `qa-mahaseel-local-vegetables` | PDF (text layer) | `periodFrom`–`periodTo` + file SHA-256 | `markets:import-mahaseel-pdfs` |
 | **jo-amman-excel** | JO | `jo-amman-central-market` | `.xlsx` / `.xls` / `.csv` | `observedOn` (calendar day) + file SHA-256 | `markets:import-jo-amman-excel` |
-| qa-moci-* (future) | QA | per MoCI channel | JSON dump / HTML archive | `observedOn` | *not built* |
+| qa-moci-* | QA | per MoCI channel | Live API is **today-only**; JSON dump / HTML archive if operator saved files | `observedOn` | *not built* — live `dailyPrice.php` ignores date params |
 | amman-json (existing) | JO | Amman | harvest `--amman-json=` | per batch rows | `markets:harvest --amman-json=` |
+| amman-live-range | JO | Amman | Official from–to picker | `observedOn` | `markets:harvest --from= --to=` (≤ 3 days). 2026-08-19: POST residual `errpage.aspx` |
 
 ---
 

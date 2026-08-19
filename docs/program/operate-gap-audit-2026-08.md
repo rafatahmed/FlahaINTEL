@@ -70,7 +70,7 @@ Private PA intelligence: trusted eyes worldwide → structure markets + science 
 | **G2** | Knowledge SOIL/CALC/FAST empty | Critical O2 | Authoring + one vertical pack to APPROVED |
 | **G3** | Literature DOI-only UI; keywords empty; topics dumb | Critical Stage D | Edit aboutness; keyword→topics; PDF KEY WORDS later |
 | **G4** | Brain queues fragmented | High | Review inbox + clear destiny per Submit class |
-| **G5** | Markets not all 365d MEETS_TARGET | High O1 | Harvest continuity |
+| **G5** | Markets not all 365d MEETS_TARGET; host-off misses days | High O1 | Daily harvest while PC is on. MoCI = today-only; Amman = 3-day lookback or Excel (`docs/markets/harvest-lookback-qa-jo.md`) |
 | **G6** | RSS agri PENDING accept | Medium | Two-run process |
 | **G7** | Evidence conjugation paper↔pack incomplete | Medium | Artifact link + hard ref (started) |
 | **G8** | Docs say DONE; operate feels weak | High trust | This audit + language discipline |

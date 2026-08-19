@@ -9,12 +9,12 @@ Operator recon of official vegetable/fruit price channels after live page and sc
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-30
+Last modified: 2026-08-19
 -->
 
 # Market source recon — QA Mahaseel & JO Amman
 
-**Status:** Checked live + owner screenshots (2026-07-30).  
+**Status:** Checked live + owner screenshots (2026-07-30). Lookback lock re-checked live **2026-08-19** — `docs/markets/harvest-lookback-qa-jo.md`.  
 **Principle:** Worldwide model; these are first two countries. Mahaseel = simple; Amman = comprehensive.
 
 ---
@@ -172,16 +172,16 @@ Country remains `QA` / `JO` only — **no separate Jordan product**.
 
 ## 6. Harvest cadence (owner rule — locked)
 
-| Country | Channel | Harvest interval | Product filter window |
-|---------|---------|------------------|------------------------|
-| **Jordan** | `jo-amman-central-market` | **Daily** | from–to **≤ 3 days** |
-| **Qatar MoCI** | daily vegetables, imported vegetables, daily fish, imported fruits | **Daily** (like Jordan) | from–to **≤ 3 days** |
-| **Qatar Mahaseel** | `qa-mahaseel-local-vegetables` | **Every 3 days** (period PDF) | ≤ 3 days |
+| Country | Channel | Harvest interval | Live lookback |
+|---------|---------|------------------|---------------|
+| **Jordan** | `jo-amman-central-market` | **Daily** | Official **from–to date picker**; each product query **≤ 3 days**. Older months = many 3-day windows or Excel. |
+| **Qatar MoCI** | daily vegetables, imported vegetables, daily fish, imported fruits | **Daily** | **None.** `dailyPrice.php` returns one current table; date query params ignored. Missed days usually gone. |
+| **Qatar Mahaseel** | `qa-mahaseel-local-vegetables` | **Every 3 days** (period PDF) | **None** on the live page (current PDF only). |
 
 ```text
-Jordan:           harvest daily; filter products in ≤ 3-day windows.
-Qatar MoCI port:  harvest daily (4 lists under one portal).
-Qatar Mahaseel:   harvest every 3 days (period PDF).
+Jordan:           harvest daily; filter products in ≤ 3-day windows; date picker can request past days.
+Qatar MoCI port:  harvest daily (4 lists). No from–to. Catch the bulletin or lose it.
+Qatar Mahaseel:   harvest every 3 days (period PDF currently linked).
 ```
 
 Stored on `MarketChannel.harvestIntervalDays` and `MarketChannel.filterMaxSpanDays`.
@@ -214,7 +214,8 @@ Page scripts call:
 | Imported fruits | 16 |
 | Daily fish | 17 |
 
-JSON fields: `name`, `Source`, `Size`, `Unit`, `PackPrice`, `price`, `date` (DD/MM/YYYY).
+JSON fields: `name`, `Source`, `Size`, `Unit`, `PackPrice`, `price`, `date` (DD/MM/YYYY).  
+**No date argument.** Lookback lock: `docs/markets/harvest-lookback-qa-jo.md`.
 
 ### Harvest CLI
 
@@ -234,3 +235,17 @@ Cadence is enforced unless `--force`:
 - Product query filters: max **3-day** span
 
 Amman live path uses ASP.NET GET+POST (ViewState) and parses product cards + day totals.
+
+---
+
+## 8. Lookback lock (2026-08-19)
+
+Operator screenshot of GAM filters: **من تاريخ** / **الى تاريخ** default **19-08-2026**, محلي/مستورد, بحث.
+
+| | MoCI | Amman |
+|--|------|--------|
+| Date picker | No | Yes |
+| Missed days | Usually lost | Recoverable in 3-day slices if GAM still has them; else Excel |
+| Daily harvest still required | Yes | Yes |
+
+Live Amman POST on 2026-08-19 hit `errpage.aspx` (adapter residual). MoCI live JSON: daily veg **18/09/2025**, imported fruit **05/09/2024**, imported veg + fish **13/08/2026**. Full table: `docs/markets/harvest-lookback-qa-jo.md`.
