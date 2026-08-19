@@ -12,7 +12,7 @@
 # Last modified: 2026-08-19
 #
 # Usage (root):
-#   export FLAHA_PUBLIC_HOST=67-205-137-148.sslip.io
+#   export FLAHA_PUBLIC_HOST=intel.flaha.org
 #   bash ops/scripts/linux/install-small-host.sh
 # Or after clone:
 #   GIT_REF=main bash /opt/flahaintel/current/ops/scripts/linux/install-small-host.sh
@@ -21,7 +21,7 @@ set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/rafatahmed/FlahaINTEL.git}"
 GIT_REF="${GIT_REF:-main}"
-PUBLIC_HOST="${FLAHA_PUBLIC_HOST:-67-205-137-148.sslip.io}"
+PUBLIC_HOST="${FLAHA_PUBLIC_HOST:-intel.flaha.org}"
 INSTALL_ROOT="${INSTALL_ROOT:-/opt/flahaintel}"
 CURRENT="${INSTALL_ROOT}/current"
 MEASURE_LOG="${MEASURE_LOG:-/var/log/flahaintel/install-measure.log}"

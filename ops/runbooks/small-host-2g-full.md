@@ -27,7 +27,7 @@ Not always-on: Playwright/Chromium/Docling/Tika (install later; never five worke
 ## Install (root)
 
 ```bash
-export FLAHA_PUBLIC_HOST=67-205-137-148.sslip.io
+export FLAHA_PUBLIC_HOST=intel.flaha.org
 export GIT_REF=main
 curl -fsSL https://raw.githubusercontent.com/rafatahmed/FlahaINTEL/main/ops/scripts/linux/install-small-host.sh | bash
 # or after clone:
@@ -41,7 +41,7 @@ Measure log: `/var/log/flahaintel/install-measure.log`
 | Check | Command |
 |-------|---------|
 | Health | `curl -sS http://127.0.0.1:3003/health` |
-| Public | `https://67-205-137-148.sslip.io` |
+| Public | `https://intel.flaha.org` |
 | Harvest now | `systemctl start flahaintel-harvest.service` |
 | Timers | `systemctl list-timers 'flahaintel-*'` |
 
