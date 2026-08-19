@@ -8,13 +8,14 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { GovernanceCandidate } from "../types";
 import { BrandedState } from "../components/BrandedState";
+import { headlineChips, isOneShotEyes, originLine, reuseLabel } from "../governance/oneShotLabels";
 
 export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) {
   const [items, setItems] = useState<GovernanceCandidate[]>([]);
@@ -54,9 +55,9 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
       <Box>
         <Typography variant="h5">Content</Typography>
         <Typography variant="body2" color="text.secondary">
-          <strong>Structure</strong> — normalized pipeline units / governance candidates. Open an item for preview,
-          then send to <strong>Governance</strong> (or use <strong>Review inbox</strong> for all queues). Not market
-          prices or Knowledge packs.
+          <strong>Structure</strong> — vault of normalized Eyes items (Submit website/document and RSS articles).
+          One-shot Submit is finished at human <strong>Approve</strong> (shown as VAULTED). RSS promotion eligibility
+          is only for registered Sources. Not market prices or Knowledge packs.
         </Typography>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
@@ -72,9 +73,13 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
                 onClick={() => void openItem(item.id)}
               >
                 <Typography sx={{ fontWeight: 600 }}>{item.documentTitle || item.titlePreview || item.id}</Typography>
-                <Stack direction="row" spacing={1}>
-                  <Chip size="small" label={item.reviewState} />
-                  <Chip size="small" label={item.promotionState} variant="outlined" />
+                <Typography variant="caption" color="text.secondary">
+                  {originLine(item)}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {headlineChips(item).map((label) => (
+                    <Chip key={label} size="small" label={label} />
+                  ))}
                   <Chip size="small" label={item.language} />
                 </Stack>
               </Stack>
@@ -88,7 +93,12 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
                 <Typography variant="h6">{selected.documentTitle || selected.titlePreview}</Typography>
                 <Typography variant="body2">{selected.contentType} · {selected.normalizationProfile} v{selected.normalizationVersion}</Typography>
                 <Typography variant="body2">Hash {selected.normalizedContentHash.slice(0, 16)}…</Typography>
-                <Typography variant="body2">Governance: {selected.reviewState} · Eligibility: {selected.promotionState}</Typography>
+                <Typography variant="body2">{originLine(selected)}</Typography>
+                <Typography variant="body2">
+                  {isOneShotEyes(selected)
+                    ? `Review: ${selected.reviewState} · Product: ${reuseLabel(selected)} (RSS eligibility does not apply)`
+                    : `Governance: ${selected.reviewState} · RSS eligibility: ${selected.promotionState}`}
+                </Typography>
                 <Typography variant="subtitle2">Preview</Typography>
                 <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", maxHeight: 280, overflow: "auto", bgcolor: "action.hover", p: 1.5 }}>
                   {preview || "No preview"}

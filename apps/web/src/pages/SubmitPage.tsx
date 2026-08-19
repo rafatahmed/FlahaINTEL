@@ -411,6 +411,10 @@ export function SubmitPage(props: {
               <Typography variant="h6" gutterBottom>
                 Website (Eyes)
               </Typography>
+              <Typography variant="body2" color="text.secondary">
+                One-shot allowlisted URL. Product finish is human <strong>Approve</strong> in Governance (vaulted in
+                Content). This is not RSS and does not need a registered source or promotion eligibility.
+              </Typography>
               <Stack spacing={1.5}>
                 <TextField
                   label="Governed URL"

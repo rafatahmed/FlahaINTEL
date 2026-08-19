@@ -37,6 +37,13 @@ import type {
   GovernanceReviewState,
 } from "../types";
 import { BrandedState } from "./BrandedState";
+import {
+  headlineChips,
+  locatorLine,
+  originLine,
+  reviewerLine,
+  reuseLabel,
+} from "../governance/oneShotLabels";
 
 const STATES: GovernanceReviewState[] = [
   "PENDING_EVALUATION", "READY_FOR_REVIEW", "NEEDS_CORRECTION", "ON_HOLD",
@@ -70,36 +77,7 @@ function asStringList(value: unknown): string[] {
 }
 
 function isAdHocDocument(candidate: GovernanceCandidate): boolean {
-  return !candidate.sourceId;
-}
-
-function looksLikeUrl(value: string | null | undefined): value is string {
-  return Boolean(value && /^https?:\/\//i.test(value.trim()));
-}
-
-function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
-}
-
-function sourceLine(candidate: GovernanceCandidate, preview: GovernancePreview | null): string {
-  if (candidate.source?.name) {
-    return `${candidate.source.name}${candidate.source.url ? ` · ${candidate.source.url}` : ""}`;
-  }
-  const url = preview?.canonicalSourceLocator || preview?.finalAcquiredLocator
-    || (looksLikeUrl(candidate.titlePreview) ? candidate.titlePreview : null);
-  if (url) return `${hostOf(url)} · one-shot website (not a registered RSS source)`;
-  return "One-shot submit (not a registered RSS source)";
-}
-
-function locatorLine(candidate: GovernanceCandidate, preview: GovernancePreview | null): string {
-  return preview?.canonicalSourceLocator
-    || preview?.finalAcquiredLocator
-    || (looksLikeUrl(candidate.titlePreview) ? candidate.titlePreview.trim() : "")
-    || "not recorded on this candidate";
+  return isOneShotEyes(candidate);
 }
 
 export function GovernanceConsole(props: { initialCandidateId?: string | null; hideAuthForm?: boolean } = {}) {
@@ -247,7 +225,10 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
       <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, justifyContent: "space-between", gap: 2 }}>
         <Box>
           <Typography variant="h5">Governance review</Typography>
-          <Typography variant="body2" color="text.secondary">Internal candidate queue — not public publication.</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Internal candidate queue — not public publication. Submit website/document finishes at human Approve
+            (vaulted). RSS promotion is a separate Sources protocol, not this path.
+          </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <FormControl size="small" sx={{ minWidth: 200 }}>
@@ -284,17 +265,22 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                   }}
                 >
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                    <Chip size="small" label={candidate.reviewState} color="primary" variant="outlined" />
-                    <Chip size="small" label={candidate.priority} />
-                    <Chip size="small" label={candidate.evidenceCompleteness} />
-                    <Chip size="small" label={candidate.promotionState} variant="outlined" />
+                    {headlineChips(candidate).map((label) => (
+                      <Chip
+                        key={label}
+                        size="small"
+                        label={label}
+                        color={label === candidate.reviewState ? "primary" : "default"}
+                        variant={label === candidate.reviewState ? "outlined" : "filled"}
+                      />
+                    ))}
                   </Box>
                   <Typography sx={{ mt: 1, fontWeight: 600 }}>{candidate.documentTitle || candidate.titlePreview || "Untitled"}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {sourceLine(candidate, null)} · {candidate.contentType} · {candidate.language} · age {ageLabel(candidate.createdAt)}
+                    {originLine(candidate)} · {candidate.contentType} · {candidate.language} · age {ageLabel(candidate.createdAt)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    warnings: {asStringList(candidate.warningSummary).length} · reviewer: {candidate.assignedReviewerId ?? "unassigned"}
+                    warnings: {asStringList(candidate.warningSummary).length} · {reviewerLine(candidate)}
                   </Typography>
                 </Box>
               ))}
@@ -310,33 +296,23 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                 <Typography variant="h6">{detail.documentTitle || detail.titlePreview || detail.id}</Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                   <Chip label={detail.reviewState} color="primary" />
+                  <Chip label={reuseLabel(detail)} />
                   <Chip label={`v${detail.version}`} />
-                  <Chip label={detail.priority} />
-                  <Chip label={detail.evidenceCompleteness} />
-                  <Chip label={detail.promotionState} variant="outlined" />
+                  {!isAdHocDocument(detail) && <Chip label={detail.priority} />}
+                  {!isAdHocDocument(detail) && <Chip label={detail.evidenceCompleteness} />}
                 </Box>
                 <Typography variant="caption" color="text.secondary">
-                  Review state is the human decision. Promotion eligibility is a later reuse gate for{" "}
-                  <strong>registered RSS sources with a source policy</strong> — not for one-shot PDF uploads.
+                  {isAdHocDocument(detail)
+                    ? "Submit website/document: human Approve is the product end-state. The item is vaulted in Content. RSS promotion eligibility is a different protocol (registered Sources)."
+                    : "Review state is the human decision. Promotion eligibility is a later reuse gate for registered RSS sources with a source policy."}
                 </Typography>
 
                 {detail.reviewState === "APPROVED" && isAdHocDocument(detail) && (
-                  <Alert severity="info">
-                    This candidate is already <strong>APPROVED</strong>. You cannot Mark promotion eligible: there is{" "}
-                    <strong>no source</strong>, so the API correctly blocks with <code>SOURCE_POLICY_MISSING</code>.
-                    That is expected for Submit / eyes-pdf-lite documents (e.g. McLean). Do not invent an RSS source
-                    to force it.
-                    <br />
-                    <strong>Science path:</strong> register the paper under Knowledge → Literature, keep the artifact
-                    id on the extract, and use an APPROVED knowledge pack / 4I-B handoff. Pipeline promotion is for
-                    recurring Sources, not this vault item.
-                    {detail.evidenceCompleteness === "INSUFFICIENT" ? (
-                      <>
-                        {" "}
-                        <em>INSUFFICIENT</em> is typical for pdf-parse lite (thin metadata / no RSS lineage) and does
-                        not undo APPROVED.
-                      </>
-                    ) : null}
+                  <Alert severity="success">
+                    Finished. This one-shot Eyes item is <strong>APPROVED</strong> and <strong>VAULTED</strong>. You
+                    do not need an RSS source, reviewer assignment, or Mark promotion eligible. Open it anytime from
+                    Content. Science extracts can later be cited from Knowledge → Literature without converting this
+                    into a feed.
                   </Alert>
                 )}
 
@@ -358,7 +334,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
 
                 <Box>
                   <Typography variant="subtitle2">Source and lineage</Typography>
-                  <Typography variant="body2">Source: {sourceLine(detail, preview)}</Typography>
+                  <Typography variant="body2">Source: {originLine(detail, preview)}</Typography>
                   <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
                     Locator: {locatorLine(detail, preview)}
                   </Typography>

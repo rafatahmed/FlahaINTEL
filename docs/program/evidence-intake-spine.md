@@ -10,7 +10,7 @@ not independent per-model file re-ingests.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-31
-Last modified: 2026-07-31
+Last modified: 2026-08-19
 -->
 
 # Evidence Intake Spine — central Submit
@@ -33,8 +33,8 @@ LAND (spine) → CLASSIFY → PROMOTE (typed domain engine)
 
 | Class | Promote target |
 |-------|----------------|
-| `EYES_WEBSITE` | Product submission pipeline (acquire → … → governance) |
-| `EYES_DOCUMENT` | Document submission pipeline |
+| `EYES_WEBSITE` | One-shot acquire → extract → normalize → **human Approve**. Finished in the vault (Content). **Not RSS.** RSS is a separate recurring Sources protocol. |
+| `EYES_DOCUMENT` | One-shot document pipeline → **human Approve**. Same vault finish. Not RSS promotion. |
 | `MARKET_MAHASEEL_PDF` | `qa-mahaseel-local-vegetables` prices (period dedupe) |
 | `MARKET_JO_AMMAN_EXCEL` | `jo-amman-central-market` prices (day dedupe) |
 | `PRODUCT_SOIL_REPORT` | FlahaSOIL comparison cases (soil only) |

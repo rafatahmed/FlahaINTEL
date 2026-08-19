@@ -144,7 +144,7 @@ Submit → **Website (Eyes)** lands a URL, then the **serial pipeline** acquires
 
 - Jobs sitting in **READY** are waiting for `flahaintel-pipeline.timer` (every 15 minutes). Do **not** start `npm run worker:*` on this host.
 - Run one tick now: `systemctl start flahaintel-pipeline.service`
-- Intake **PROMOTED** means queued, not finished. Finished work is in **Content / Governance**.
+- Intake **PROMOTED** means queued, not finished. Human **Approve** in Governance is the product end-state (**VAULTED** in Content). RSS promotion eligibility does not apply.
 - Production only accepts **allowlisted** hosts/paths in `ops/config/crawl-policy.json` (copied to `/etc/flahaintel/crawl-policy.json` on update). Current Eyes hosts: MoCI, Mahaseel, Amman market, Yara `/corporate-releases/`. Adding a new site is an allowlist change, not a free crawl.
 
 ---
