@@ -1,4 +1,19 @@
+<!--
+Flaha Agri Tech
+Precision Agriculture Division
+Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+
+Title: Deploy runbook
+Introduction: Change-controlled deploy steps; small-host Linux path is separate.
+
+Created by: Rafat Al Khashan
+Created date: 2026-07-16
+Last modified: 2026-08-19
+-->
+
 # Deploy
+
+**Small-host (2 GB Ubuntu):** [small-host-2g-full.md](./small-host-2g-full.md) — clone **`main`**, run `ops/scripts/linux/install-small-host.sh`.
 
 1. Obtain change approval (no automatic production deploy).
 2. Ensure clean CI on the release commit.

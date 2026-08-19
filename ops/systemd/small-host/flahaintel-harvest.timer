@@ -1,0 +1,22 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: Daily market harvest timer (small host)
+# Introduction: 05:30 UTC daily; Persistent catches missed days after reboot.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-08-19
+# Last modified: 2026-08-19
+
+[Unit]
+Description=FlahaINTEL daily market harvest
+
+[Timer]
+OnCalendar=*-*-* 05:30:00
+Persistent=true
+AccuracySec=2min
+Unit=flahaintel-harvest.service
+
+[Install]
+WantedBy=timers.target

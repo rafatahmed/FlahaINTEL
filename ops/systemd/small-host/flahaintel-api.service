@@ -1,0 +1,39 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: FlahaINTEL API systemd unit (small host)
+# Introduction: Loopback API with a hard memory cap for 2 GB droplets.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-08-19
+# Last modified: 2026-08-19
+
+[Unit]
+Description=FlahaINTEL API (loopback, small-host)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=flahaintel
+Group=flahaintel
+WorkingDirectory=/opt/flahaintel/current/apps/api
+EnvironmentFile=/etc/flahaintel/production.env
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--max-old-space-size=384
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=35
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/flahaintel /var/log/flahaintel
+LimitNOFILE=65535
+MemoryMax=450M
+MemoryHigh=380M
+OOMPolicy=stop
+
+[Install]
+WantedBy=multi-user.target
