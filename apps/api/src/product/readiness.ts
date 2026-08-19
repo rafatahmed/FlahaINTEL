@@ -19,10 +19,11 @@ import type { PrismaClient } from "@prisma/client";
 import type { FilesystemArtifactStore } from "@flaha-intel/artifact-store";
 import { getProductionConfig } from "../production/config.js";
 import { readWorkerHeartbeats } from "../production/workerHeartbeats.js";
+import { rollupOverall, type HealthState as RollupState } from "./readinessRollup.js";
 
 const execFileAsync = promisify(execFile);
 
-export type HealthState = "READY" | "DEGRADED" | "UNAVAILABLE" | "NOT_CONFIGURED";
+export type HealthState = RollupState;
 
 export type ComponentHealth = {
   component: string;
@@ -165,23 +166,41 @@ export async function collectSystemReadiness(
     const expected = ["acquisition", "extraction", "normalization"];
     const missing = expected.filter(f => !families.has(f));
     const serial = (process.env.FLAHA_WORKER_MODE || "").trim().toLowerCase() === "serial";
-    components.push({
-      component: "WorkerLoops",
-      state: serial
-        ? "READY"
-        : hearts.live.length === 0
+    if (serial) {
+      const pipelineHb = path.join(path.dirname(cfg.workerHeartbeatPath), "pipeline-heartbeat.json");
+      const staleMs = Number(process.env.FLAHA_PIPELINE_STALE_MS || 2_700_000);
+      try {
+        const st = await stat(pipelineHb);
+        const ageMs = Date.now() - st.mtimeMs;
+        const ageMin = Math.round(ageMs / 60_000);
+        components.push({
+          component: "WorkerLoops",
+          state: ageMs <= staleMs ? "READY" : "DEGRADED",
+          detail:
+            ageMs <= staleMs
+              ? `Serial pipeline last tick ${ageMin}m ago (stale after ${Math.round(staleMs / 60_000)}m).`
+              : `Serial pipeline overdue (${ageMin}m since last tick). Check flahaintel-pipeline.timer.`,
+        });
+      } catch {
+        components.push({
+          component: "WorkerLoops",
+          state: "DEGRADED",
+          detail: "Serial pipeline heartbeat missing. Enable flahaintel-pipeline.timer and run it once.",
+        });
+      }
+    } else {
+      components.push({
+        component: "WorkerLoops",
+        state: hearts.live.length === 0
           ? "NOT_CONFIGURED"
           : missing.length
             ? "DEGRADED"
             : "READY",
-      detail: serial
-        ? hearts.live.length
-          ? `Serial pipeline; ${hearts.live.length} recent family ticks.`
-          : "Serial pipeline timer (no persistent worker daemons on this host)."
-        : hearts.live.length
+        detail: hearts.live.length
           ? `${hearts.live.length} live workers; missing families: ${missing.join(",") || "none"}.`
           : "No worker heartbeats (workers may be stopped).",
-    });
+      });
+    }
   } catch {
     components.push({ component: "WorkerLoops", state: "NOT_CONFIGURED", detail: "Heartbeat registry unavailable." });
   }
@@ -273,30 +292,6 @@ export async function collectSystemReadiness(
     });
   }
 
-  const rank: Record<HealthState, number> = { READY: 0, NOT_CONFIGURED: 1, DEGRADED: 2, UNAVAILABLE: 3 };
-  const required = new Set(["API", "PostgreSQL", "ArtifactStore", "DiskCapacity", "Migrations"]);
-  const optionalEngines = new Set(["Scrapy", "Playwright", "Chromium", "Docling", "Java", "ApacheTika"]);
-  let overall: HealthState = "READY";
-  for (const c of components) {
-    if (optionalEngines.has(c.component) && (c.state === "NOT_CONFIGURED" || c.state === "DEGRADED")) {
-      continue;
-    }
-    if (c.component === "WorkerLoops" && c.state === "NOT_CONFIGURED") {
-      continue;
-    }
-    if (c.component === "StagingReconciliation" && c.state === "NOT_CONFIGURED") {
-      continue;
-    }
-    if (!required.has(c.component) && c.state === "NOT_CONFIGURED") {
-      continue;
-    }
-    if (rank[c.state] > rank[overall]) overall = c.state;
-  }
-  if (components.some(c => ["PostgreSQL", "ArtifactStore", "API"].includes(c.component) && c.state === "UNAVAILABLE")) {
-    overall = "UNAVAILABLE";
-  } else if (overall === "NOT_CONFIGURED") {
-    overall = "READY";
-  }
-
+  const overall = rollupOverall(components);
   return { overall, components, checkedAt: new Date().toISOString() };
 }

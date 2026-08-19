@@ -4,6 +4,7 @@
 |---------|------|
 | Deployment | [deploy.md](./deploy.md) |
 | Small-host 2 GB full stack | [small-host-2g-full.md](./small-host-2g-full.md) |
+| Small-host update / migrate | [small-host-update-and-migrate.md](./small-host-update-and-migrate.md) |
 | Rollback | [rollback.md](./rollback.md) |
 | Migration failure | [migration-failure.md](./migration-failure.md) |
 | API failure | [api-failure.md](./api-failure.md) |
