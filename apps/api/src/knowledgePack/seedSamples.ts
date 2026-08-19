@@ -3,17 +3,21 @@
  * Precision Agriculture Division
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
- * Title: Seed Soil/Irrigation Knowledge Pack Samples
- * Introduction: Idempotent upsert of Gate 4S and 4I sample packs from docs/knowledge/samples.
+ * Title: Seed Soil/Irrigation Knowledge Pack Samples (TEST ONLY)
+ * Introduction: Idempotent upsert of Gate 4S/4I sample packs from test fixtures.
+ * Blocked on operate DBs unless FLAHA_ALLOW_DEMO_SEED=1 or --for-tests.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { PrismaClient, type KnowledgePackTheme } from "@prisma/client";
+import { assertDemoSeedAllowed, knowledgeTestFixturesRoot } from "./demoSeedGuard.js";
 import { KnowledgePackService } from "./service.js";
+
+assertDemoSeedAllowed("knowledge:seed-samples");
 
 type SampleItem = {
   title: string;
@@ -57,9 +61,7 @@ try {
   let totalPacks = 0;
 
   for (const fileName of sampleFiles) {
-    const samplesPath = fileURLToPath(
-      new URL(`../../../../docs/knowledge/samples/${fileName}`, import.meta.url),
-    );
+    const samplesPath = join(knowledgeTestFixturesRoot(), "samples", fileName);
     const raw = JSON.parse(await readFile(samplesPath, "utf8")) as { packs: SamplePack[] };
     const filePacks = raw.packs ?? [];
     totalPacks += filePacks.length;

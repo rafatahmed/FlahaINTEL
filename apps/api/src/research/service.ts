@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import type { KnowledgePackReviewState, KnowledgePackTheme, PrismaClient } from "@prisma/client";
 import {
@@ -138,6 +138,7 @@ export class ResearchIndexService {
     }
 
     // 4R-L: SOURCE_APPROVED literature → REFERENCE aboutness topics (not claim packs).
+    // Wave A: expand ALL keywords + parameterKeys into topic facets (intelligent assort).
     for (const lit of literature as Array<Record<string, unknown>>) {
       const id = String(lit.id);
       const theme = (lit.primaryTheme || "OTHER") as KnowledgePackTheme;
@@ -146,17 +147,21 @@ export class ResearchIndexService {
       const climateTags = (lit.climateTags as string[]) || [];
       const parameterKeys = (lit.parameterKeys as string[]) || [];
       const keywords = (lit.keywords as string[]) || [];
-      const structured =
-        parameterKeys.length > 0 ? { parameter: parameterKeys[0] } : { parameter: keywords[0] || "" };
+      const domains = (lit.domainTags as string[]) || [];
 
-      const facetRows = expandItemFacets({
-        theme,
-        cropTags: cropTags.length ? cropTags : [""],
-        regionTags: regionTags.length ? regionTags : [""],
-        climateTags,
-        extractKind: "REFERENCE",
-        structured,
-      });
+      // Aboutness keys for assorting: parameters first, then each keyword, then domain labels.
+      const aboutnessKeys = [
+        ...parameterKeys,
+        ...keywords,
+        ...domains.map((d) => String(d)),
+      ]
+        .map((k) => k.trim())
+        .filter(Boolean);
+      const uniqueAbout = [...new Set(aboutnessKeys.map((k) => k.toLowerCase()))].map(
+        (low) => aboutnessKeys.find((k) => k.toLowerCase() === low)!,
+      );
+      // Always index at least one REFERENCE facet (theme · crop · region) even if no keywords.
+      const parameterSlots = uniqueAbout.length ? uniqueAbout : [""];
 
       const snippet = snippetFromItem(
         String(lit.citationApa || lit.abstractText || ""),
@@ -165,22 +170,41 @@ export class ResearchIndexService {
       const reviewState: KnowledgePackReviewState =
         lit.reviewState === "SOURCE_APPROVED" ? "APPROVED" : "DRAFT";
 
-      for (const facets of facetRows) {
-        pushEntry(facets, {
-          entryKind: "LITERATURE",
-          packId: id,
-          packCode: String(lit.code || id),
-          packTitle: String(lit.title || "").slice(0, 200),
-          packVersion: 1,
-          itemId: id,
-          itemTitle: String(lit.title || ""),
+      const baseEntry = {
+        entryKind: "LITERATURE" as const,
+        packId: id,
+        packCode: String(lit.code || id),
+        packTitle: String(lit.title || "").slice(0, 200),
+        packVersion: 1,
+        itemId: id,
+        itemTitle: String(lit.title || ""),
+        extractKind: "REFERENCE",
+        snippet,
+        reviewState,
+        evidencePresent: Boolean(lit.evidenceArtifactId || lit.sourceUrl || lit.doi || lit.url),
+        sourceUrl: (lit.sourceUrl as string) || (lit.url as string) || null,
+        literatureSourceId: id,
+      };
+
+      for (const about of parameterSlots) {
+        const facetRows = expandItemFacets({
+          theme,
+          cropTags: cropTags.length ? cropTags : [""],
+          regionTags: regionTags.length ? regionTags : [""],
+          climateTags,
           extractKind: "REFERENCE",
-          snippet,
-          reviewState,
-          evidencePresent: Boolean(lit.evidenceArtifactId || lit.sourceUrl || lit.doi || lit.url),
-          sourceUrl: (lit.sourceUrl as string) || (lit.url as string) || null,
-          literatureSourceId: id,
+          structured: { parameter: about },
         });
+        for (const facets of facetRows) {
+          // Same literature UUID as itemId (DB uuid); multiple topics via different topicKey.
+          pushEntry(facets, {
+            ...baseEntry,
+            itemId: id,
+            itemTitle: about
+              ? `${String(lit.title || "").slice(0, 120)} · ${about}`
+              : String(lit.title || ""),
+          });
+        }
       }
     }
 

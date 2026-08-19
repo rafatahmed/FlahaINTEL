@@ -8,18 +8,29 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-01
- * Last modified: 2026-08-01
+ * Last modified: 2026-08-19
  */
 import type { PrismaClient } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { AppError } from "../errors.js";
 import { LiteratureError, LiteratureSourceService } from "../literature/service.js";
+import { KnowledgePackError, KnowledgePackService } from "../knowledgePack/service.js";
 import { assertPermission, resolveProductActor } from "../product/auth.js";
 import { isProductError } from "../product/errors.js";
+import type { KnowledgePackTheme } from "@prisma/client";
 
 function mapError(error: unknown): never {
   if (error instanceof LiteratureError) {
     throw new AppError(error.statusCode, error.code, error.message);
+  }
+  if (error instanceof KnowledgePackError) {
+    const status =
+      error.code === "PACK_NOT_FOUND" || error.code === "LIT_NOT_FOUND"
+        ? 404
+        : error.code === "PACK_CODE_EXISTS"
+          ? 409
+          : 400;
+    throw new AppError(status, error.code, error.message);
   }
   if (isProductError(error)) throw new AppError(error.statusCode, error.code, error.message);
   throw error;
@@ -27,6 +38,7 @@ function mapError(error: unknown): never {
 
 export function literatureRoutes(prisma: PrismaClient): FastifyPluginAsync {
   const lit = new LiteratureSourceService(prisma);
+  const packs = new KnowledgePackService(prisma);
   return async (app) => {
     /** Crossref DOI lookup (read-only enricher). */
     app.get("/research/literature/crossref", async (request) => {
@@ -67,12 +79,14 @@ export function literatureRoutes(prisma: PrismaClient): FastifyPluginAsync {
           doi: String(body.doi),
           code: body.code != null ? String(body.code) : undefined,
           domainTags: body.domainTags as string[] | undefined,
+          keywords: body.keywords as string[] | undefined,
           cropTags: body.cropTags as string[] | undefined,
           regionTags: body.regionTags as string[] | undefined,
           productLanes: body.productLanes as string[] | undefined,
           parameterKeys: body.parameterKeys as string[] | undefined,
           primaryTheme: body.primaryTheme != null ? String(body.primaryTheme) : null,
           notes: body.notes != null ? String(body.notes) : null,
+          abstractText: body.abstractText != null ? String(body.abstractText) : null,
           approve: Boolean(body.approve),
         });
       } catch (e) {
@@ -173,6 +187,81 @@ export function literatureRoutes(prisma: PrismaClient): FastifyPluginAsync {
             aboutnessOnly: true,
             citationStandard: "APA_7_ASA_CSSA_SSSA",
             doesNotWriteProductEngines: true,
+          },
+        };
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Wave B residual: create DRAFT knowledge pack from literature (theme from aboutness). */
+    app.post<{ Params: { id: string } }>("/research/literature/:id/create-pack", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "submit");
+        const body = (request.body || {}) as { theme?: string; code?: string };
+        return await packs.createPackFromLiterature({
+          tenantId: actor.tenantId,
+          ownerUserId: actor.userId,
+          literatureSourceId: request.params.id,
+          theme: body.theme as KnowledgePackTheme | undefined,
+          code: body.code,
+        });
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** 4O-B: preview/apply KEY WORDS from extracted PDF text (no OCR, no auto-approve). */
+    app.post<{ Params: { id: string } }>("/research/literature/:id/pdf-keywords", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "submit");
+        const body = (request.body || {}) as { text?: string; apply?: boolean };
+        if (!body.text || !String(body.text).trim()) {
+          throw new LiteratureError("INVALID_TEXT", "text (extracted PDF content) is required.", 400);
+        }
+        return await lit.mergeKeywordsFromExtractedText({
+          tenantId: actor.tenantId,
+          id: request.params.id,
+          actorUserId: actor.userId,
+          text: String(body.text),
+          apply: Boolean(body.apply),
+        });
+      } catch (e) {
+        mapError(e);
+      }
+    });
+
+    /** Wave A: set keywords/domain/theme (aboutness) for intelligent topics. */
+    app.patch<{ Params: { id: string } }>("/research/literature/:id", async (request) => {
+      try {
+        const actor = await resolveProductActor(prisma, request);
+        assertPermission(actor, "submit");
+        const body = (request.body || {}) as Record<string, unknown>;
+        const source = await lit.updateAboutness({
+          tenantId: actor.tenantId,
+          id: request.params.id,
+          actorUserId: actor.userId,
+          keywords: Array.isArray(body.keywords) ? body.keywords.map(String) : undefined,
+          domainTags: Array.isArray(body.domainTags) ? body.domainTags.map(String) : undefined,
+          cropTags: Array.isArray(body.cropTags) ? body.cropTags.map(String) : undefined,
+          regionTags: Array.isArray(body.regionTags) ? body.regionTags.map(String) : undefined,
+          climateTags: Array.isArray(body.climateTags) ? body.climateTags.map(String) : undefined,
+          parameterKeys: Array.isArray(body.parameterKeys) ? body.parameterKeys.map(String) : undefined,
+          productLanes: Array.isArray(body.productLanes) ? body.productLanes.map(String) : undefined,
+          primaryTheme: body.primaryTheme !== undefined ? (body.primaryTheme as string | null) : undefined,
+          abstractText: body.abstractText !== undefined ? (body.abstractText as string | null) : undefined,
+          notes: body.notes !== undefined ? (body.notes as string | null) : undefined,
+          evidenceArtifactId:
+            body.evidenceArtifactId !== undefined ? (body.evidenceArtifactId as string | null) : undefined,
+        });
+        return {
+          source,
+          governance: {
+            aboutnessOnly: true,
+            doesNotWriteProductEngines: true,
+            reindexedIfApproved: true,
           },
         };
       } catch (e) {

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { describe, expect, it, vi } from "vitest";
 import { KnowledgePackError, KnowledgePackService } from "./service.js";
@@ -92,5 +92,51 @@ describe("KnowledgePackService", () => {
         reviewState: "APPROVED",
       }),
     ).rejects.toMatchObject({ code: "REVIEW_TRANSITION_FORBIDDEN" });
+  });
+
+  it("appends extract only when pack is DRAFT", async () => {
+    const itemCreate = vi.fn().mockResolvedValue({ id: "i1" });
+    const update = vi.fn().mockResolvedValue({ id: "p1", reviewState: "DRAFT", items: [] });
+    const db = {
+      knowledgePack: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "p1",
+          reviewState: "DRAFT",
+          items: [{ sequence: 2 }],
+        }),
+        update,
+      },
+      knowledgePackItem: { create: itemCreate },
+    } as never;
+    const svc = new KnowledgePackService(db);
+    await svc.appendPackItem({
+      tenantId: "t",
+      packId: "p1",
+      item: {
+        title: "FAO-56 ETo note",
+        extractKind: "NOTE",
+        bodyText: "Reference method note",
+        structured: { doesNotAutoUpdateFlahaSOIL: true },
+      },
+    });
+    expect(itemCreate).toHaveBeenCalled();
+    expect(itemCreate.mock.calls[0][0].data.sequence).toBe(3);
+    expect(update).toHaveBeenCalled();
+  });
+
+  it("forbids append on APPROVED pack", async () => {
+    const db = {
+      knowledgePack: {
+        findFirst: vi.fn().mockResolvedValue({ id: "p1", reviewState: "APPROVED", items: [] }),
+      },
+    } as never;
+    const svc = new KnowledgePackService(db);
+    await expect(
+      svc.appendPackItem({
+        tenantId: "t",
+        packId: "p1",
+        item: { title: "x", extractKind: "NOTE", structured: {} },
+      }),
+    ).rejects.toMatchObject({ code: "PACK_NOT_EDITABLE" });
   });
 });

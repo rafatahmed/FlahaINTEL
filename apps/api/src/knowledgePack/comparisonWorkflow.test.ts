@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -58,6 +58,34 @@ describe("4S-D comparison workflow", () => {
     expect(create.mock.calls[0][0].data.autoApplyBlocked).toBe(true);
     expect(create.mock.calls[0][0].data.doesNotAutoUpdateFlahaSOIL).toBe(true);
     expect(create.mock.calls[0][0].data.parameter).toBe("ecDsM");
+  });
+
+  it("allows soil-only case when literature bank is missing (operate land)", async () => {
+    const create = vi.fn().mockResolvedValue({
+      id: "c2",
+      code: "import-flh-ph",
+      parameter: "pH",
+      status: "DRAFT",
+      literatureValue: null,
+    });
+    const findUnique = vi.fn().mockResolvedValue(null);
+    const svc = new ComparisonWorkflowService({
+      flahaSoilComparisonCase: { create, findUnique },
+    } as never);
+    await svc.createCase({
+      tenantId: "t",
+      createdById: "u",
+      title: "pH from report",
+      parameter: "pH",
+      flahaSoilValue: 7.2,
+      flahaSoilReportNumber: "FLH-2026-001",
+      flahaSoilTestLevel: "ADVANCED",
+      deviationSummary: "Soil landed; literature pending.",
+      recommendedHumanAction: "need-more-evidence",
+    });
+    expect(create).toHaveBeenCalled();
+    expect(create.mock.calls[0][0].data.flahaSoilValue).toBe(7.2);
+    expect(create.mock.calls[0][0].data.literatureValue).toBeNull();
   });
 
   it("requires productTicketRef for PRODUCT_TICKET_OPEN", async () => {

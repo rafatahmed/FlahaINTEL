@@ -8,9 +8,13 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import type { FlahaSoilComparisonStatus, PrismaClient } from "@prisma/client";
+import {
+  assertSoilCaseValidationGate,
+  EvidenceReferenceError,
+} from "./evidenceReferencePolicy.js";
 import {
   defaultSoilTestLevels,
   getParameterSpec,
@@ -142,12 +146,18 @@ export class ComparisonWorkflowService {
     const hasLit =
       input.literatureValue != null ||
       (input.literatureValueMin != null && input.literatureValueMax != null) ||
-      (input.literatureRange && input.literatureRange.trim());
-    if (!hasLit) {
+      Boolean(input.literatureRange && input.literatureRange.trim());
+    const hasSoil =
+      input.flahaSoilValue != null || Boolean(input.flahaSoilObservation?.trim());
+    // Operate path: land FlahaSOIL report first; literature may attach later (need-more-evidence).
+    if (!hasLit && !hasSoil) {
       throw new ComparisonWorkflowError(
-        "LITERATURE_REQUIRED",
-        "Provide literatureValue, min+max, or literatureRange.",
+        "EVIDENCE_REQUIRED",
+        "Provide literature (value / min+max / range) and/or FlahaSOIL observation or value.",
       );
+    }
+    if (!hasLit && input.recommendedHumanAction === "review-in-PA") {
+      // Prefer explicit pending literature when soil-only
     }
 
     const codeBase = input.code?.trim() || slugCode(input.title) || `cmp-${param}`;
@@ -305,6 +315,18 @@ export class ComparisonWorkflowService {
           "TICKET_REF_REQUIRED",
           "productTicketRef is required when opening a product ticket.",
         );
+      }
+    }
+
+    // HARD: submit/approve require soil evidence; approve also requires literature reference.
+    if (to === "READY_FOR_REVIEW" || to === "APPROVED") {
+      try {
+        assertSoilCaseValidationGate(row, to);
+      } catch (e) {
+        if (e instanceof EvidenceReferenceError) {
+          throw new ComparisonWorkflowError(e.code, e.message);
+        }
+        throw e;
       }
     }
 

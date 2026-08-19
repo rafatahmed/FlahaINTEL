@@ -3,15 +3,19 @@
  * Precision Agriculture Division
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
- * Title: Seed FlahaSOIL Comparison Cases (4S-D)
- * Introduction: Creates sample deviation cases from threshold bank + sample report FLH-2026-001.
+ * Title: Seed FlahaSOIL Comparison Cases (4S-D) — TEST ONLY
+ * Introduction: Creates sample deviation cases from threshold bank + FLH-2026-001 fixture.
+ * Blocked on operate DBs unless FLAHA_ALLOW_DEMO_SEED=1 or --for-tests.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { PrismaClient } from "@prisma/client";
+import { assertDemoSeedAllowed } from "./demoSeedGuard.js";
 import { ComparisonWorkflowService } from "./comparisonWorkflow.js";
+
+assertDemoSeedAllowed("knowledge:seed-comparison-cases");
 
 const TENANT_CODE = process.env.FLAHA_BOOTSTRAP_TENANT_CODE?.trim() || "flaha-local";
 const ADMIN_EMAIL = process.env.FLAHA_BOOTSTRAP_ADMIN_EMAIL?.trim() || "admin@flaha.local";

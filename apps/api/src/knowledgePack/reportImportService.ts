@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { createRequire } from "node:module";
 import type { PrismaClient } from "@prisma/client";
@@ -98,29 +98,52 @@ export class ReportImportService {
       );
     }
 
-    // Prefer curated bank pack items (any review state for matching literature)
+    // Optional literature bank (real APPROVED or any bank pack). Missing bank is OK —
+    // operate still opens DRAFT cases with FlahaSOIL side filled (literature pending).
     const bank = await this.packs.listThresholdBank(params.tenantId, {
       onlyApproved: false,
       packCode: "literature-threshold-bank-v1",
     });
 
     const created = [];
-    const skipped: Array<{ parameter: string; reason: string }> = [];
+    const notes: Array<{ parameter: string; note: string }> = [];
+    let withLiterature = 0;
+    let withoutLiterature = 0;
 
     for (const [parameter, flahaSoilValue] of valueEntries) {
       const match = bank.entries.find((e) => e.parameter === parameter);
-      if (!match?.itemId) {
-        skipped.push({ parameter, reason: "no threshold bank entry for parameter" });
-        continue;
-      }
-      // Level gate: if report level known and bank entry has levels, require overlap
-      const entryLevels = (match.soilTestLevels || []) as string[];
-      if (parsed.testLevel && entryLevels.length && !entryLevels.includes(parsed.testLevel)) {
-        skipped.push({
+      const entryLevels = (match?.soilTestLevels || []) as string[];
+
+      // Level gate only when a bank entry exists and scopes levels
+      if (
+        match?.itemId &&
+        parsed.testLevel &&
+        entryLevels.length &&
+        !entryLevels.includes(parsed.testLevel)
+      ) {
+        notes.push({
           parameter,
-          reason: `bank entry not scoped to report level ${parsed.testLevel}`,
+          note: `bank entry not scoped to report level ${parsed.testLevel} — case opened without literature match`,
         });
-        continue;
+      }
+
+      const hasLit =
+        Boolean(match?.itemId) &&
+        !(
+          parsed.testLevel &&
+          entryLevels.length &&
+          !entryLevels.includes(parsed.testLevel)
+        );
+
+      if (hasLit) withLiterature += 1;
+      else {
+        withoutLiterature += 1;
+        if (!match?.itemId) {
+          notes.push({
+            parameter,
+            note: "no threshold bank entry — FlahaSOIL value landed; literature pending human attach",
+          });
+        }
       }
 
       const code = [
@@ -132,21 +155,30 @@ export class ReportImportService {
         .join("-")
         .replace(/[^a-z0-9-]+/g, "-");
 
+      const litBits = hasLit
+        ? `${match!.operator ?? ""} ${match!.value ?? `${match!.valueMin ?? ""}-${match!.valueMax ?? ""}`}`.trim()
+        : "none (no bank match)";
+
       const row = await this.comparisons.createCase({
         tenantId: params.tenantId,
         createdById: params.userId,
         code,
         title: `${parameter} from ${parsed.reportNumber || params.sourceLabel}`,
         parameter,
-        unit: match.unit != null ? String(match.unit) : null,
-        soilTestLevels: entryLevels.length ? entryLevels : parsed.testLevel ? [parsed.testLevel] : undefined,
-        appliesFromLevel: match.appliesFromLevel != null ? String(match.appliesFromLevel) : null,
-        literatureValue: typeof match.value === "number" ? match.value : null,
-        literatureValueMin: typeof match.valueMin === "number" ? match.valueMin : null,
-        literatureValueMax: typeof match.valueMax === "number" ? match.valueMax : null,
-        literatureOperator: match.operator != null ? String(match.operator) : null,
-        literatureSource: `packItem:${match.itemId}`,
-        thresholdPackItemId: String(match.itemId),
+        unit: hasLit && match?.unit != null ? String(match.unit) : null,
+        soilTestLevels: hasLit && entryLevels.length
+          ? entryLevels
+          : parsed.testLevel
+            ? [parsed.testLevel]
+            : undefined,
+        appliesFromLevel:
+          hasLit && match?.appliesFromLevel != null ? String(match.appliesFromLevel) : null,
+        literatureValue: hasLit && typeof match?.value === "number" ? match.value : null,
+        literatureValueMin: hasLit && typeof match?.valueMin === "number" ? match.valueMin : null,
+        literatureValueMax: hasLit && typeof match?.valueMax === "number" ? match.valueMax : null,
+        literatureOperator: hasLit && match?.operator != null ? String(match.operator) : null,
+        literatureSource: hasLit && match?.itemId ? `packItem:${match.itemId}` : null,
+        thresholdPackItemId: hasLit && match?.itemId ? String(match.itemId) : null,
         flahaSoilValue,
         flahaSoilObservation: [
           `Imported from ${params.sourceLabel}`,
@@ -160,8 +192,10 @@ export class ReportImportService {
         flahaSoilReportNumber: parsed.reportNumber,
         flahaSoilTestLevel: parsed.testLevel,
         flahaSoilSampleRef: parsed.sampleId,
-        deviationSummary: `Report ${parsed.reportNumber || "upload"} has ${parameter}=${flahaSoilValue}; literature bank threshold is ${match.operator ?? ""} ${match.value ?? `${match.valueMin}-${match.valueMax}`}. Human review required — FlahaSOIL not auto-updated.`,
-        recommendedHumanAction: "review-in-PA",
+        deviationSummary: hasLit
+          ? `Report ${parsed.reportNumber || "upload"} has ${parameter}=${flahaSoilValue}; literature bank threshold is ${litBits}. Human review required — FlahaSOIL not auto-updated.`
+          : `Report ${parsed.reportNumber || "upload"} has ${parameter}=${flahaSoilValue} (FlahaSOIL). No literature threshold bank match yet — attach real literature or approve a bank, then re-review. Does not auto-update FlahaSOIL.`,
+        recommendedHumanAction: hasLit ? "review-in-PA" : "need-more-evidence",
       });
       created.push(row);
     }
@@ -179,6 +213,8 @@ export class ReportImportService {
         parseNotes: parsed.parseNotes,
       },
       casesCreated: created.length,
+      casesWithLiterature: withLiterature,
+      casesWithoutLiterature: withoutLiterature,
       cases: created.map((c) => ({
         id: c.id,
         code: c.code,
@@ -187,11 +223,14 @@ export class ReportImportService {
         flahaSoilValue: c.flahaSoilValue,
         literatureValue: c.literatureValue,
       })),
-      skipped,
+      /** @deprecated prefer notes — kept for older callers */
+      skipped: notes.map((n) => ({ parameter: n.parameter, reason: n.note })),
+      notes,
       governance: {
         humanOnly: true,
         doesNotAutoUpdateFlahaSOIL: true,
-        note: "Cases are DRAFT. Review in Knowledge → comparison workflow. No write to FlahaSOIL engines.",
+        note:
+          "Cases are DRAFT. Review in Knowledge → Soil → cases. Literature side filled only when a real threshold bank match exists. No write to FlahaSOIL engines.",
       },
     };
   }

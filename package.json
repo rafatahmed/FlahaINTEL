@@ -17,7 +17,11 @@
     "markets:import-mahaseel-pdfs": "npm run markets:import-mahaseel-pdfs --workspace=@flaha-intel/api --",
     "markets:import-jo-amman-excel": "npm run markets:import-jo-amman-excel --workspace=@flaha-intel/api --",
     "markets:retention": "npm run markets:retention --workspace=@flaha-intel/api --",
+    "markets:pending-review-report": "npm run markets:pending-review-report --workspace=@flaha-intel/api --",
     "markets:build-analyst-packs": "npm run markets:build-analyst-packs --workspace=@flaha-intel/api --",
+    "knowledge:purge-demo": "npm run knowledge:purge-demo --workspace=@flaha-intel/api --",
+    "knowledge:literature-pdf-keywords": "npm run knowledge:literature-pdf-keywords --workspace=@flaha-intel/api --",
+    "knowledge:test:seed-samples": "npm run knowledge:test:seed-samples --workspace=@flaha-intel/api",
     "knowledge:seed-threshold-bank": "npm run knowledge:seed-threshold-bank --workspace=@flaha-intel/api",
     "knowledge:seed-comparison-cases": "npm run knowledge:seed-comparison-cases --workspace=@flaha-intel/api",
     "governance:backfill-sources": "npm run governance:backfill-sources --workspace=@flaha-intel/api",
@@ -30,7 +34,15 @@
     "ops:register-market-harvest-task": "powershell -NoProfile -File ops/scripts/register-market-harvest-task.ps1",
     "ops:start": "powershell -NoProfile -File ops/scripts/start-flahaintel.ps1",
     "ops:stop": "powershell -NoProfile -File ops/scripts/start-flahaintel.ps1 -Stop",
-    "ops:artifact-hygiene": "npm run ops:artifact-hygiene --workspace=@flaha-intel/api --"
+    "ops:artifact-hygiene": "npm run ops:artifact-hygiene --workspace=@flaha-intel/api --",
+    "ops:pipeline-once": "npm run ingest:extraction-worker:once --workspace=@flaha-intel/api && npm run ingest:normalization-worker:once --workspace=@flaha-intel/api && npm run ops:eyes-pdf-lite --workspace=@flaha-intel/api -- --confirm",
+    "ops:wave-d-report": "npm run ops:wave-d-report --workspace=@flaha-intel/api --",
+    "ops:operate-scoreboard": "npm run ops:operate-scoreboard --workspace=@flaha-intel/api --",
+    "ops:cancel-fixture-jobs": "npm run ops:cancel-fixture-jobs --workspace=@flaha-intel/api --",
+    "rss:accept-two-run": "npm run rss:accept-two-run --workspace=@flaha-intel/api --",
+    "ops:eyes-pdf-lite": "npm run ops:eyes-pdf-lite --workspace=@flaha-intel/api --",
+    "ops:eyes-advance": "npm run ops:eyes-advance --workspace=@flaha-intel/api --",
+    "ops:safe-disk-cleanup": "powershell -NoProfile -File ops/scripts/safe-disk-cleanup.ps1"
   },
   "engines": {
     "node": ">=20"

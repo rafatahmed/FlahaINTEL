@@ -10,7 +10,7 @@ for governed local-first intelligence operations.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-30
+Last modified: 2026-08-19
 -->
 
 # FlahaINTEL — Program Frame, Audit, Plan & Backlog
@@ -239,8 +239,9 @@ Do **not** implement until approved. Must map to final-product-lock stages.
 | **4S-A…D** | Eyes+Muscles | Soil knowledge + FlahaSOIL comparison path | Product owner |
 | **4I-A…B** | Muscles | Irrigation packs + CALC/FAST handoff rules | After/with 4S |
 | **4R-A…B** | Muscles | Research index | After packs start |
-| **5V / 5X** | Eyes | YouTube / X | After 4M+4S value proven |
-| **4B-A…B** | Brain | Product handoff policies + PA dashboard | With 4M/4S |
+| **4O** | Vault operate | v0.6 residual / v0.7 harden (evidence, PDF KEY WORDS, eyes path, host) | **IN PROGRESS** |
+| **5E-0 / 5V / 5X** | Eyes | Stage E extended eyes (allowlist YouTube + X) | **HOLD** until 4O + operate proof |
+| **4B-A…B** | Brain | Product handoff policies + PA dashboard | With 4M/4S (surface **DONE**) |
 
 Detail and status table: `flahaintel-final-product-lock.md` §6–§7.
 

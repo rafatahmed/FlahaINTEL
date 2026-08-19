@@ -8,12 +8,13 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { Box, CssBaseline, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import { AuthProvider, useAuth } from "./auth";
+import { ArticleFeed } from "./components/ArticleFeed";
 import { GovernanceConsole } from "./components/GovernanceConsole";
 import { SourceManager } from "./components/SourceManager";
 import { AppShell, type NavKey } from "./layout/AppShell";
@@ -86,10 +87,11 @@ function Shell() {
       )}
       {nav === "sources" && (
         <>
-          <SourcePurposeHeader />
-          <SourceManager />
+          <SourcePurposeHeader onOpenArticles={() => navigate("articles")} />
+          <SourceManager onOpenArticles={() => navigate("articles")} />
         </>
       )}
+      {nav === "articles" && <ArticleFeed />}
       {nav === "submit" && (
         <SubmitPage onOpenSubmission={() => navigate("jobs")} onDeepLink={deepLink} />
       )}
@@ -106,13 +108,23 @@ function Shell() {
   );
 }
 
-function SourcePurposeHeader() {
+function SourcePurposeHeader(props: { onOpenArticles?: () => void }) {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="h5">Sources</Typography>
       <Typography variant="body2" color="text.secondary">
-        <strong>Eyes (recurring)</strong> — RSS feeds Flaha watches on a schedule. One-shot files and market archives
-        go through <strong>Submit</strong>; structured product notes live under <strong>Knowledge</strong>.
+        <strong>Eyes (recurring)</strong> — RSS feeds Flaha watches on a schedule. Collected items appear under{" "}
+        <Typography
+          component="span"
+          variant="body2"
+          color="primary"
+          sx={{ cursor: props.onOpenArticles ? "pointer" : "default", fontWeight: 600 }}
+          onClick={props.onOpenArticles}
+        >
+          Articles
+        </Typography>
+        . One-shot files and market archives go through <strong>Submit</strong>; structured product notes live under{" "}
+        <strong>Knowledge</strong>. <strong>Content</strong> is the separate pipeline/governance queue — not RSS.
       </Typography>
     </Box>
   );

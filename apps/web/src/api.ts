@@ -313,6 +313,15 @@ export const api = {
     request<{ channels: Array<Record<string, unknown>> }>(`/api/markets/channels${query({ countryCode })}`),
   marketPrices: (filters: Record<string, string | number | undefined> = {}) =>
     request<{ prices: Array<Record<string, unknown>> }>(`/api/markets/prices${query(filters)}`),
+  reviewMarketPricesBatch: (body: {
+    priceIds: string[];
+    reviewState: "APPROVED" | "REJECTED";
+    note?: string;
+  }) =>
+    request<{ updated: number; reviewState: string; reviewDecisionSource: string }>(
+      "/api/markets/prices/review/batch",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
   marketPriceTrend: (filters: {
     channelCode: string;
     commodityCode: string;
@@ -494,6 +503,60 @@ export const api = {
     return request<{ packs: Array<Record<string, unknown>> }>(`/api/knowledge-packs${query(f)}`);
   },
   knowledgePack: (id: string) => request<{ pack: Record<string, unknown> }>(`/api/knowledge-packs/${id}`),
+  /** Operate authoring: create real pack (DRAFT). */
+  createKnowledgePack: (body: {
+    code: string;
+    theme: string;
+    title: string;
+    summary?: string | null;
+    cropTags?: string[];
+    regionTags?: string[];
+    climateTags?: string[];
+    language?: string;
+    items?: Array<{
+      title: string;
+      extractKind: string;
+      bodyText?: string | null;
+      structured?: Record<string, unknown>;
+      sourceUrl?: string | null;
+    }>;
+  }) =>
+    request<{ pack: Record<string, unknown> }>("/api/knowledge-packs", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  /** Update pack metadata (DRAFT/REJECTED only). */
+  updateKnowledgePack: (
+    id: string,
+    body: {
+      title?: string;
+      summary?: string | null;
+      cropTags?: string[];
+      regionTags?: string[];
+      climateTags?: string[];
+      language?: string;
+    },
+  ) =>
+    request<{ pack: Record<string, unknown> }>(`/api/knowledge-packs/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  /** Append extract item (DRAFT/REJECTED only). */
+  appendKnowledgePackItem: (
+    id: string,
+    body: {
+      title: string;
+      extractKind: string;
+      bodyText?: string | null;
+      structured?: Record<string, unknown>;
+      sourceUrl?: string | null;
+      literatureSourceId?: string | null;
+    },
+  ) =>
+    request<{ pack: Record<string, unknown> }>(`/api/knowledge-packs/${id}/items`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   /** 4I-B: export APPROVED pack as product handoff envelope. */
   knowledgePackHandoff: (id: string, body: { targetProduct?: string } = {}) =>
     request<{
@@ -628,6 +691,27 @@ export const api = {
     }>(`/api/research/literature/facets${query({ includeCatalog: includeCatalog ? "1" : undefined })}`),
   researchLiteratureOne: (id: string) =>
     request<{ source: Record<string, unknown> }>(`/api/research/literature/${id}`),
+  /** Wave A: keywords / domain / theme for intelligent topics (not full-text). */
+  researchLiteratureUpdateAboutness: (
+    id: string,
+    body: {
+      keywords?: string[];
+      domainTags?: string[];
+      cropTags?: string[];
+      regionTags?: string[];
+      climateTags?: string[];
+      parameterKeys?: string[];
+      productLanes?: string[];
+      primaryTheme?: string | null;
+      abstractText?: string | null;
+      notes?: string | null;
+      evidenceArtifactId?: string | null;
+    },
+  ) =>
+    request<{ source: Record<string, unknown>; governance: Record<string, unknown> }>(
+      `/api/research/literature/${id}`,
+      { method: "PATCH", body: JSON.stringify(body) },
+    ),
   researchLiteratureReview: (id: string, body: { reviewState: string; note?: string }) =>
     request<{ source: Record<string, unknown>; governance: Record<string, unknown> }>(
       `/api/research/literature/${id}/review`,
@@ -651,6 +735,9 @@ export const api = {
     doi: string;
     code?: string;
     domainTags?: string[];
+    keywords?: string[];
+    primaryTheme?: string | null;
+    abstractText?: string;
     approve?: boolean;
     notes?: string;
   }) =>
@@ -660,6 +747,16 @@ export const api = {
       crossref: Record<string, unknown>;
       governance: Record<string, unknown>;
     }>("/api/research/literature/crossref/register", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  /** Wave B residual: DRAFT knowledge pack from literature (theme from aboutness). */
+  researchLiteratureCreatePack: (id: string, body: { theme?: string; code?: string } = {}) =>
+    request<{
+      pack: Record<string, unknown>;
+      literatureSourceId: string;
+      next: string[];
+    }>(`/api/research/literature/${id}/create-pack`, {
       method: "POST",
       body: JSON.stringify(body),
     }),

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { Alert, Box, Button, Card, CardActionArea, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -112,6 +112,12 @@ export function DashboardPage(props: { onNavigate?: (key: NavKey) => void }) {
       purpose: "Recurring RSS we watch on a schedule",
       nav: "sources",
       metric: sources.length,
+    },
+    {
+      layer: "Eyes",
+      title: "Articles",
+      purpose: "Collected RSS items — search, filter, inspect",
+      nav: "articles",
     },
     {
       layer: "Eyes",

@@ -1,4 +1,4 @@
-import { Add, Edit, Refresh, Save } from "@mui/icons-material";
+import { Add, Edit, OpenInNew, Refresh, Save } from "@mui/icons-material";
 import {
   Alert,
   Button,
@@ -16,9 +16,17 @@ import {
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { BrandedState } from "./BrandedState";
-import type { RssSource, SchedulerStatus } from "../types";
+import type { CollectionRun, RssSource, SchedulerStatus } from "../types";
 
-export function SourceManager() {
+type CollectResult = {
+  status?: string;
+  itemsFound?: number;
+  itemsAdded?: number;
+  itemsSkipped?: number;
+  error?: string;
+};
+
+export function SourceManager(props: { onOpenArticles?: () => void } = {}) {
   const [sources, setSources] = useState<RssSource[]>([]);
   const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
   const [name, setName] = useState("");
@@ -26,6 +34,7 @@ export function SourceManager() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
+  const [lastCollectNote, setLastCollectNote] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editUrl, setEditUrl] = useState("");
@@ -45,17 +54,41 @@ export function SourceManager() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  function formatCollectNote(result: unknown): string {
+    if (!result || typeof result !== "object") return "";
+    const r = result as CollectResult & { results?: CollectResult[] };
+    if (Array.isArray(r.results)) {
+      const found = r.results.reduce((n, item) => n + (item.itemsFound ?? 0), 0);
+      const added = r.results.reduce((n, item) => n + (item.itemsAdded ?? 0), 0);
+      const skipped = r.results.reduce((n, item) => n + (item.itemsSkipped ?? 0), 0);
+      return `Collect all finished: ${found} found, ${added} new, ${skipped} skipped (duplicates or malformed). Open Articles to inspect.`;
+    }
+    if (r.status === "SUCCESS" || r.itemsFound != null) {
+      return `Collection finished: ${r.itemsFound ?? 0} found, ${r.itemsAdded ?? 0} new, ${r.itemsSkipped ?? 0} skipped. Open Articles to inspect.`;
+    }
+    if (r.status === "FAILURE" && r.error) {
+      return `Collection failed: ${r.error}`;
+    }
+    return "";
+  }
+
   async function act(key: string, action: () => Promise<unknown>) {
     setBusy((current) => new Set(current).add(key));
     try {
-      await action();
+      const result = await action();
       setError("");
+      const note = formatCollectNote(result);
+      if (note) setLastCollectNote(note);
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Request failed.");
     } finally {
       setBusy((current) => { const next = new Set(current); next.delete(key); return next; });
     }
+  }
+
+  function latestRun(source: RssSource): CollectionRun | undefined {
+    return source.collectionRuns?.[0];
   }
 
   function submit(event: FormEvent) {
@@ -82,6 +115,11 @@ export function SourceManager() {
       Scheduler {scheduler.enabled ? `enabled every ${scheduler.intervalMinutes} minutes` : "disabled by configuration"}
       {scheduler.running ? " — collection running" : ""}
     </Alert>}
+    <Alert severity="info">
+      Collection stores articles in FlahaINTEL. Inspect them under <strong>Articles</strong>
+      {props.onOpenArticles ? " (sidebar Eyes group)" : ""}. The <strong>Content</strong> page is only for
+      pipeline/governance candidates, not RSS items.
+    </Alert>
     <Card variant="outlined"><CardContent>
       <Stack component="form" onSubmit={submit} spacing={2}>
         <TextField required label="Source name" value={name} onChange={(event) => setName(event.target.value)} />
@@ -89,16 +127,31 @@ export function SourceManager() {
         <Button type="submit" variant="contained" startIcon={busy.has("add") ? <CircularProgress size={18} /> : <Add />} disabled={busy.has("add")}>Add source</Button>
       </Stack>
     </CardContent></Card>
-    <Stack direction="row" spacing={1}>
+    <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
       <Button variant="outlined" startIcon={busy.has("all") ? <CircularProgress size={18} /> : <Refresh />} disabled={busy.has("all") || sources.length === 0} onClick={() => void act("all", api.collectAll)}>Collect all enabled sources</Button>
       <Button variant="text" onClick={() => void load()} disabled={loading}>Refresh status</Button>
+      {props.onOpenArticles && (
+        <Button variant="contained" color="secondary" startIcon={<OpenInNew />} onClick={props.onOpenArticles}>
+          Open Articles
+        </Button>
+      )}
     </Stack>
+    {lastCollectNote && (
+      <Alert
+        severity={lastCollectNote.startsWith("Collection failed") ? "error" : "success"}
+        action={props.onOpenArticles ? <Button color="inherit" onClick={props.onOpenArticles}>Articles</Button> : undefined}
+        onClose={() => setLastCollectNote("")}
+      >
+        {lastCollectNote}
+      </Alert>
+    )}
     {error && <Alert severity="error" action={<Button color="inherit" onClick={() => void load()}>Retry</Button>}>{error}</Alert>}
     {loading && sources.length === 0 && <BrandedState loading label="Loading RSS sources" />}
     {!loading && !error && sources.length === 0 && <BrandedState label="No RSS sources have been added yet." />}
     {sources.map((source) => {
       const sourceBusy = busy.has(source.id) || source.isCollecting;
       const editing = editingId === source.id;
+      const run = latestRun(source);
       return <Card key={source.id} variant="outlined"><CardContent>
         <Stack spacing={1.5}>
           {editing ? <>
@@ -135,7 +188,20 @@ export function SourceManager() {
           </Button>
           {!source.lastCollectedAt && <Alert severity="info">Not collected yet</Alert>}
           {source.lastCollectedAt && source.lastError && <Alert severity="error">Last attempt failed: {source.lastError}</Alert>}
-          {source.lastCollectedAt && !source.lastError && <Alert severity="success">Last collection succeeded at {new Date(source.lastCollectedAt).toLocaleString()}</Alert>}
+          {source.lastCollectedAt && !source.lastError && (
+            <Alert severity="success">
+              Last collection succeeded at {new Date(source.lastCollectedAt).toLocaleString()}
+              {run
+                ? ` — found ${run.itemsFound}, added ${run.itemsAdded}${run.itemsFound > run.itemsAdded ? ` (${run.itemsFound - run.itemsAdded} skipped)` : ""}.`
+                : "."}
+              {" "}Browse under Articles.
+            </Alert>
+          )}
+          {run && (
+            <Typography variant="caption" color="text.secondary">
+              Latest run {run.status} · {new Date(run.startedAt).toLocaleString()} · found {run.itemsFound} · added {run.itemsAdded}
+            </Typography>
+          )}
         </Stack>
       </CardContent></Card>;
     })}

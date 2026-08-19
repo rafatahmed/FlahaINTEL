@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-01
  */
 import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
@@ -55,17 +55,31 @@ export function JobsPage() {
         <Box>
           <Typography variant="h5">Jobs</Typography>
           <Typography variant="body2" color="text.secondary">
-            <strong>Muscles</strong> — durable pipeline stages (acquire / extract / normalize). Market harvest and
-            historical import may not always appear here; check Submit intakes and Markets for those.
+            <strong>Muscles</strong> — durable pipeline stages (acquire / extract / normalize) for{" "}
+            <strong>EYES_DOCUMENT / website</strong> submissions. Market harvest and soil/CALC/FAST promote do{" "}
+            <em>not</em> always create jobs here — check Submit recent + Markets / Knowledge for those.
           </Typography>
         </Box>
         <Button onClick={() => void load()}>Refresh</Button>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
+      {items.some((j) => String(j.state) === "READY") && (
+        <Alert severity="warning">
+          One or more jobs are <strong>READY</strong> but not running. Start workers, e.g.{" "}
+          <code>npm run worker:extraction --workspace=@flaha-intel/api</code> and{" "}
+          <code>npm run worker:normalization --workspace=@flaha-intel/api</code>. Without workers, Content/Governance
+          stay empty even if Submit shows PROMOTED.
+        </Alert>
+      )}
       <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 2 }}>
         <Card sx={{ flex: 1 }}>
           <CardContent>
-            {items.length === 0 && <Typography color="text.secondary">No jobs.</Typography>}
+            {items.length === 0 && (
+              <Typography color="text.secondary">
+                No pipeline jobs listed. If you just submitted a general document, refresh — or confirm the API is up
+                and you are logged in. READY jobs need workers (see warning above).
+              </Typography>
+            )}
             {items.map((job) => (
               <Box
                 key={String(job.id)}

@@ -3,17 +3,21 @@
  * Precision Agriculture Division
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
- * Title: Seed Literature Threshold Bank (4S-C)
- * Introduction: Upserts curated THRESHOLD bank pack from docs/knowledge/banks (stays DRAFT until human approve).
+ * Title: Seed Literature Threshold Bank (4S-C) — TEST / EXPLICIT ONLY
+ * Introduction: Upserts THRESHOLD bank from test fixtures (stays DRAFT until human approve).
+ * Blocked on operate DBs unless FLAHA_ALLOW_DEMO_SEED=1 or --for-tests.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { PrismaClient, type KnowledgePackTheme } from "@prisma/client";
+import { assertDemoSeedAllowed, knowledgeTestFixturesRoot } from "./demoSeedGuard.js";
 import { KnowledgePackService } from "./service.js";
+
+assertDemoSeedAllowed("knowledge:seed-threshold-bank");
 
 type BankFile = {
   code: string;
@@ -35,9 +39,7 @@ type BankFile = {
 
 const TENANT_CODE = process.env.FLAHA_BOOTSTRAP_TENANT_CODE?.trim() || "flaha-local";
 const ADMIN_EMAIL = process.env.FLAHA_BOOTSTRAP_ADMIN_EMAIL?.trim() || "admin@flaha.local";
-const bankPath = fileURLToPath(
-  new URL("../../../../docs/knowledge/banks/literature-threshold-bank.json", import.meta.url),
-);
+const bankPath = join(knowledgeTestFixturesRoot(), "banks", "literature-threshold-bank.json");
 
 const prisma = new PrismaClient();
 const packs = new KnowledgePackService(prisma);

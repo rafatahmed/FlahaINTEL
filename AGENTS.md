@@ -9,7 +9,7 @@ Defines repository-wide operating instructions for automated coding agents.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-08-01
+Last modified: 2026-08-19
 -->
 
 # FlahaINTEL Agent Instructions
@@ -38,30 +38,34 @@ Metaphor:
 - **Windows production-like** ops acceptance (Phase 3N);
 - **product surface (post-3N):** markets (QA/JO), knowledge packs, research desk (4R-A/L/B/X + Crossref + APA), product handoff 4I-B / feed policies 4B.
 
-**Milestone posture:** Backbone tag `v0.5.0-phase-3n-windows-production-like`. Intermediate product-surface tag recommended as `v0.6.0-post-3n-product-surface` — see `docs/program/milestone-v0.6-product-surface-release-readiness.md`. Not product-complete until operate criteria (disk, content, market span) land.
+**Milestone posture:** Backbone tag `v0.5.0-phase-3n-windows-production-like`. Product-surface tag `v0.6.0-post-3n-product-surface`. **Current engineering:** **v0.7 operate-harden (Gate 4O)** — `docs/program/gates/gate-4o-operate-harden.md`. **Stage E (5E-0 / 5V / 5X) is HOLD** — `docs/program/gates/gate-5e-extended-eyes-scope.md`. Not product-complete until operate criteria (disk, content, market span) land.
 
 Do not expand beyond the currently approved milestone unless explicitly instructed.  
-When a new milestone is approved, preserve the verified foundation, map the work to the final product lock (O1–O5 / Backbone|Eyes|Muscles|Brain), and update this file.
+When a new milestone is approved, preserve the verified foundation, map the work to the final product lock (O1–O5 / Backbone|Eyes|Muscles|Brain), and update this file.  
+Do **not** implement YouTube/X until Stage E unfreeze.
 
 ## Sister system: Flaha Knowledge Platform (LOCKED posture)
 
 **Decision label:** `INTEL-primary · FKP-frozen-thin · MCP-on-named-consumer`  
+**Metaphor (LOCKED):** **vault · door · engine** — operate lock §1.4  
 **Owner-approved operate lock:** `docs/program/flaha-system-vision-and-operate-lock.md`  
 **Binding matrix:** `docs/program/flaha-intel-vs-knowledge-platform-matrix.md`
 
-| System | Owns | Does not own |
-|--------|------|----------------|
-| **FlahaINTEL** (this repo) **PRIMARY** | Ops intelligence: markets, RSS/ingest, jobs, artifacts, knowledge **packs**, handoff envelopes, PA UI | Long-form methodology CMS; Flaha-wide MCP host |
-| **flaha-knowledge-platform** **FROZEN-THIN** | Governed documents (policy/standard/methodology), registry/inventory; **future** MCP | Markets, packs, ArtifactStore, product engine writes; peer feature roadmaps |
+| System | Metaphor | Owns | Does not own |
+|--------|----------|------|----------------|
+| **FlahaINTEL** (this repo) **PRIMARY** | **Vault / bank** | Gather, collect, process, govern: markets, RSS/ingest, jobs, artifacts, knowledge **packs**, handoff, PA UI | Long-form methodology CMS; Flaha-wide MCP host |
+| **flaha-knowledge-platform** **FROZEN-THIN** | **Door (MCP)** | Governed documents (policy/standard/methodology), registry/inventory; **future** MCP serving PA apps, tailored by product | Markets, packs, ArtifactStore, a copy of this vault, product engine writes |
+| **FlahaSOIL / CALC / FAST** | **Engines** | Runtime compute and farmer UX | Collection, governance bank, MCP host |
 
 **Operate rules for agents in this repo:**
 
-1. Default all new PA value work **here** (INTEL) unless the user explicitly names FKP thin work.  
+1. Default all new PA value work **here** (vault) unless the user explicitly names FKP thin work.  
 2. Do not re-home full methodologies as a second wiki; optional `fkpDocId` when citing elevated standards.  
-3. Never auto-apply into FlahaSOIL, FlahaCALC, or FlahaFAST (three separate products: soil · irrigation/weather · nutrients). INTEL must work if FKP is down.  
-4. Do not implement Flaha-wide science MCP in this repo.  
-5. Priority order: operate stack → 4I-B handoff / real pack use → market series depth → only then extended eyes.  
-6. **Submit / intake:** land once → classify → promote (`docs/program/evidence-intake-spine.md`). Do not add parallel per-model upload silos; extend promoters under `apps/api/src/intake/`.
+3. Never auto-apply into FlahaSOIL, FlahaCALC, or FlahaFAST (three separate products: soil · irrigation/weather · nutrients). The vault must work if the door is down.  
+4. Do not implement Flaha-wide science MCP in this repo (that is the FKP door).  
+5. Do not copy INTEL ops data into FKP. Serve later by ID; store of record stays here.  
+6. Priority order: operate stack → 4I-B handoff / real pack use → market series depth → only then extended eyes.  
+7. **Submit / intake:** land once → classify → promote (`docs/program/evidence-intake-spine.md`). Do not add parallel per-model upload silos; extend promoters under `apps/api/src/intake/`.
 
 ## Source file ownership headers
 

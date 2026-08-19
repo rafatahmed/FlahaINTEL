@@ -11,14 +11,14 @@
  * Last modified: 2026-08-01
  *
  * Usage:
- *   npm run knowledge:register-literature
- *   npm run knowledge:register-literature -- --file=../../docs/knowledge/samples/literature-source-examples.json
+ *   npm run knowledge:register-literature -- --file=path/to/real-sources.json
+ *   npm run knowledge:register-literature -- --for-tests   # example fixtures only
  *   npm run knowledge:register-literature -- --file=... --approve
  */
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import { prisma } from "../db.js";
+import { assertDemoSeedAllowed, knowledgeTestFixturesRoot } from "../knowledgePack/demoSeedGuard.js";
 import { LiteratureSourceService, type LiteratureUpsertInput } from "./service.js";
 
 function arg(name: string): string | undefined {
@@ -44,10 +44,13 @@ async function main() {
   const user = await prisma.userAccount.findUnique({ where: { email: adminEmail } });
   if (!tenant || !user) throw new Error("Run bootstrap:local first (tenant + admin).");
 
-  const defaultFile = fileURLToPath(
-    new URL("../../../../docs/knowledge/samples/literature-source-examples.json", import.meta.url),
-  );
-  const filePath = resolve(arg("file") || defaultFile);
+  const explicitFile = arg("file");
+  const useTestFixtures = process.argv.includes("--for-tests") || !explicitFile;
+  if (useTestFixtures) {
+    assertDemoSeedAllowed("knowledge:register-literature (example fixtures)");
+  }
+  const defaultFile = join(knowledgeTestFixturesRoot(), "samples", "literature-source-examples.json");
+  const filePath = resolve(explicitFile || defaultFile);
   const raw = JSON.parse(await readFile(filePath, "utf8")) as FileShape;
   const sources = raw.sources ?? [];
   if (!sources.length) throw new Error(`No sources in ${filePath}`);

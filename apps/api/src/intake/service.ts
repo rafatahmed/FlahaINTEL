@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -104,7 +104,7 @@ export class EvidenceIntakeService {
   ) {
     assertPermission(actor, "inspect");
     const take = Math.min(Math.max(filters?.limit ?? 50, 1), 200);
-    return this.db.evidenceIntake.findMany({
+    const rows = await this.db.evidenceIntake.findMany({
       where: {
         tenantId: actor.tenantId,
         ...(filters?.status ? { status: filters.status } : {}),
@@ -113,6 +113,7 @@ export class EvidenceIntakeService {
       orderBy: { createdAt: "desc" },
       take,
     });
+    return Promise.all(rows.map((r) => this.enrichPipelineStatus(r)));
   }
 
   async get(actor: ProductActor, id: string) {
@@ -121,7 +122,85 @@ export class EvidenceIntakeService {
       where: { id, tenantId: actor.tenantId },
     });
     if (!row) throw new IntakeError("INTAKE_NOT_FOUND", "Intake not found.", 404);
-    return row;
+    return this.enrichPipelineStatus(row);
+  }
+
+  /**
+   * Wave C: live eyes pipeline status on intakes (PROMOTED ≠ finished).
+   * Merges ProductSubmission stage into promoteResult for UI honesty.
+   */
+  private async enrichPipelineStatus(row: EvidenceIntake): Promise<EvidenceIntake & { pipeline?: Record<string, unknown> }> {
+    if (!row.productSubmissionId) {
+      return { ...row, pipeline: { kind: "none", note: "No product submission (domain promote or not eyes)." } };
+    }
+    const sub = await this.db.productSubmission.findFirst({
+      where: { id: row.productSubmissionId, tenantId: row.tenantId },
+      include: { stages: { orderBy: { sequence: "asc" } } },
+    });
+    if (!sub) {
+      return {
+        ...row,
+        pipeline: { kind: "missing", note: "Submission id set but not found." },
+      };
+    }
+
+    let extractionJobState: string | null = null;
+    if (sub.extractionJobId) {
+      const job = await this.db.ingestionJob.findUnique({
+        where: { id: sub.extractionJobId },
+        select: { state: true, attemptCount: true },
+      });
+      extractionJobState = job ? `${job.state} (attempts ${job.attemptCount})` : null;
+    }
+
+    const finished =
+      sub.overallStatus === "SUCCEEDED" ||
+      sub.overallStatus === "FAILED" ||
+      sub.overallStatus === "CANCELLED" ||
+      sub.overallStatus === "REJECTED";
+
+    const pipeline = {
+      kind: "eyes_submission",
+      submissionId: sub.id,
+      overallStatus: sub.overallStatus,
+      currentStage: sub.currentStage,
+      extractionJobId: sub.extractionJobId,
+      normalizationJobId: sub.normalizationJobId,
+      governanceCandidateId: sub.governanceCandidateId,
+      extractionJobState,
+      finished,
+      stages: sub.stages.map((s) => ({
+        stageKind: s.stageKind,
+        status: s.status,
+        jobId: s.jobId,
+      })),
+      operatorNote: finished
+        ? sub.governanceCandidateId
+          ? "Pipeline finished — open Content / Governance for the candidate."
+          : `Pipeline ${sub.overallStatus} at ${sub.currentStage}.`
+        : "Intake PROMOTED only means queued. Run worker:extraction + worker:normalization (+ submission-advance) until Content appears.",
+    };
+
+    // Refresh promoteResult snapshot for honesty (does not change intake status PROMOTED).
+    const promoteResult = {
+      ...((row.promoteResult as Record<string, unknown>) || {}),
+      kind: (row.promoteResult as { kind?: string } | null)?.kind || row.intakeClass,
+      submissionId: sub.id,
+      overallStatus: sub.overallStatus,
+      currentStage: sub.currentStage,
+      governanceCandidateId: sub.governanceCandidateId,
+      extractionJobState,
+      pipelineFinished: finished,
+    };
+
+    if (JSON.stringify(promoteResult) !== JSON.stringify(row.promoteResult)) {
+      await this.db.evidenceIntake.update({
+        where: { id: row.id },
+        data: { promoteResult: promoteResult as never },
+      });
+    }
+
+    return { ...row, promoteResult: promoteResult as never, pipeline };
   }
 
   /**
@@ -739,13 +818,30 @@ export class EvidenceIntakeService {
 
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const code = `intake-${product.toLowerCase()}-report-${stamp}-${row.id.slice(0, 8)}`;
+    const fileLabel = row.originalFilename || row.title || "report";
+    // Hard evidence gate: landed intake + sealed artifact = correlation; citation = provisional reference.
+    // APPROVE still requires a durable HTTPS/DOI/literatureSourceId on each extract (operator must attach).
+    const spineStructured: Record<string, unknown> = {
+      productHandoff: [productName],
+      doesNotAutoUpdateFlahaSOIL: true,
+      doesNotAutoUpdateFlahaCALC: true,
+      doesNotAutoUpdateFlahaFAST: true,
+      autoApplyBlocked: true,
+      intakeId: row.id,
+      evidenceIntakeId: row.id,
+      evidenceArtifactId: artifactId,
+      sourceFilename: fileLabel,
+      domain,
+      citation: `Submit land → promote: ${fileLabel} (intake ${row.id})`,
+      ...structuredExtra,
+    };
     const pack = await this.packs.upsertPackByCode({
       tenantId: actor.tenantId,
       ownerUserId: actor.userId,
       code,
       theme,
-      title: `${productName} report intake — ${row.originalFilename || row.title}`,
-      summary: `Imported via Submit spine for ${productName} only (${domain}). DRAFT until human review. Never auto-updates ${productName}.`,
+      title: `${productName} report intake — ${fileLabel}`,
+      summary: `Imported via Submit spine for ${productName} only (${domain}). DRAFT until human review. Never auto-updates ${productName}. Evidence: intake ${row.id}, artifact sealed. Before APPROVE: attach real literature HTTPS/DOI on each extract.`,
       cropTags: [],
       regionTags: [],
       climateTags: [],
@@ -755,30 +851,17 @@ export class EvidenceIntakeService {
           title: `${productName} report note`,
           extractKind: "NOTE",
           bodyText: bodyPreview || "Empty extract — open sealed artifact.",
-          structured: {
-            productHandoff: [productName],
-            doesNotAutoUpdateFlahaSOIL: true,
-            doesNotAutoUpdateFlahaCALC: true,
-            doesNotAutoUpdateFlahaFAST: true,
-            autoApplyBlocked: true,
-            intakeId: row.id,
-            sourceFilename: row.originalFilename,
-            domain,
-            ...structuredExtra,
-          },
-          sourceUrl: `intake://${row.id}`,
+          structured: spineStructured,
           evidenceArtifactId: artifactId,
         },
         {
           title: "Human action required",
           extractKind: "REFERENCE",
-          bodyText: `Review this DRAFT pack on Knowledge → ${productName}. Promote insights into handoff envelope later; do not patch product code from INTEL.`,
+          bodyText: `Review this DRAFT pack on Knowledge → ${productName}. Add durable reference URLs (paper/standard) before Approve. Promote insights into handoff envelope later; do not patch product code from INTEL.`,
           structured: {
-            productHandoff: [productName],
-            doesNotAutoUpdateFlahaSOIL: true,
-            doesNotAutoUpdateFlahaCALC: true,
-            doesNotAutoUpdateFlahaFAST: true,
+            ...spineStructured,
             recommendedHumanAction: "review-in-PA",
+            citation: `Human review required for ${productName} intake ${row.id} (${fileLabel})`,
           },
           evidenceArtifactId: artifactId,
         },
@@ -805,10 +888,22 @@ export class EvidenceIntakeService {
 
 function summarizeSoil(result: unknown): Record<string, unknown> {
   if (result && typeof result === "object") {
-    const r = result as { casesCreated?: number; cases?: unknown[]; parsed?: unknown };
+    const r = result as {
+      casesCreated?: number;
+      casesWithLiterature?: number;
+      casesWithoutLiterature?: number;
+      cases?: unknown[];
+      parsed?: unknown;
+      notes?: unknown;
+      governance?: unknown;
+    };
     return {
       casesCreated: r.casesCreated ?? (Array.isArray(r.cases) ? r.cases.length : undefined),
+      casesWithLiterature: r.casesWithLiterature,
+      casesWithoutLiterature: r.casesWithoutLiterature,
       parsed: r.parsed,
+      notes: r.notes,
+      governance: r.governance,
     };
   }
   return { result };

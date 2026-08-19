@@ -8,13 +8,14 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import {
   Article,
   CloudUpload,
   Dashboard,
   FactCheck,
+  Feed,
   Gavel,
   Inventory2,
   MenuBook,
@@ -47,6 +48,7 @@ export type NavKey =
   | "markets"
   | "knowledge"
   | "sources"
+  | "articles"
   | "submit"
   | "jobs"
   | "content"
@@ -62,6 +64,7 @@ const NAV: NavItem[] = [
   { key: "markets", label: "Markets", icon: <Storefront />, group: "Eyes" },
   { key: "knowledge", label: "Knowledge", icon: <MenuBook />, group: "Feeds" },
   { key: "sources", label: "Sources", icon: <Source />, group: "Eyes" },
+  { key: "articles", label: "Articles", icon: <Feed />, group: "Eyes" },
   { key: "submit", label: "Submit", icon: <CloudUpload />, group: "Eyes" },
   { key: "jobs", label: "Jobs", icon: <Work />, group: "Muscles" },
   { key: "content", label: "Content", icon: <Article />, group: "Structure" },

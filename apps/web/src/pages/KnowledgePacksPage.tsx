@@ -10,9 +10,10 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  *
  * Fix: Research tab must not call packsForLane("research") (undefined lane → white page).
+ * Operate: New pack + append extract (real content) — no seed-samples path.
  */
 import {
   Alert,
@@ -39,6 +40,12 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { BrandedState } from "../components/BrandedState";
+import {
+  buildExtractStructured,
+  parseTagList,
+  slugCode,
+  type AuthorExtractKind,
+} from "../knowledge/packAuthoring";
 import {
   laneById,
   primaryProductForTheme,
@@ -132,6 +139,10 @@ function countByReview(packs: Pack[]): Record<string, number> {
   return out;
 }
 
+/**
+ * Product / handoff targets only — never treat doesNotAutoUpdate* safety flags as product tags
+ * (market packs set doesNotAutoUpdateFlahaSOIL=true; that is a block, not a FlahaSOIL target).
+ */
 function extractProductHints(item: PackItem): string[] {
   const s = item.structured ?? {};
   const tags = new Set<string>();
@@ -140,9 +151,6 @@ function extractProductHints(item: PackItem): string[] {
     for (const p of handoff) if (typeof p === "string" && p.trim()) tags.add(p.trim());
   }
   if (typeof s.product === "string" && s.product.trim()) tags.add(s.product.trim());
-  if (s.doesNotAutoUpdateFlahaCALC === true) tags.add("FlahaCALC");
-  if (s.doesNotAutoUpdateFlahaFAST === true) tags.add("FlahaFAST");
-  if (s.doesNotAutoUpdateFlahaSOIL === true) tags.add("FlahaSOIL");
   return [...tags];
 }
 
@@ -221,6 +229,11 @@ export function KnowledgePacksPage(props?: {
   const [litIncludeCatalog, setLitIncludeCatalog] = useState(true);
   const [litSelectedId, setLitSelectedId] = useState("");
   const [litDetail, setLitDetail] = useState<Record<string, unknown> | null>(null);
+  /** Wave A aboutness editor (keywords / domain / theme from paper, not DOI-only). */
+  const [litKwEdit, setLitKwEdit] = useState("");
+  const [litDomainEdit, setLitDomainEdit] = useState("soil");
+  const [litThemeEdit, setLitThemeEdit] = useState("SOIL");
+  const [litAbstractEdit, setLitAbstractEdit] = useState("");
   const [collections, setCollections] = useState<Array<Record<string, unknown>>>([]);
   const [colSelectedId, setColSelectedId] = useState("");
   const [colDetail, setColDetail] = useState<Record<string, unknown> | null>(null);
@@ -239,6 +252,32 @@ export function KnowledgePacksPage(props?: {
   const [crossrefHits, setCrossrefHits] = useState<Array<Record<string, unknown>>>([]);
   const [claimKind, setClaimKind] = useState("REFERENCE");
   const [litClaims, setLitClaims] = useState<Array<Record<string, unknown>>>([]);
+
+  /** Real pack authoring (SOIL / IRRIGATION / NUTRITION / MARKET_CONTEXT). */
+  const [showNewPack, setShowNewPack] = useState(false);
+  const [newPackTitle, setNewPackTitle] = useState("");
+  const [newPackCode, setNewPackCode] = useState("");
+  const [newPackSummary, setNewPackSummary] = useState("");
+  const [newPackRegions, setNewPackRegions] = useState("");
+  const [newPackCrops, setNewPackCrops] = useState("");
+  const [itemTitle, setItemTitle] = useState("");
+  const [itemKind, setItemKind] = useState<AuthorExtractKind>("NOTE");
+  const [itemBody, setItemBody] = useState("");
+  const [itemSourceUrl, setItemSourceUrl] = useState("");
+  const [itemParameter, setItemParameter] = useState("");
+  const [itemUnit, setItemUnit] = useState("");
+  const [itemOperator, setItemOperator] = useState("<=");
+  const [itemValue, setItemValue] = useState("");
+  const [itemValueMin, setItemValueMin] = useState("");
+  const [itemValueMax, setItemValueMax] = useState("");
+  const [itemMethod, setItemMethod] = useState("");
+  const [itemEquationId, setItemEquationId] = useState("");
+  const [itemEquationForm, setItemEquationForm] = useState("");
+  const [itemLitValue, setItemLitValue] = useState("");
+  const [itemDeviation, setItemDeviation] = useState("");
+  const [itemCitation, setItemCitation] = useState("");
+  const [itemIntakeId, setItemIntakeId] = useState("");
+  const [itemArtifactId, setItemArtifactId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -380,11 +419,22 @@ export function KnowledgePacksPage(props?: {
     if (!litSelectedId) {
       setLitDetail(null);
       setLitClaims([]);
+      setLitKwEdit("");
+      setLitDomainEdit("soil");
+      setLitThemeEdit("SOIL");
+      setLitAbstractEdit("");
       return;
     }
     void api
       .researchLiteratureOne(litSelectedId)
-      .then((r) => setLitDetail(r.source))
+      .then((r) => {
+        const s = r.source;
+        setLitDetail(s);
+        setLitKwEdit(((s.keywords as string[]) || []).join(", "));
+        setLitDomainEdit(((s.domainTags as string[]) || ["soil"]).join(", "));
+        setLitThemeEdit(String(s.primaryTheme || "SOIL"));
+        setLitAbstractEdit(String(s.abstractText || ""));
+      })
       .catch(() => setLitDetail(null));
     void api
       .researchLiteratureClaims(litSelectedId)
@@ -404,6 +454,70 @@ export function KnowledgePacksPage(props?: {
       await loadLiterature();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Research rebuild failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function createPackFromLiterature() {
+    if (!litDetail?.id) return;
+    setResearchBusy(true);
+    setError("");
+    try {
+      const theme = litThemeEdit || String(litDetail.primaryTheme || "SOIL");
+      const res = await api.researchLiteratureCreatePack(String(litDetail.id), { theme });
+      setInfo(
+        `DRAFT pack created: ${String((res.pack as { code?: string }).code || res.pack.id)} (${theme}). Open Knowledge → ${theme === "SOIL" ? "FlahaSOIL" : theme === "IRRIGATION" ? "FlahaCALC" : theme === "NUTRITION" ? "FlahaFAST" : "packs"} → Submit for review → Approve.`,
+      );
+      if (theme === "SOIL") setLane("soil");
+      else if (theme === "IRRIGATION") setLane("calc");
+      else if (theme === "NUTRITION") setLane("fast");
+      setSelectedId(String((res.pack as { id?: string }).id || ""));
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Create pack from literature failed.");
+    } finally {
+      setResearchBusy(false);
+    }
+  }
+
+  async function saveLiteratureAboutness() {
+    if (!litDetail?.id) return;
+    setResearchBusy(true);
+    setError("");
+    try {
+      const keywords = litKwEdit
+        .split(/[,;]+/)
+        .map((k) => k.trim())
+        .filter(Boolean);
+      const domainTags = litDomainEdit
+        .split(/[,;]+/)
+        .map((k) => k.trim())
+        .filter(Boolean);
+      if (!keywords.length) {
+        setError("Aboutness requires ≥1 keyword (from paper KEY WORDS line when possible).");
+        return;
+      }
+      if (!domainTags.length) {
+        setError("Aboutness requires ≥1 domain (e.g. soil).");
+        return;
+      }
+      const res = await api.researchLiteratureUpdateAboutness(String(litDetail.id), {
+        keywords,
+        domainTags,
+        primaryTheme: litThemeEdit || "SOIL",
+        abstractText: litAbstractEdit.trim() || null,
+      });
+      setLitDetail(res.source);
+      setInfo(
+        "Aboutness saved (keywords/domain/theme). Topic index refreshed if source is SOURCE_APPROVED. Rebuild topics if needed.",
+      );
+      await loadLiterature();
+      if (String(res.source.reviewState) === "SOURCE_APPROVED") {
+        await rebuildResearchIndex();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save aboutness failed.");
     } finally {
       setResearchBusy(false);
     }
@@ -626,6 +740,148 @@ export function KnowledgePacksPage(props?: {
       setSelectedId(selected.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Review failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function resetItemForm() {
+    setItemTitle("");
+    setItemKind("NOTE");
+    setItemBody("");
+    setItemSourceUrl("");
+    setItemParameter("");
+    setItemUnit("");
+    setItemOperator("<=");
+    setItemValue("");
+    setItemValueMin("");
+    setItemValueMax("");
+    setItemMethod("");
+    setItemEquationId("");
+    setItemEquationForm("");
+    setItemLitValue("");
+    setItemDeviation("");
+    setItemCitation("");
+    setItemIntakeId("");
+    setItemArtifactId("");
+  }
+
+  async function createPack() {
+    if (!activeLane) return;
+    const theme = activeLane.themes[0];
+    if (!theme) return;
+    const title = newPackTitle.trim();
+    if (!title) {
+      setError("Pack title is required.");
+      return;
+    }
+    const code = slugCode(newPackCode.trim() || title);
+    if (!code) {
+      setError("Pack code is required (letters/numbers).");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setInfo("");
+    try {
+      const res = await api.createKnowledgePack({
+        code,
+        theme,
+        title,
+        summary: newPackSummary.trim() || null,
+        regionTags: parseTagList(newPackRegions),
+        cropTags: parseTagList(newPackCrops),
+        language: "en",
+        items: [],
+      });
+      const pack = res.pack as Pack;
+      setInfo(
+        `Created DRAFT pack ${pack.code} (${theme} → ${activeLane.product}). Add real extracts, then Submit for review → Approve.`,
+      );
+      setShowNewPack(false);
+      setNewPackTitle("");
+      setNewPackCode("");
+      setNewPackSummary("");
+      setNewPackRegions("");
+      setNewPackCrops("");
+      await load();
+      if (pack.id) setSelectedId(pack.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Create pack failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function appendItem() {
+    if (!selected) return;
+    const title = itemTitle.trim();
+    if (!title) {
+      setError("Extract title is required.");
+      return;
+    }
+    const sourceUrl = itemSourceUrl.trim();
+    const intakeId = itemIntakeId.trim();
+    const artifactId = itemArtifactId.trim();
+    const citation = itemCitation.trim();
+    if (!sourceUrl && !citation) {
+      setError(
+        "Hard rule: each extract needs a citable reference (HTTPS source URL required for Approve; citation optional extra).",
+      );
+      return;
+    }
+    if (!sourceUrl && !intakeId && !artifactId) {
+      setError(
+        "Hard rule: correlate to landed evidence — HTTPS URL (Submit website / official board) and/or intake id / artifact id.",
+      );
+      return;
+    }
+    if (sourceUrl && !/^https?:\/\//i.test(sourceUrl)) {
+      setError("Source URL must be http(s) for hard validation.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setInfo("");
+    try {
+      const structured = buildExtractStructured({
+        theme: selected.theme,
+        extractKind: itemKind,
+        parameter: itemParameter,
+        unit: itemUnit,
+        operator: itemOperator,
+        value: itemValue,
+        valueMin: itemValueMin,
+        valueMax: itemValueMax,
+        method: itemMethod,
+        equationId: itemEquationId,
+        equationForm: itemEquationForm,
+        literatureValue: itemLitValue,
+        deviationSummary: itemDeviation,
+        recommendedHumanAction: "review-in-PA",
+        evidenceIntakeId: intakeId || undefined,
+        evidenceArtifactId: artifactId || undefined,
+        citation: citation || undefined,
+      });
+      // HTTPS sourceUrl counts as reference; also counts as correlation when it is the landed/official board URL.
+      if (sourceUrl) {
+        structured.officialUrl = structured.officialUrl || sourceUrl;
+      }
+      const res = await api.appendKnowledgePackItem(selected.id, {
+        title,
+        extractKind: itemKind,
+        bodyText: itemBody.trim() || null,
+        structured,
+        sourceUrl: sourceUrl || null,
+      });
+      const pack = res.pack as Pack;
+      setInfo(`Added ${itemKind} extract to ${pack.code || selected.code} (still DRAFT until human review).`);
+      resetItemForm();
+      await load();
+      setSelectedId(selected.id);
+      if (lane === "soil") await loadBank();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Add extract failed.");
     } finally {
       setBusy(false);
     }
@@ -997,9 +1253,8 @@ export function KnowledgePacksPage(props?: {
                       {litSources.length === 0 ? (
                         <Box sx={{ p: 2 }}>
                           <Typography variant="body2" color="text.secondary">
-                            No literature yet. Run{" "}
-                            <code>npm run knowledge:register-literature -- --approve</code> for multi-domain
-                            samples, or POST /api/research/literature.
+                            No literature yet. Use Crossref DOI above, set keywords/domain, then Approve.
+                            Demo sample seed is blocked for operate.
                           </Typography>
                         </Box>
                       ) : (
@@ -1061,6 +1316,75 @@ export function KnowledgePacksPage(props?: {
                             <Chip key={p} size="small" color="secondary" label={p} />
                           ))}
                         </Box>
+                        <Alert severity="info" sx={{ py: 0.5 }}>
+                          <strong>Aboutness (Wave A):</strong> DOI/Crossref is only the catalog card. Enter KEY WORDS
+                          and domain from the real paper so Topics can assort intelligently. SOURCE_APPROVED requires
+                          keywords + domain.
+                        </Alert>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          label="Keywords (comma-separated)"
+                          value={litKwEdit}
+                          onChange={(e) => setLitKwEdit(e.target.value)}
+                          helperText="From paper KEY WORDS line — e.g. Cation exchange capacity, fertilizer and lime recommendations"
+                        />
+                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                          <TextField
+                            size="small"
+                            label="Domain tags"
+                            value={litDomainEdit}
+                            onChange={(e) => setLitDomainEdit(e.target.value)}
+                            helperText="e.g. soil"
+                            sx={{ flex: 1, minWidth: 120 }}
+                          />
+                          <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel>Primary theme</InputLabel>
+                            <Select
+                              label="Primary theme"
+                              value={litThemeEdit}
+                              onChange={(e) => setLitThemeEdit(e.target.value)}
+                            >
+                              <MenuItem value="SOIL">SOIL</MenuItem>
+                              <MenuItem value="IRRIGATION">IRRIGATION</MenuItem>
+                              <MenuItem value="NUTRITION">NUTRITION</MenuItem>
+                              <MenuItem value="MARKET_CONTEXT">MARKET_CONTEXT</MenuItem>
+                              <MenuItem value="OTHER">OTHER</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          multiline
+                          minRows={2}
+                          label="Abstract (optional)"
+                          value={litAbstractEdit}
+                          onChange={(e) => setLitAbstractEdit(e.target.value)}
+                        />
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="secondary"
+                            disabled={researchBusy}
+                            onClick={() => void saveLiteratureAboutness()}
+                          >
+                            Save aboutness + refresh topics
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            disabled={researchBusy}
+                            onClick={() => void createPackFromLiterature()}
+                          >
+                            Create DRAFT knowledge pack
+                          </Button>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Create pack uses DOI/URL + literature id (+ artifact if linked). Still DRAFT until human
+                          Submit → Approve on the product lane.
+                        </Typography>
                         {Boolean(litDetail.localPathHint) && (
                           <Typography variant="caption" color="text.secondary">
                             Library path hint: <code>{String(litDetail.localPathHint)}</code>
@@ -1752,21 +2076,108 @@ export function KnowledgePacksPage(props?: {
                 <Button size="small" variant="outlined" onClick={() => void load()} disabled={loading}>
                   Refresh
                 </Button>
+                {lane !== "markets" && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    disabled={busy}
+                    onClick={() => setShowNewPack((v) => !v)}
+                  >
+                    {showNewPack ? "Hide new pack" : "New pack"}
+                  </Button>
+                )}
+                {lane === "markets" && (
+                  <Typography variant="caption" color="text.secondary">
+                    Market packs: rebuild from Markets page (real prices), then approve here.
+                  </Typography>
+                )}
               </Box>
 
+              {showNewPack && lane !== "markets" && (
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                      New real pack · theme <code>{activeLane.themes[0]}</code> → {activeLane.product}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                      Starts as <strong>DRAFT</strong>. Use real science only — no demo seeds. After extracts: Submit
+                      for review → Approve (human). Never auto-writes {activeLane.product}.
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      <TextField
+                        size="small"
+                        required
+                        fullWidth
+                        label="Title"
+                        value={newPackTitle}
+                        onChange={(e) => {
+                          setNewPackTitle(e.target.value);
+                          if (!newPackCode.trim()) setNewPackCode(slugCode(e.target.value));
+                        }}
+                      />
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Code (stable slug)"
+                        value={newPackCode}
+                        onChange={(e) => setNewPackCode(e.target.value)}
+                        helperText="Unique per tenant · e.g. soil-ph-literature-qa-v1"
+                      />
+                      <TextField
+                        size="small"
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        label="Summary"
+                        value={newPackSummary}
+                        onChange={(e) => setNewPackSummary(e.target.value)}
+                      />
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        <TextField
+                          size="small"
+                          label="Region tags"
+                          value={newPackRegions}
+                          onChange={(e) => setNewPackRegions(e.target.value)}
+                          helperText="Comma-separated · e.g. QA, JO"
+                          sx={{ flex: 1, minWidth: 160 }}
+                        />
+                        <TextField
+                          size="small"
+                          label="Crop tags"
+                          value={newPackCrops}
+                          onChange={(e) => setNewPackCrops(e.target.value)}
+                          helperText="e.g. tomato, cucumber"
+                          sx={{ flex: 1, minWidth: 160 }}
+                        />
+                      </Box>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Button variant="contained" disabled={busy || !newPackTitle.trim()} onClick={() => void createPack()}>
+                          Create DRAFT pack
+                        </Button>
+                        <Button disabled={busy} onClick={() => setShowNewPack(false)}>
+                          Cancel
+                        </Button>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              )}
+
               {!lanePacks.length ? (
-                <Alert severity="warning">
+                <Alert severity="info">
                   No packs for <strong>{activeLane.product}</strong> (theme{" "}
                   <code>{activeLane.themes.join(", ")}</code>).
                   <Box component="span" sx={{ display: "block", mt: 0.5 }}>
-                    Expected samples: {activeLane.sampleCodes.map((c) => (
-                      <code key={c} style={{ marginRight: 8 }}>
-                        {c}
-                      </code>
-                    ))}
+                    {lane === "markets" ? (
+                      <>Rebuild analyst packs on <strong>Markets</strong> from real harvests, then review here.</>
+                    ) : (
+                      <>
+                        Create a real pack with <strong>New pack</strong>, add extracts (NOTE / METHOD / THRESHOLD…),
+                        then <strong>Submit for review</strong> → <strong>Approve (human)</strong>. Demo seed samples
+                        are test-only and blocked for operate.
+                      </>
+                    )}
                   </Box>
-                  Run <code>npm run knowledge:seed-samples</code> in <code>apps/api</code>
-                  {lane === "markets" && <> · or rebuild analyst packs on Markets</>}.
                 </Alert>
               ) : (
                 <Box
@@ -1861,8 +2272,13 @@ export function KnowledgePacksPage(props?: {
                             </Typography>
                             <Divider sx={{ my: 1.5 }} />
                             <Typography variant="subtitle2" gutterBottom>
-                              Human review
+                              Human review (hard evidence gate)
                             </Typography>
+                            <Alert severity="warning" sx={{ mb: 1 }}>
+                              <strong>Submit for review</strong> and <strong>Approve</strong> require every extract to
+                              have a citable reference <em>and</em> correlation to landed document/URL (or market
+                              series / soil report). Empty or orphan extracts are rejected by the API.
+                            </Alert>
                             <TextField
                               size="small"
                               fullWidth
@@ -1904,6 +2320,217 @@ export function KnowledgePacksPage(props?: {
                             )}
                           </CardContent>
                         </Card>
+
+                        {(selected.reviewState === "DRAFT" || selected.reviewState === "REJECTED") && (
+                          <Card variant="outlined" sx={{ borderColor: "primary.main" }}>
+                            <CardContent>
+                              <Typography variant="subtitle1" gutterBottom>
+                                Add extract (real content)
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                                <strong>Hard validation:</strong> every extract needs (1) citable reference and (2)
+                                correlation to landed document/URL. Submit for review / Approve will reject orphans.
+                                Prefer Submit-landed URL or official board HTTPS + optional intake/artifact ids.
+                              </Typography>
+                              <Stack spacing={1.5}>
+                                <TextField
+                                  size="small"
+                                  required
+                                  fullWidth
+                                  label="Extract title"
+                                  value={itemTitle}
+                                  onChange={(e) => setItemTitle(e.target.value)}
+                                />
+                                <FormControl size="small" fullWidth>
+                                  <InputLabel>Extract kind</InputLabel>
+                                  <Select
+                                    label="Extract kind"
+                                    value={itemKind}
+                                    onChange={(e) => setItemKind(e.target.value as AuthorExtractKind)}
+                                  >
+                                    <MenuItem value="NOTE">NOTE</MenuItem>
+                                    <MenuItem value="REFERENCE">REFERENCE</MenuItem>
+                                    <MenuItem value="METHOD">METHOD</MenuItem>
+                                    <MenuItem value="EQUATION">EQUATION</MenuItem>
+                                    <MenuItem value="THRESHOLD">THRESHOLD</MenuItem>
+                                    {selected.theme === "SOIL" && (
+                                      <MenuItem value="COMPARISON_NOTE">COMPARISON_NOTE (FlahaSOIL)</MenuItem>
+                                    )}
+                                  </Select>
+                                </FormControl>
+                                <TextField
+                                  size="small"
+                                  fullWidth
+                                  multiline
+                                  minRows={2}
+                                  label="Body text"
+                                  value={itemBody}
+                                  onChange={(e) => setItemBody(e.target.value)}
+                                />
+                                <TextField
+                                  size="small"
+                                  required
+                                  fullWidth
+                                  type="url"
+                                  label="Reference / evidence URL (HTTPS)"
+                                  value={itemSourceUrl}
+                                  onChange={(e) => setItemSourceUrl(e.target.value)}
+                                  helperText="Official page, paper, blog, or Submit website URL — required for Approve"
+                                />
+                                <TextField
+                                  size="small"
+                                  fullWidth
+                                  label="Citation text (optional APA / note)"
+                                  value={itemCitation}
+                                  onChange={(e) => setItemCitation(e.target.value)}
+                                />
+                                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                  <TextField
+                                    size="small"
+                                    label="Evidence intake id"
+                                    value={itemIntakeId}
+                                    onChange={(e) => setItemIntakeId(e.target.value)}
+                                    helperText="From Submit (preferred spine link)"
+                                    sx={{ flex: 1, minWidth: 160 }}
+                                  />
+                                  <TextField
+                                    size="small"
+                                    label="Artifact id"
+                                    value={itemArtifactId}
+                                    onChange={(e) => setItemArtifactId(e.target.value)}
+                                    helperText="From Artifacts (optional)"
+                                    sx={{ flex: 1, minWidth: 160 }}
+                                  />
+                                </Box>
+                                {(itemKind === "THRESHOLD" ||
+                                  itemKind === "METHOD" ||
+                                  itemKind === "EQUATION" ||
+                                  itemKind === "COMPARISON_NOTE") && (
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    label="Parameter key"
+                                    value={itemParameter}
+                                    onChange={(e) => setItemParameter(e.target.value)}
+                                    helperText="e.g. pH, ecDsM, kcMid, solution-ec"
+                                    required={itemKind === "THRESHOLD" || itemKind === "COMPARISON_NOTE"}
+                                  />
+                                )}
+                                {itemKind === "THRESHOLD" && (
+                                  <>
+                                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                      <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <InputLabel>Operator</InputLabel>
+                                        <Select
+                                          label="Operator"
+                                          value={itemOperator}
+                                          onChange={(e) => setItemOperator(e.target.value)}
+                                        >
+                                          <MenuItem value="<=">&lt;=</MenuItem>
+                                          <MenuItem value=">=">&gt;=</MenuItem>
+                                          <MenuItem value="<">&lt;</MenuItem>
+                                          <MenuItem value=">">&gt;</MenuItem>
+                                          <MenuItem value="=">=</MenuItem>
+                                          <MenuItem value="~">~</MenuItem>
+                                          <MenuItem value="range">range</MenuItem>
+                                        </Select>
+                                      </FormControl>
+                                      <TextField
+                                        size="small"
+                                        label="Unit"
+                                        value={itemUnit}
+                                        onChange={(e) => setItemUnit(e.target.value)}
+                                        helperText="Optional if catalog has unit"
+                                        sx={{ minWidth: 100 }}
+                                      />
+                                      {itemOperator === "range" ? (
+                                        <>
+                                          <TextField
+                                            size="small"
+                                            label="Min"
+                                            value={itemValueMin}
+                                            onChange={(e) => setItemValueMin(e.target.value)}
+                                          />
+                                          <TextField
+                                            size="small"
+                                            label="Max"
+                                            value={itemValueMax}
+                                            onChange={(e) => setItemValueMax(e.target.value)}
+                                          />
+                                        </>
+                                      ) : (
+                                        <TextField
+                                          size="small"
+                                          label="Value"
+                                          value={itemValue}
+                                          onChange={(e) => setItemValue(e.target.value)}
+                                        />
+                                      )}
+                                    </Box>
+                                  </>
+                                )}
+                                {itemKind === "METHOD" && (
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    required
+                                    label="Method id"
+                                    value={itemMethod}
+                                    onChange={(e) => setItemMethod(e.target.value)}
+                                    helperText="structured.method — stable method identifier"
+                                  />
+                                )}
+                                {itemKind === "EQUATION" && (
+                                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                    <TextField
+                                      size="small"
+                                      label="Equation id"
+                                      value={itemEquationId}
+                                      onChange={(e) => setItemEquationId(e.target.value)}
+                                      sx={{ flex: 1, minWidth: 140 }}
+                                    />
+                                    <TextField
+                                      size="small"
+                                      label="Form"
+                                      value={itemEquationForm}
+                                      onChange={(e) => setItemEquationForm(e.target.value)}
+                                      placeholder="ETc = Kc * ETo"
+                                      sx={{ flex: 2, minWidth: 180 }}
+                                    />
+                                  </Box>
+                                )}
+                                {itemKind === "COMPARISON_NOTE" && (
+                                  <>
+                                    <TextField
+                                      size="small"
+                                      fullWidth
+                                      label="Literature value"
+                                      value={itemLitValue}
+                                      onChange={(e) => setItemLitValue(e.target.value)}
+                                    />
+                                    <TextField
+                                      size="small"
+                                      fullWidth
+                                      required
+                                      multiline
+                                      minRows={2}
+                                      label="Deviation summary"
+                                      value={itemDeviation}
+                                      onChange={(e) => setItemDeviation(e.target.value)}
+                                    />
+                                  </>
+                                )}
+                                <Button
+                                  variant="contained"
+                                  disabled={busy || !itemTitle.trim()}
+                                  onClick={() => void appendItem()}
+                                >
+                                  Add extract to pack
+                                </Button>
+                              </Stack>
+                            </CardContent>
+                          </Card>
+                        )}
 
                         {(selected.items || []).map((item) => {
                           const isComparison = item.extractKind === "COMPARISON_NOTE";

@@ -50,14 +50,16 @@ Markets: `docs/markets/market-channel-registry.json`.
 
 | Category | Source | Verified endpoint | Probe | Action |
 |----------|--------|-------------------|-------|--------|
-| Ag news | Brownfield Ag News | `https://www.brownfieldagnews.com/feed/` | 200 · RSS · ~20 items | **DB enabled PENDING** |
-| Agribusiness/policy | Agri-Pulse News | `https://www.agri-pulse.com/rss/topic/71-news` | 200 · RSS | **DB enabled PENDING** |
-| Agribusiness/economy | Agri-Pulse Economy | `https://www.agri-pulse.com/rss/topic/21767-economy` | 200 · RSS | **DB enabled PENDING** |
-| Regulatory | Agri-Pulse Regulatory | `https://www.agri-pulse.com/rss/topic/21766-regulatory` | 200 · RSS | **DB enabled PENDING** |
-| Fertilizer **news** | FertilizerWorks News | `https://fertilizerworks.com/news.xml` | 200 · RSS · ~10 items | **DB enabled PENDING** |
-| Grain business | World Grain Trade | `https://www.world-grain.com/rss/topic/1034-trade` | 200 · RSS | **DB enabled PENDING** |
-| Grain / FAO-related | World Grain FAO topic | `https://www.world-grain.com/rss/topic/1054-fao` | 200 · RSS | **DB enabled PENDING** (secondary; official FAO already on feed) |
-| Pesticide/food safety science | EFSA Journal | `https://www.efsa.europa.eu/en/efsajournal/rss` | 200 · RSS · ~20 items | **DB enabled PENDING** |
+| Ag news | Brownfield Ag News | `https://www.brownfieldagnews.com/feed/` | 200 · RSS · ~20 items | **ACCEPTED** (two-run 2026-08-01) |
+| Agribusiness/policy | Agri-Pulse News | `https://www.agri-pulse.com/rss/topic/71-news` | 200 · RSS | **ACCEPTED** (two-run 2026-08-01) |
+| Agribusiness/economy | Agri-Pulse Economy | `https://www.agri-pulse.com/rss/topic/21767-economy` | 200 · RSS | **ACCEPTED** (two-run 2026-08-01) |
+| Regulatory | Agri-Pulse Regulatory | `https://www.agri-pulse.com/rss/topic/21766-regulatory` | 200 · RSS | **ACCEPTED** (two-run 2026-08-01) |
+| Fertilizer **news** | FertilizerWorks News | `https://fertilizerworks.com/news.xml` | 200 · RSS · ~10 items | **ACCEPTED** (two-run 2026-08-01) |
+| Grain business | World Grain Trade | `https://www.world-grain.com/rss/topic/1034-trade` | 200 · RSS | **ACCEPTED** (two-run 2026-08-01) |
+| Grain / FAO-related | World Grain FAO topic | `https://www.world-grain.com/rss/topic/1054-fao` | 200 · RSS | **ACCEPTED** (two-run 2026-08-01) |
+| Pesticide/food safety science | EFSA Journal | `https://www.efsa.europa.eu/en/efsajournal/rss` | 200 · RSS · ~20 items | **ACCEPTED** (two-run 2026-08-01) |
+
+**Wave D CLI:** `npm run rss:accept-two-run -- --confirm` · then `npm run bootstrap:source-policies`
 
 Bootstrap: `npm run bootstrap:rss-agribusiness-batch` (API workspace).  
 Preflight audit: `docs/rss-agribusiness-batch-preflight.json`.

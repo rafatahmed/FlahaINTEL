@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-01
- * Last modified: 2026-08-01
+ * Last modified: 2026-08-19
  */
 import type { KnowledgePackTheme, PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
@@ -26,6 +26,7 @@ import {
   searchCrossrefWorks,
 } from "./crossref.js";
 import { normalizeDomainTags, productLanesFromDomains, themeFromDomains } from "./domains.js";
+import { extractPdfKeywords, mergeKeywords } from "./extractPdfKeywords.js";
 
 /** Local string unions so builds work before/without prisma generate (Windows DLL lock). */
 export type LiteratureDocumentType =
@@ -451,6 +452,136 @@ export class LiteratureSourceService {
     return this.serialize(row);
   }
 
+  /**
+   * Operator aboutness (Wave A): keywords + domains + theme + parameters + abstract.
+   * Reindexes research topics when source is already SOURCE_APPROVED.
+   */
+  async updateAboutness(params: {
+    tenantId: string;
+    id: string;
+    actorUserId?: string;
+    keywords?: string[];
+    domainTags?: string[];
+    cropTags?: string[];
+    regionTags?: string[];
+    climateTags?: string[];
+    parameterKeys?: string[];
+    productLanes?: string[];
+    primaryTheme?: string | null;
+    abstractText?: string | null;
+    notes?: string | null;
+    evidenceArtifactId?: string | null;
+  }) {
+    const row = await this.db.literatureSource.findFirst({
+      where: { id: params.id, tenantId: params.tenantId },
+    });
+    if (!row) throw new LiteratureError("NOT_FOUND", "Literature source not found.", 404);
+
+    const domainTags =
+      params.domainTags !== undefined
+        ? normalizeDomainTags(params.domainTags)
+        : (row.domainTags as string[]);
+    const primaryTheme =
+      params.primaryTheme !== undefined
+        ? asTheme(params.primaryTheme) ?? themeFromDomains(domainTags, null)
+        : (row.primaryTheme as string | null);
+    const productLanes =
+      params.productLanes !== undefined
+        ? normTags(params.productLanes)
+        : params.domainTags !== undefined
+          ? productLanesFromDomains(domainTags)
+          : (row.productLanes as string[]);
+
+    const updated = await this.db.literatureSource.update({
+      where: { id: row.id },
+      data: {
+        ...(params.keywords !== undefined ? { keywords: normTags(params.keywords) } : {}),
+        ...(params.domainTags !== undefined ? { domainTags } : {}),
+        ...(params.cropTags !== undefined ? { cropTags: normTags(params.cropTags) } : {}),
+        ...(params.regionTags !== undefined ? { regionTags: normTags(params.regionTags) } : {}),
+        ...(params.climateTags !== undefined ? { climateTags: normTags(params.climateTags) } : {}),
+        ...(params.parameterKeys !== undefined
+          ? { parameterKeys: normTags(params.parameterKeys) }
+          : {}),
+        ...(params.productLanes !== undefined || params.domainTags !== undefined
+          ? { productLanes }
+          : {}),
+        ...(params.primaryTheme !== undefined || params.domainTags !== undefined
+          ? { primaryTheme }
+          : {}),
+        ...(params.abstractText !== undefined
+          ? { abstractText: params.abstractText?.trim() || null }
+          : {}),
+        ...(params.notes !== undefined ? { notes: params.notes?.trim() || null } : {}),
+        ...(params.evidenceArtifactId !== undefined
+          ? { evidenceArtifactId: params.evidenceArtifactId?.trim() || null }
+          : {}),
+      },
+    });
+
+    if (updated.reviewState === "SOURCE_APPROVED") {
+      await this.reindexResearchBestEffort(
+        params.tenantId,
+        params.actorUserId,
+        `literature aboutness ${String(row.code)}`,
+      );
+    }
+
+    return this.serialize(updated);
+  }
+
+  /**
+   * 4O-B: merge KEY WORDS from extracted PDF text into aboutness.
+   * Does not OCR, does not invent terms, does not SOURCE_APPROVE.
+   */
+  async mergeKeywordsFromExtractedText(params: {
+    tenantId: string;
+    id: string;
+    actorUserId?: string;
+    text: string;
+    apply?: boolean;
+  }) {
+    const row = await this.db.literatureSource.findFirst({
+      where: { id: params.id, tenantId: params.tenantId },
+    });
+    if (!row) throw new LiteratureError("NOT_FOUND", "Literature source not found.", 404);
+    const extracted = extractPdfKeywords(params.text || "");
+    const merged = mergeKeywords((row.keywords as string[]) || [], extracted.keywords);
+    if (!params.apply) {
+      return {
+        source: this.serialize(row),
+        heading: extracted.heading,
+        extracted: extracted.keywords,
+        added: merged.added,
+        keywordsIfApplied: merged.keywords,
+        applied: false,
+        reviewUnchanged: true,
+      };
+    }
+    if (!extracted.keywords.length) {
+      throw new LiteratureError(
+        "PDF_KEYWORDS_NOT_FOUND",
+        "No KEY WORDS / Keywords / Index terms block found in the provided text.",
+        422,
+      );
+    }
+    const source = await this.updateAboutness({
+      tenantId: params.tenantId,
+      id: params.id,
+      actorUserId: params.actorUserId,
+      keywords: merged.keywords,
+    });
+    return {
+      source,
+      heading: extracted.heading,
+      extracted: extracted.keywords,
+      added: merged.added,
+      keywordsIfApplied: merged.keywords,
+      applied: true,
+      reviewUnchanged: true,
+    };
+  }
+
   async review(params: {
     tenantId: string;
     id: string;
@@ -471,6 +602,27 @@ export class LiteratureSourceService {
         409,
       );
     }
+
+    // Wave A: SOURCE_APPROVED requires aboutness (keywords + domain) — not bare DOI cards.
+    if (to === "SOURCE_APPROVED") {
+      const keywords = (row.keywords as string[]) || [];
+      const domains = (row.domainTags as string[]) || [];
+      if (!keywords.length) {
+        throw new LiteratureError(
+          "ABOUTNESS_KEYWORDS_REQUIRED",
+          "SOURCE_APPROVED requires ≥1 keyword (from paper KEY WORDS or operator entry). DOI metadata alone is not enough.",
+          422,
+        );
+      }
+      if (!domains.length && (!row.primaryTheme || row.primaryTheme === "OTHER")) {
+        throw new LiteratureError(
+          "ABOUTNESS_DOMAIN_REQUIRED",
+          "SOURCE_APPROVED requires domainTags (e.g. soil) or a non-OTHER primaryTheme. Set aboutness before approve.",
+          422,
+        );
+      }
+    }
+
     const updated = await this.db.literatureSource.update({
       where: { id: row.id },
       data: {
@@ -576,16 +728,31 @@ export class LiteratureSourceService {
     doi: string;
     code?: string;
     domainTags?: string[];
+    keywords?: string[];
     cropTags?: string[];
     regionTags?: string[];
     productLanes?: string[];
     parameterKeys?: string[];
     primaryTheme?: string | null;
     notes?: string | null;
+    abstractText?: string | null;
     approve?: boolean;
   }) {
     const looked = await this.lookupCrossrefDoi(params.doi);
     const d = looked.draft;
+    // Merge Crossref subjects with operator KEY WORDS (operator wins for aboutness fill).
+    const keywords = normTags([...(d.keywords || []), ...(params.keywords || [])]);
+    const domainTags = params.domainTags?.length
+      ? params.domainTags
+      : keywords.some((k) => /soil|liming|fertiliz|cation|cec/i.test(k))
+        ? ["soil"]
+        : undefined;
+    const primaryTheme =
+      params.primaryTheme ||
+      (domainTags?.includes("soil") || domainTags?.some((x) => x.toLowerCase() === "soil")
+        ? "SOIL"
+        : null);
+
     const result = await this.upsertByCode({
       tenantId: params.tenantId,
       ownerUserId: params.ownerUserId,
@@ -603,21 +770,32 @@ export class LiteratureSourceService {
       documentType: d.documentType,
       trustTier: d.trustTier,
       language: d.language,
-      domainTags: params.domainTags,
-      keywords: d.keywords,
+      domainTags,
+      keywords,
       cropTags: params.cropTags,
       regionTags: params.regionTags,
       productLanes: params.productLanes,
       parameterKeys: params.parameterKeys,
-      primaryTheme: params.primaryTheme,
+      primaryTheme,
       sourceUrl: d.url,
-      abstractText: d.abstractText,
+      abstractText: params.abstractText?.trim() || d.abstractText,
       notes:
         params.notes?.trim() ||
-        `Registered from Crossref (${d.crossrefType || "work"}). Human domain tags recommended.`,
+        `Registered from Crossref (${d.crossrefType || "work"}). Operator aboutness (keywords/domain) required before SOURCE_APPROVED.`,
     });
 
     if (params.approve && result.source.reviewState === "CATALOGUED") {
+      // Ensure aboutness present before approve path
+      if (keywords.length && (domainTags?.length || primaryTheme === "SOIL")) {
+        await this.updateAboutness({
+          tenantId: params.tenantId,
+          id: String(result.source.id),
+          actorUserId: params.ownerUserId,
+          keywords,
+          domainTags,
+          primaryTheme,
+        });
+      }
       const approved = await this.review({
         tenantId: params.tenantId,
         id: String(result.source.id),

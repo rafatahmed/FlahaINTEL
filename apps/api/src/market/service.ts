@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import type { PrismaClient, SourceAuthorityType } from "@prisma/client";
 import { Prisma } from "@prisma/client";
@@ -1269,6 +1269,36 @@ export class MarketService {
               ? "BUILDING"
               : "EARLY";
 
+      // Publisher freshness: how many UTC days since lastObservedOn (null if empty).
+      // When EARLY/BUILDING but lastObservedOn is stale, harvest is not inventing history —
+      // the official API/PDF is stuck on a single bulletin day.
+      let publisherLagDays: number | null = null;
+      let publisherFreshness: "FRESH" | "STALE" | "EMPTY" | "UNKNOWN" = "UNKNOWN";
+      if (!lastObservedOn) {
+        publisherFreshness = "EMPTY";
+      } else {
+        const last = parseObservedOn(lastObservedOn);
+        const todayUtc = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+        const lastUtc = Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), last.getUTCDate());
+        publisherLagDays = Math.floor((todayUtc - lastUtc) / 86_400_000);
+        // Fresh if within 2× harvest interval (min 3d buffer for weekends / 3-day PDF cadence).
+        const freshWindow = Math.max(3, ch.harvestIntervalDays * 2);
+        publisherFreshness = publisherLagDays <= freshWindow ? "FRESH" : "STALE";
+      }
+
+      const seriesNote =
+        retentionStatus === "MEETS_TARGET"
+          ? `History span ${spanDays}d meets ≥${targetDays}d target.`
+          : retentionStatus === "EMPTY"
+            ? "No observations yet — run markets:harvest."
+            : `Building series: ${spanDays}d of ${targetDays}d target (${daysBehindTarget}d to go). Keep daily/3-day harvest on schedule.`;
+      const publisherNote =
+        publisherFreshness === "STALE" && publisherLagDays != null
+          ? ` Publisher lag ${publisherLagDays}d (last bulletin ${lastObservedOn}) — re-harvest will not deepen span until the official source publishes newer days.`
+          : publisherFreshness === "FRESH"
+            ? ` Publisher last bulletin is current (lag ${publisherLagDays}d).`
+            : "";
+
       channelsOut.push({
         channelCode: ch.code,
         countryCode: ch.countryCode,
@@ -1285,12 +1315,9 @@ export class MarketService {
         targetDays,
         daysBehindTarget,
         retentionStatus,
-        note:
-          retentionStatus === "MEETS_TARGET"
-            ? `History span ${spanDays}d meets ≥${targetDays}d target.`
-            : retentionStatus === "EMPTY"
-              ? "No observations yet — run markets:harvest."
-              : `Building series: ${spanDays}d of ${targetDays}d target (${daysBehindTarget}d to go). Keep daily/3-day harvest on schedule.`,
+        publisherLagDays,
+        publisherFreshness,
+        note: `${seriesNote}${publisherNote}`,
       });
     }
 

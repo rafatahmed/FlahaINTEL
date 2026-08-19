@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 import {
   Alert,
@@ -67,6 +67,10 @@ function ageLabel(iso: string) {
 
 function asStringList(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
+}
+
+function isAdHocDocument(candidate: GovernanceCandidate): boolean {
+  return !candidate.sourceId;
 }
 
 export function GovernanceConsole(props: { initialCandidateId?: string | null; hideAuthForm?: boolean } = {}) {
@@ -157,7 +161,12 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
 
   const availableActions = useMemo(() => {
     if (!detail) return [];
-    return ACTIONS.filter(action => action.states.includes(detail.reviewState));
+    return ACTIONS.filter((action) => {
+      if (!action.states.includes(detail.reviewState)) return false;
+      // Ad-hoc Submit/PDF has no RSS source — promotion eligibility cannot pass SOURCE_POLICY_MISSING.
+      if (action.key === "mark-promotion-eligible" && isAdHocDocument(detail)) return false;
+      return true;
+    });
   }, [detail]);
 
   async function submitAction(action: typeof ACTIONS[number]["key"]) {
@@ -277,6 +286,38 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                   <Chip label={detail.evidenceCompleteness} />
                   <Chip label={detail.promotionState} variant="outlined" />
                 </Box>
+                <Typography variant="caption" color="text.secondary">
+                  Review state is the human decision. Promotion eligibility is a later reuse gate for{" "}
+                  <strong>registered RSS sources with a source policy</strong> — not for one-shot PDF uploads.
+                </Typography>
+
+                {detail.reviewState === "APPROVED" && isAdHocDocument(detail) && (
+                  <Alert severity="info">
+                    This candidate is already <strong>APPROVED</strong>. You cannot Mark promotion eligible: there is{" "}
+                    <strong>no source</strong>, so the API correctly blocks with <code>SOURCE_POLICY_MISSING</code>.
+                    That is expected for Submit / eyes-pdf-lite documents (e.g. McLean). Do not invent an RSS source
+                    to force it.
+                    <br />
+                    <strong>Science path:</strong> register the paper under Knowledge → Literature, keep the artifact
+                    id on the extract, and use an APPROVED knowledge pack / 4I-B handoff. Pipeline promotion is for
+                    recurring Sources, not this vault item.
+                    {detail.evidenceCompleteness === "INSUFFICIENT" ? (
+                      <>
+                        {" "}
+                        <em>INSUFFICIENT</em> is typical for pdf-parse lite (thin metadata / no RSS lineage) and does
+                        not undo APPROVED.
+                      </>
+                    ) : null}
+                  </Alert>
+                )}
+
+                {detail.reviewState === "APPROVED" && !isAdHocDocument(detail) && (
+                  <Alert severity="info">
+                    Approved. Promotion eligible requires an <strong>active source governance policy</strong> on this
+                    RSS source (<code>npm run bootstrap:source-policies</code> for accepted feeds, or create policy in
+                    API). Then use <strong>Mark promotion eligible</strong>.
+                  </Alert>
+                )}
 
                 <Box>
                   <Typography variant="subtitle2">Normalized preview</Typography>

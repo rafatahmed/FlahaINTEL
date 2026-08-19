@@ -10,14 +10,15 @@ boundaries, and keep/fold recommendation for maximum Flaha Agri System purpose.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-31
-Last modified: 2026-07-31
+Last modified: 2026-08-19
 -->
 
 # FlahaINTEL ↔ Flaha Knowledge Platform — ownership matrix & orchestration
 
-**Status:** **OWNER APPROVED / BINDING** (2026-07-31)  
+**Status:** **OWNER APPROVED / BINDING** (2026-07-31; vault/door/engine 2026-08-19)  
 **Operate lock:** `docs/program/flaha-system-vision-and-operate-lock.md`  
 **Decision label:** `INTEL-primary · FKP-frozen-thin · MCP-on-named-consumer`  
+**System metaphor:** **vault (INTEL) · door (FKP MCP) · engine (SOIL / CALC / FAST)**  
 **Repos:** FlahaINTEL (`FlahaINTEL`) · Knowledge Platform (`flaha-knowledge-platform`)  
 **Audience:** product owner, agents, engineers on either repo  
 
@@ -38,14 +39,17 @@ Last modified: 2026-07-31
 
 | System | Mission |
 |--------|---------|
-| **FlahaINTEL** | Private **operations intelligence**: watch external world, durable evidence, human review, **operational packs** and **product handoff** for PA outcomes. |
-| **Flaha Knowledge Platform (FKP)** | Private **canonical document authority**: policies, standards, methodologies, registries, lifecycle/authority — **served to humans and machines via MCP**. |
+| **FlahaINTEL** | **Vault / bank:** gather, collect, process, govern. Store of record for ops evidence, packs, and handoff. |
+| **Flaha Knowledge Platform (FKP)** | **Door:** canonical document authority — served to humans, PA apps, and machines via **MCP**, tailored by product. Does **not** copy the vault. |
+| **SOIL / CALC / FAST** | **Engines:** runtime compute. Consume read-only; never auto-written. |
 
-They are **complementary**. INTEL *uses* authority; FKP *is* authority storage + retrieval. Neither replaces SOIL / CALC / FAST product engines.
+They are **complementary**. INTEL *fills and governs* the vault; FKP *serves* approved knowledge through the door; engines *compute*. Neither replaces the others.
 
 ---
 
 ## 1. Flaha Agri System — layered map (no twins)
+
+**Metaphor (LOCKED):** vault · door · engine — see operate lock §1.4.
 
 ```text
                          ┌──────────────────────────────────────┐
@@ -58,19 +62,19 @@ They are **complementary**. INTEL *uses* authority; FKP *is* authority storage +
           ▼                                 ▼                                 ▼
  ┌─────────────────────┐      ┌──────────────────────────┐      ┌─────────────────────┐
  │   FlahaINTEL        │      │  Knowledge Platform      │      │ Product engines     │
- │   EYES + MUSCLES    │      │  DOCUMENT AUTHORITY      │      │ SOIL / CALC / FAST  │
- │                     │      │  + MCP FRAMEWORK         │      │ (algorithms, UX)    │
- │ · RSS / web / docs  │      │ · policy/standard/meth.  │      │                     │
- │ · markets harvest   │◄────►│ · inventory / registry   │◄────►│ · runtime calc      │
- │ · jobs + artifacts  │ cite │ · authority + lifecycle  │ cite │ · reports           │
- │ · knowledge PACKS   │  IDs │ · MCP tools/resources    │  IDs │ · farmer-facing     │
- │ · handoff envelopes │      │ · NO markets / NO packs  │      │                     │
+ │   VAULT / BANK      │      │  DOOR (authority + MCP)  │      │ SOIL / CALC / FAST  │
+ │                     │      │                          │      │ ENGINE (compute)    │
+ │ · gather / collect  │      │ · policy/standard/meth.  │      │                     │
+ │ · process / govern  │ cite │ · inventory / registry   │ cite │ · runtime calc      │
+ │ · jobs + artifacts  │  IDs │ · lifecycle / authority  │  IDs │ · reports           │
+ │ · knowledge PACKS   │─────►│ · MCP tailored by product│─────►│ · farmer-facing     │
+ │ · handoff envelopes │      │ · NO vault copy          │      │ · never auto-written│
  └─────────────────────┘      └──────────────────────────┘      └─────────────────────┘
           │                                 │                                 │
           └──────────────── write never ────┴─────── auto-apply never ────────┘
 ```
 
-**Performance principle:** cold path (documents, authority) is **FKP**; hot path (daily harvest, jobs, UI ops) is **INTEL**. Do not put hot-path load on MCP.
+**Performance principle:** cold path (documents, authority, MCP) is the **door** (FKP); hot path (daily harvest, jobs, UI ops) is the **vault** (INTEL). Do not put hot-path load on MCP. Do not copy the vault into FKP git.
 
 ---
 
@@ -120,6 +124,8 @@ Legend: **O** = sole owner · **C** = consumer (read/cite only) · **X** = forbi
 **Rule R2 — No parallel packs:** FKP never grows “THRESHOLD packs” or market series. INTEL never grows a second methodology CMS.
 
 **Rule R3 — Cite upward, operate sideways:** INTEL cites FKP documents; products cite both for tickets; nothing writes product code from either automatically.
+
+**Rule R7 — Serve, don’t copy:** FKP MCP may **resolve and serve** approved knowledge (FKP docs + later INTEL IDs). It must **not** ingest INTEL prices, artifacts, jobs, or pack banks into FKP storage. Tailoring is filter-by-product, not a second bank.
 
 ---
 
@@ -199,13 +205,16 @@ If no FKP doc exists yet, `fkpDocId` is null and `confidence` stays `literature-
 | **F3** Product change request | INTEL handoff + FKP doc IDs → ticket | Export envelope + links | On approval |
 | **F4** Inventory refresh | Product repo → FKP inventory | CLI / CI inventory validate | On product doc change |
 | **F5** INTEL never bulk-imports FKP body into packs | — | Forbidden as auto-sync | Always |
+| **F6** PA app asks MCP for its slice | Named consumer → FKP MCP | Product-scoped read (`list`/`get`/search) | After unfreeze |
 
 | Flow | Forbidden |
 |------|-----------|
 | FKP scrapes markets | Yes forbidden |
+| FKP copies INTEL vault (packs/prices/artifacts) into git | Yes forbidden |
 | INTEL hosts full methodology text as second wiki | Yes forbidden |
 | Bidirectional auto-sync pack ↔ document | Yes forbidden |
 | MCP writes INTEL DB or product DB | Yes forbidden (read-only MCP for v1) |
+| MCP as a hot-path harvest/API replacement | Yes forbidden |
 
 ### 4.3 MCP surface (FKP owns) — target v1 (disciplined)
 
@@ -219,7 +228,7 @@ Expose **only** what machines need for authority; not INTEL ops.
 | `get_inventory` | Where product science sources live | Live engine state |
 | `resolve_authority` | Authority + lifecycle of a docId | Approval of INTEL packs |
 
-**INTEL-side MCP (optional later, separate):** job status, pack list — **only if** needed; default is web/API already exists. Prefer **one MCP host (FKP)** for knowledge; keep INTEL as REST product API for ops.
+**INTEL-side MCP (optional later, separate):** job status, pack list — **only if** needed; default is web/API already exists. Prefer **one MCP host (FKP)** as the **door** for knowledge; keep INTEL as REST product API for the **vault** (hot ops). FKP MCP may later *cite* INTEL pack/extract IDs; it must not become a replica of the vault.
 
 ### 4.4 Auth boundary
 
@@ -281,7 +290,8 @@ External literature / product default note
 | FKP “threshold bank” tables mirroring INTEL bank | Delete FKP bank idea; FKP stores **method standards**; numbers for ops stay INTEL |
 | INTEL “document CMS” for long standards | Stop; put long form in FKP |
 | FKP market or RSS collectors | Stop immediately |
-| Two MCP servers both serving science docs | One: FKP only |
+| Two MCP servers both serving science docs | One door: FKP only |
+| FKP “tailored dump” of INTEL prices/packs | Stop; tailor by ID/filter at serve time, vault stays INTEL |
 | Auto-apply from either system into product code | Forbidden forever without separate product process |
 | Embeddings in both | Only after approved phase; pick **one** retrieval owner (prefer FKP for corpus, INTEL for ops evidence) |
 

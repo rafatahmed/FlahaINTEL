@@ -10,7 +10,7 @@ so engineering never drifts away from Precision Agriculture outcomes.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-31
+Last modified: 2026-08-19
 -->
 
 # FlahaINTEL — Final Product Lock
@@ -74,7 +74,7 @@ Without backbone, eyes and muscles become a **reckless scraper**.
 
 **FlahaINTEL is Flaha’s private agri-intelligence system for the Precision Agriculture division: it watches trusted external sources anywhere Flaha serves farmers, collects and structures knowledge (markets, soil, irrigation, nutrition, digital agri), keeps a full evidence trail, keeps humans in charge, and feeds governed context into FlahaSOIL, FlahaCALC, FlahaFAST and farm advice — not a public news site, not unsupervised scraping, and not limited to one country.**
 
-**System co-existence (2026-07-31, owner locked):** FlahaINTEL is the **primary** ops intelligence plane. The separate **Flaha Knowledge Platform** is **frozen-thin** (document authority + future MCP only) — see `docs/program/flaha-system-vision-and-operate-lock.md`. Do not re-implement FKP or MCP science corpus inside FlahaINTEL.
+**System co-existence (owner locked):** FlahaINTEL is the **vault** (gather, collect, process, govern). The separate **Flaha Knowledge Platform** is the **door** — frozen-thin document authority + future MCP that serves PA apps with tailored approved knowledge. FlahaSOIL / FlahaCALC / FlahaFAST are **engines**. See `docs/program/flaha-system-vision-and-operate-lock.md` §1.4. Do not re-implement FKP or MCP inside FlahaINTEL; do not copy the vault into FKP.
 
 ---
 
@@ -274,10 +274,17 @@ Suggested gates (names reserved):
 
 ### Stage E — Extended eyes (ONLY after B/C prove the model)
 
+**Status: HOLD.** Scope: `docs/program/gates/gate-5e-extended-eyes-scope.md`.  
+Do **not** code until unfreeze (operate proof + owner note). **v0.7 (4O) is in front of Stage E.**
+
 | Gate | Outcome |
 |------|---------|
-| **5V** | YouTube webinar channel (allowlist + transcript/notes + review) |
-| **5X** | X/Twitter allowlisted accounts (logistics, weather, fert) under policy |
+| **5E-0** | Allowlist policy + intake class + rate limits (shared spine) |
+| **5V** | YouTube webinar channel — **5V-A** registry · **5V-B** transcript/notes artifact · **5V-C** governance |
+| **5X** | X/Twitter allowlisted accounts — **5X-A** registry · **5X-B** bounded collect · **5X-C** governance |
+| **5E-N** | Later named network (same 5E-0 pattern) — not opened |
+
+Charters: `gate-5e-0-extended-eyes-policy.md` · `gate-5v-youtube-webinar-channel.md` · `gate-5x-x-allowlist.md`
 
 ### Stage F — Brain completes product control
 

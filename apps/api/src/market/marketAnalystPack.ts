@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import type { PrismaClient } from "@prisma/client";
 import { KnowledgePackService, type CreatePackInput } from "../knowledgePack/service.js";
@@ -156,6 +156,8 @@ export async function buildMarketAnalystPacks(
           harvestIntervalDays: ch.harvestIntervalDays,
           filterMaxSpanDays: ch.filterMaxSpanDays,
           reviewMode: ch.reviewMode,
+          officialUrl: ch.officialUrl,
+          observationCount,
           doesNotAutoUpdateFlahaSOIL: true,
         },
         sourceUrl: ch.officialUrl,
@@ -173,8 +175,11 @@ export async function buildMarketAnalystPacks(
           targetDays: ret?.targetDays ?? 365,
           retentionStatus: ret?.retentionStatus ?? "EMPTY",
           daysBehindTarget: ret?.daysBehindTarget ?? 365,
+          officialUrl: ch.officialUrl,
+          observationCount,
           doesNotAutoUpdateFlahaSOIL: true,
         },
+        sourceUrl: ch.officialUrl,
       },
     ];
 
@@ -196,6 +201,8 @@ export async function buildMarketAnalystPacks(
           marketNoteKind: "top-commodities",
           channelCode: ch.code,
           observedOn: lastObservedOn,
+          officialUrl: ch.officialUrl,
+          observationCount,
           commodities: topRows.map((r) => ({
             commodityCode: r.commodityCode,
             name: r.commodityNameEn || r.commodityName,
@@ -223,6 +230,9 @@ export async function buildMarketAnalystPacks(
       structured: {
         marketNoteKind: "advice-rule",
         productHandoff: ["farm-advice", "PA-review"],
+        channelCode: ch.code,
+        officialUrl: ch.officialUrl,
+        observationCount,
         doesNotAutoUpdateFlahaSOIL: true,
         doesNotAutoUpdateProductCode: true,
       },

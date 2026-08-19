@@ -132,6 +132,8 @@ id_ed25519
 # ---------------------------------------------------------------------------
 .flaha-artifacts/
 .flaha-artifacts-prod/
+.flaha-intakes/
+apps/api/.artifacts/
 .flaha-backups/
 .flaha-backups-offhost/
 .flaha-runtimes/

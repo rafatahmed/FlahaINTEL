@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 
 export type ProductLaneId = "soil" | "calc" | "fast" | "markets";
@@ -26,8 +26,11 @@ export type ProductLaneDef = {
   inScope: string[];
   outOfScope: string[];
   tools: string[];
+  /** Historical fixture codes (tests only — not operate seed). */
   sampleCodes: string[];
   neverAutoUpdateFlag: string;
+  /** Operate authoring path shown in empty state */
+  operateHint: string;
 };
 
 /** Locked product matrix for Knowledge UI */
@@ -49,13 +52,14 @@ export const PRODUCT_LANES: ProductLaneDef[] = [
       "Hydroponic recipes / nutrient ppm targets (→ FlahaFAST)",
       "Market prices (→ Markets)",
     ],
-    tools: ["Packs", "Threshold bank", "Comparison cases", "Report import"],
+    tools: ["Packs", "Threshold bank", "Comparison cases", "Report import", "New pack"],
     sampleCodes: [
       "soil-thresholds-baseline-v1",
       "flahasoil-comparison-notes-v1",
       "literature-threshold-bank-v1",
     ],
     neverAutoUpdateFlag: "doesNotAutoUpdateFlahaSOIL",
+    operateHint: "New pack → add THRESHOLD/METHOD extracts → Submit → Approve",
   },
   {
     id: "calc",
@@ -75,9 +79,10 @@ export const PRODUCT_LANES: ProductLaneDef[] = [
       "Soil lab chemistry panels (→ FlahaSOIL)",
       "Commodity market prices (→ Markets)",
     ],
-    tools: ["Irrigation packs only", "Human review", "4I-B CALC-only handoff export"],
+    tools: ["Irrigation packs only", "New pack", "Human review", "4I-B CALC-only handoff export"],
     sampleCodes: ["irrigation-calc-kc-etc-backbone-v1", "irrigation-water-saving-notes-v1"],
     neverAutoUpdateFlag: "doesNotAutoUpdateFlahaCALC",
+    operateHint: "New pack (IRRIGATION) → EQUATION/METHOD → Submit → Approve → handoff",
   },
   {
     id: "fast",
@@ -97,9 +102,10 @@ export const PRODUCT_LANES: ProductLaneDef[] = [
       "Soil exchange chemistry / SAR as soil report (→ FlahaSOIL)",
       "Market prices (→ Markets)",
     ],
-    tools: ["Nutrition packs only", "Human review", "Handoff later (FAST-only envelope)"],
+    tools: ["Nutrition packs only", "New pack", "Human review", "Handoff later (FAST-only envelope)"],
     sampleCodes: ["nutrition-fast-water-targets-v1"],
     neverAutoUpdateFlag: "doesNotAutoUpdateFlahaFAST",
+    operateHint: "New pack (NUTRITION) → real solution targets → Submit → Approve",
   },
   {
     id: "markets",
@@ -115,6 +121,7 @@ export const PRODUCT_LANES: ProductLaneDef[] = [
     tools: ["Rebuild on Markets page", "Review packs here"],
     sampleCodes: ["market-analyst-*-v1"],
     neverAutoUpdateFlag: "n/a",
+    operateHint: "Markets → rebuild analyst packs from real prices → Approve here",
   },
 ];
 

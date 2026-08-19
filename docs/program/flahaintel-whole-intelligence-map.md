@@ -19,7 +19,8 @@ Last modified: 2026-07-31
 
 **Status:** P0/P1 foundation **implemented** (2026-07-31) — Dashboard intelligence map · **Review inbox** nav · purpose headers on Sources/Content/Jobs.
 
-**Related:** final product lock · evidence intake spine · knowledge product matrix · historical markets import.
+**Related:** final product lock · evidence intake spine · knowledge product matrix · historical markets import ·  
+**operate day:** `docs/program/systemic-operate-checklist.md` (conjugated real proof, not demo seeds).
 
 ---
 

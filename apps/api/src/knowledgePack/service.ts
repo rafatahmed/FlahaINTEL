@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import type { KnowledgePackTheme, PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
@@ -18,11 +18,16 @@ import {
   validateExtractItem,
   type PackReviewState,
 } from "./extractTemplate.js";
+import {
+  assertPackReadyForValidation,
+  EvidenceReferenceError,
+} from "./evidenceReferencePolicy.js";
 
 export class KnowledgePackError extends Error {
   constructor(
     readonly code: string,
     message: string,
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "KnowledgePackError";
@@ -31,6 +36,9 @@ export class KnowledgePackError extends Error {
 
 function mapTemplateError(e: unknown): never {
   if (e instanceof ExtractTemplateError) throw new KnowledgePackError(e.code, e.message);
+  if (e instanceof EvidenceReferenceError) {
+    throw new KnowledgePackError(e.code, e.message, e.details);
+  }
   throw e;
 }
 
@@ -149,6 +157,263 @@ export class KnowledgePackService {
     });
   }
 
+  private assertEditableState(reviewState: string): void {
+    if (reviewState !== "DRAFT" && reviewState !== "REJECTED") {
+      throw new KnowledgePackError(
+        "PACK_NOT_EDITABLE",
+        `Pack is ${reviewState}. Only DRAFT or REJECTED packs can be edited. Return to draft first.`,
+      );
+    }
+  }
+
+  /**
+   * Update pack metadata (title/summary/tags). Content edit only on DRAFT/REJECTED;
+   * REJECTED returns to DRAFT.
+   */
+  async updatePackMeta(params: {
+    tenantId: string;
+    packId: string;
+    title?: string;
+    summary?: string | null;
+    cropTags?: string[];
+    regionTags?: string[];
+    climateTags?: string[];
+    language?: string;
+  }) {
+    const pack = await this.db.knowledgePack.findFirst({
+      where: { id: params.packId, tenantId: params.tenantId },
+    });
+    if (!pack) throw new KnowledgePackError("PACK_NOT_FOUND", "Knowledge pack not found.");
+    this.assertEditableState(pack.reviewState);
+
+    if (params.title !== undefined && !params.title.trim()) {
+      throw new KnowledgePackError("INVALID_TITLE", "title is required.");
+    }
+
+    return this.db.knowledgePack.update({
+      where: { id: pack.id },
+      data: {
+        ...(params.title !== undefined ? { title: params.title.trim() } : {}),
+        ...(params.summary !== undefined
+          ? { summary: params.summary?.trim() || null }
+          : {}),
+        ...(params.cropTags !== undefined ? { cropTags: params.cropTags } : {}),
+        ...(params.regionTags !== undefined ? { regionTags: params.regionTags } : {}),
+        ...(params.climateTags !== undefined ? { climateTags: params.climateTags } : {}),
+        ...(params.language !== undefined ? { language: params.language.trim() || "en" } : {}),
+        reviewState: pack.reviewState === "REJECTED" ? "DRAFT" : pack.reviewState,
+        version: { increment: 1 },
+      },
+      include: { items: { orderBy: { sequence: "asc" } } },
+    });
+  }
+
+  /**
+   * Append one validated extract item (operate authoring). DRAFT/REJECTED only.
+   */
+  async appendPackItem(params: {
+    tenantId: string;
+    packId: string;
+    item: {
+      title: string;
+      extractKind: string;
+      bodyText?: string | null;
+      structured?: Record<string, unknown>;
+      sourceUrl?: string | null;
+      evidenceArtifactId?: string | null;
+      governanceCandidateId?: string | null;
+      literatureSourceId?: string | null;
+    };
+  }) {
+    const pack = await this.db.knowledgePack.findFirst({
+      where: { id: params.packId, tenantId: params.tenantId },
+      include: { items: { orderBy: { sequence: "desc" }, take: 1 } },
+    });
+    if (!pack) throw new KnowledgePackError("PACK_NOT_FOUND", "Knowledge pack not found.");
+    this.assertEditableState(pack.reviewState);
+
+    const [normalized] = this.normalizeItems([params.item]);
+    const nextSeq = (pack.items[0]?.sequence ?? 0) + 1;
+
+    await this.db.knowledgePackItem.create({
+      data: {
+        packId: pack.id,
+        sequence: nextSeq,
+        title: normalized.title,
+        extractKind: normalized.extractKind,
+        bodyText: normalized.bodyText,
+        structured: normalized.structured,
+        sourceUrl: normalized.sourceUrl,
+        evidenceArtifactId: normalized.evidenceArtifactId,
+        governanceCandidateId: normalized.governanceCandidateId,
+        literatureSourceId: params.item.literatureSourceId?.trim() || null,
+      },
+    });
+
+    return this.db.knowledgePack.update({
+      where: { id: pack.id },
+      data: {
+        reviewState: pack.reviewState === "REJECTED" ? "DRAFT" : pack.reviewState,
+        version: { increment: 1 },
+      },
+      include: { items: { orderBy: { sequence: "asc" } } },
+    });
+  }
+
+  /**
+   * Wave B residual: DRAFT knowledge pack from an approved (or catalogued) literature source.
+   * Operator still must Submit for review → Approve under hard evidence gate.
+   */
+  async createPackFromLiterature(params: {
+    tenantId: string;
+    ownerUserId: string;
+    literatureSourceId: string;
+    theme?: KnowledgePackTheme;
+    code?: string;
+  }) {
+    const lit = await this.db.literatureSource.findFirst({
+      where: { id: params.literatureSourceId, tenantId: params.tenantId },
+    });
+    if (!lit) throw new KnowledgePackError("LIT_NOT_FOUND", "Literature source not found.");
+
+    const theme = (params.theme || lit.primaryTheme || "OTHER") as KnowledgePackTheme;
+    if (!THEMES.has(theme)) throw new KnowledgePackError("INVALID_THEME", "theme is invalid.");
+
+    const doiUrl = lit.doi
+      ? `https://doi.org/${String(lit.doi).replace(/^https?:\/\/doi\.org\//i, "")}`
+      : lit.url || lit.sourceUrl || null;
+    if (!doiUrl || !/^https?:\/\//i.test(doiUrl)) {
+      throw new KnowledgePackError(
+        "LIT_URL_REQUIRED",
+        "Literature needs an HTTPS DOI/URL before creating a pack (hard evidence reference).",
+      );
+    }
+
+    const year = lit.year != null ? String(lit.year) : "nd";
+    const codeBase =
+      params.code?.trim() ||
+      `soil-from-lit-${String(lit.code || lit.id).slice(0, 40)}-${year}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    const code = codeBase.slice(0, 100);
+
+    const safety: Record<string, unknown> = {
+      doesNotAutoUpdateFlahaSOIL: true,
+      doesNotAutoUpdateFlahaCALC: true,
+      doesNotAutoUpdateFlahaFAST: true,
+      autoApplyBlocked: true,
+      productHandoff:
+        theme === "SOIL"
+          ? ["FlahaSOIL"]
+          : theme === "IRRIGATION"
+            ? ["FlahaCALC"]
+            : theme === "NUTRITION"
+              ? ["FlahaFAST"]
+              : [],
+      literatureSourceId: lit.id,
+      citation: lit.citationApa || lit.title,
+      officialUrl: doiUrl,
+      ...(lit.evidenceArtifactId ? { evidenceArtifactId: lit.evidenceArtifactId } : {}),
+    };
+
+    const keywords = (lit.keywords as string[]) || [];
+    const existing = await this.db.knowledgePack.findUnique({
+      where: { tenantId_code: { tenantId: params.tenantId, code } },
+    });
+    if (existing) {
+      throw new KnowledgePackError(
+        "PACK_CODE_EXISTS",
+        `Pack code already exists: ${code}. Open it in Knowledge or choose a new code.`,
+        { code, packId: existing.id },
+      );
+    }
+
+    let pack = await this.createPack({
+      tenantId: params.tenantId,
+      ownerUserId: params.ownerUserId,
+      code,
+      theme,
+      title: `${lit.title.slice(0, 160)}${lit.year ? ` (${lit.year})` : ""}`,
+      summary: `DRAFT pack from literature ${lit.code}. Theme ${theme}. Fill extracts if needed, then Submit for review → Approve. Never auto-updates product engines.`,
+      cropTags: (lit.cropTags as string[]) || [],
+      regionTags: (lit.regionTags as string[]) || [],
+      climateTags: (lit.climateTags as string[]) || [],
+      language: lit.language || "en",
+      items: [],
+    });
+
+    const items: Array<{
+      title: string;
+      extractKind: string;
+      bodyText: string;
+      structured: Record<string, unknown>;
+      sourceUrl: string;
+      evidenceArtifactId?: string | null;
+      literatureSourceId: string;
+    }> = [
+      {
+        title: `Reference — ${String(lit.code)}`,
+        extractKind: "REFERENCE",
+        bodyText: String(lit.citationApa || lit.title),
+        structured: { ...safety },
+        sourceUrl: doiUrl,
+        evidenceArtifactId: lit.evidenceArtifactId,
+        literatureSourceId: lit.id,
+      },
+      {
+        title: `NOTE — aboutness / KEY WORDS`,
+        extractKind: "NOTE",
+        bodyText: keywords.length
+          ? `Keywords: ${keywords.join("; ")}. Domains: ${((lit.domainTags as string[]) || []).join(", ") || "—"}.`
+          : "Add KEY WORDS on the literature record, then refresh this note. Aboutness drives Research topics.",
+        structured: {
+          ...safety,
+          keywords,
+          domainTags: (lit.domainTags as string[]) || [],
+        },
+        sourceUrl: doiUrl,
+        evidenceArtifactId: lit.evidenceArtifactId,
+        literatureSourceId: lit.id,
+      },
+    ];
+
+    if (theme === "SOIL" || theme === "IRRIGATION" || theme === "NUTRITION") {
+      items.push({
+        title: `METHOD — operator draft from ${String(lit.code)}`,
+        extractKind: "METHOD",
+        bodyText:
+          lit.abstractText?.trim() ||
+          `Draft method note linked to ${lit.title}. Replace with precise method language from the paper before Approve.`,
+        structured: {
+          ...safety,
+          method: `from-lit-${String(lit.code).slice(0, 48)}`,
+        },
+        sourceUrl: doiUrl,
+        evidenceArtifactId: lit.evidenceArtifactId,
+        literatureSourceId: lit.id,
+      });
+    }
+
+    for (const it of items) {
+      pack = await this.appendPackItem({
+        tenantId: params.tenantId,
+        packId: pack.id,
+        item: it,
+      });
+    }
+
+    return {
+      pack,
+      literatureSourceId: lit.id,
+      next: [
+        "Review extracts in Knowledge lane for this theme",
+        "Submit for review → Approve (human) under hard evidence rules",
+        "Optional: Export handoff after APPROVED",
+      ],
+    };
+  }
+
   /**
    * Idempotent sample/content seed: replace items when pack code already exists.
    * Does not auto-approve; reviewState stays DRAFT unless already advanced by humans.
@@ -210,7 +475,8 @@ export class KnowledgePackService {
 
   /**
    * Human-only pack review. No auto-approve path.
-   * READY_FOR_REVIEW → APPROVED requires all COMPARISON_NOTE / THRESHOLD items to pass template rules (already on write).
+   * READY_FOR_REVIEW / APPROVED require 4S-B template + HARD evidence/reference gate
+   * (every extract: citable reference + landed document/URL/artifact/intake/market series).
    */
   async reviewPack(params: {
     tenantId: string;
@@ -232,7 +498,7 @@ export class KnowledgePackService {
       mapTemplateError(e);
     }
 
-    // Re-validate items before human approve so APPROVED packs always meet 4S-B template.
+    // Re-validate items + hard evidence/reference before submit or approve.
     if (transition.to === "APPROVED" || transition.to === "READY_FOR_REVIEW") {
       for (const item of pack.items) {
         try {
@@ -244,6 +510,29 @@ export class KnowledgePackService {
         } catch (e) {
           mapTemplateError(e);
         }
+      }
+      try {
+        assertPackReadyForValidation(
+          {
+            code: pack.code,
+            title: pack.title,
+            theme: pack.theme,
+            items: pack.items.map((item) => ({
+              id: item.id,
+              title: item.title,
+              extractKind: item.extractKind,
+              sourceUrl: item.sourceUrl,
+              evidenceArtifactId: item.evidenceArtifactId,
+              governanceCandidateId: item.governanceCandidateId,
+              literatureSourceId: item.literatureSourceId,
+              structured: item.structured,
+              bodyText: item.bodyText,
+            })),
+          },
+          transition.to === "APPROVED" ? "APPROVED" : "READY_FOR_REVIEW",
+        );
+      } catch (e) {
+        mapTemplateError(e);
       }
     }
 

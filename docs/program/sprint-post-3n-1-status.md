@@ -9,7 +9,7 @@ Tracks systemic execution of the first post-Phase-3N sprint (backbone ops + prod
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-08-01
+Last modified: 2026-08-19
 -->
 
 # Post–3N Sprint 1 status
@@ -17,7 +17,9 @@ Last modified: 2026-08-01
 **Program position:** Systemic package after Phase 3N (platform complete; product lock active).  
 **Sprint goal:** Backbone stays healthy; markets + soil packs advance without drift.  
 **System posture (OWNER LOCKED 2026-07-31):** `INTEL-primary · FKP-frozen-thin · MCP-on-named-consumer`  
-→ `docs/program/flaha-system-vision-and-operate-lock.md`
+→ `docs/program/flaha-system-vision-and-operate-lock.md`  
+**Operate day (real, conjugated):** `docs/program/systemic-operate-checklist.md`  
+**Deep gap audit:** `docs/program/operate-gap-audit-2026-08.md`
 
 ## Task board
 
@@ -39,7 +41,7 @@ Last modified: 2026-08-01
 | 4I | Calc/Fast recon + sample packs | **DONE** (foundation) | Separate CALC vs FAST; DRAFT packs only |
 | 4S-A | Soil/irrigation pack schema | **DONE** | API + schema doc |
 | 4S samples | Soil/irrigation sample packs | **DONE** | `knowledge:seed-samples` (DRAFT) |
-| Host disk | Free space ≥15% | **OPEN** | ~6 GB free (~2%) → still DEGRADED; improve when possible |
+| Host disk | Free space ≥15% | **OPEN** | ~11 GB free (~4%) after safe cleanup; still DEGRADED; D: also full |
 | Host tasks | Register backup + market harvest | **DONE** | `FlahaINTEL-NightlyBackup` 02:30 · `FlahaINTEL-MarketHarvest` 05:30 (Limited) |
 | 4M-D | Schedule + retention report + trends | **DONE** (foundation) | Retention API/CLI; series builds over time to 365d |
 
@@ -92,10 +94,17 @@ Full go/no-go: `docs/program/milestone-v0.6-product-surface-release-readiness.md
 ## Next (systemic order)
 
 1. ~~Stage D + 4R + Crossref + agri RSS batch~~ **DONE**  
-2. **Owner: tag v0.6 or delay** (see readiness note)  
-3. **Operate hard:** DOI bulk · approve packs · RSS two-run ACCEPTED · market span  
-4. **Host hygiene:** free C: toward ≥5–15% when practical  
-5. **FKP:** frozen-thin only · **Do not** open YouTube/X yet
+2. ~~Tag v0.6 product surface~~ **DONE** (`v0.6.0-post-3n-product-surface`)  
+3. ~~Operate gap audit~~ **DONE** → `operate-gap-audit-2026-08.md`  
+4. ~~Wave A–D foundations + science packs~~ **DONE** (see above)  
+5. **v0.7 / Gate 4O operate-harden** — **IN PROGRESS** (`gate-4o-operate-harden.md`)  
+   - 4O-A evidence honesty (branch)  
+   - **4O-B** PDF KEY WORDS from extracted text (**starting**)  
+   - 4O-C eyes once-path (pdf-lite foundation)  
+   - 4O-D host disk OPEN_HOST  
+6. **Wave D residual (operate, not code):** MoCI daily harvest until span deepens — `BLOCKED_PUBLISHER`  
+7. **Stage E (5E-0 / 5V / 5X):** **HOLD** — framed in `gate-5e-extended-eyes-scope.md`; unfreeze only after 4O + operate proof  
+8. **FKP:** frozen-thin door only · no MCP until named consumer
 
 ## Exit criteria for Sprint 1
 

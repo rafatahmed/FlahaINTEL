@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-19
  */
 import {
   Alert,
@@ -154,6 +154,7 @@ export function MarketsPage() {
     summary: Record<string, number>;
     channels: RetentionChannel[];
   } | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
   const [analystBusy, setAnalystBusy] = useState(false);
   const [analystPacks, setAnalystPacks] = useState<Array<Record<string, unknown>>>([]);
 
@@ -252,6 +253,35 @@ export function MarketsPage() {
       if (gen === pricesLoadGen.current) setPricesLoading(false);
     }
   }, [channelCode, from, to]);
+
+  const pendingInWindow = useMemo(
+    () => prices.filter((p) => p.reviewState === "PENDING_REVIEW"),
+    [prices],
+  );
+
+  async function approvePendingInWindow() {
+    const ids = pendingInWindow.map((p) => p.id).filter(Boolean);
+    if (!ids.length) return;
+    const ok = window.confirm(
+      `Approve ${ids.length} PENDING_REVIEW row(s) on ${channelCode} in this date window? Spot-check 1–2 commodities vs the official source first.`,
+    );
+    if (!ok) return;
+    setReviewBusy(true);
+    try {
+      setError("");
+      const res = await api.reviewMarketPricesBatch({
+        priceIds: ids.slice(0, 200),
+        reviewState: "APPROVED",
+        note: `Markets hub: human approve ${channelCode} after official spot-check`,
+      });
+      setInfo(`${res.updated} row(s) approved (HUMAN).`);
+      await loadPrices();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Price approve failed.");
+    } finally {
+      setReviewBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (lane === "prices" || lane === "overview") {
@@ -839,11 +869,20 @@ export function MarketsPage() {
                         >
                           Refresh
                         </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          disabled={reviewBusy || pricesLoading || pendingInWindow.length === 0}
+                          onClick={() => void approvePendingInWindow()}
+                        >
+                          Approve pending ({pendingInWindow.length})
+                        </Button>
                       </Box>
                       {summary && (
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-                          Review: {summary.pendingReview ?? 0} pending · {summary.approvedByChannelPolicy ?? 0}{" "}
-                          policy · {summary.approvedByHuman ?? 0} human · {summary.rejected ?? 0} rejected ·{" "}
+                          Review: {summary.pendingReview ?? 0} need review · {summary.approvedByChannelPolicy ?? 0}{" "}
+                          approved by official policy · {summary.approvedByHuman ?? 0} approved by human ·{" "}
+                          {summary.rejected ?? 0} rejected ·{" "}
                           {groups.length} commodities · {prices.length} rows loaded
                           {pricesLoading ? " · loading…" : ""}
                         </Typography>

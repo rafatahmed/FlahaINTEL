@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-01
  */
 import {
   Alert,
@@ -66,40 +66,56 @@ type IntakeRow = {
   productSubmissionId?: string | null;
   createdAt?: string;
   meta?: ClassMeta;
+  pipeline?: {
+    kind?: string;
+    finished?: boolean;
+    overallStatus?: string;
+    currentStage?: string;
+    extractionJobState?: string | null;
+    governanceCandidateId?: string | null;
+    operatorNote?: string;
+    submissionId?: string;
+  };
 };
 
 type HubTab = "new" | "recent";
 
-const FILE_CLASS_OPTIONS: Array<{ code: IntakeClassCode; label: string; accept: string }> = [
+const FILE_CLASS_OPTIONS: Array<{ code: IntakeClassCode; label: string; accept: string; hint: string }> = [
   {
     code: "EYES_DOCUMENT",
-    label: "General document → Eyes pipeline",
+    label: "General document → Eyes pipeline (Jobs → Content → Governance)",
     accept: ".pdf,.docx,.rtf,.txt,application/pdf,text/plain,application/rtf",
+    hint: "Pipeline only. Needs extraction workers. Not Knowledge packs / literature desk. For science papers prefer Knowledge New pack + HTTPS reference, or register literature.",
   },
   {
     code: "MARKET_MAHASEEL_PDF",
     label: "Mahaseel price PDF → Markets",
     accept: ".pdf,application/pdf",
+    hint: "Creates market price rows.",
   },
   {
     code: "MARKET_JO_AMMAN_EXCEL",
     label: "Jordan Amman Excel → Markets",
     accept: ".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv",
+    hint: "Creates Amman market price rows.",
   },
   {
     code: "PRODUCT_SOIL_REPORT",
     label: "FlahaSOIL report → Comparison cases",
     accept: ".pdf,.json,application/pdf,application/json",
+    hint: "Opens soil comparison cases. Never writes FlahaSOIL engines.",
   },
   {
     code: "PRODUCT_CALC_REPORT",
     label: "FlahaCALC report (irrigation/weather) → Knowledge IRRIGATION pack",
     accept: ".pdf,.json,application/pdf,application/json",
+    hint: "DRAFT IRRIGATION pack. Human review + real literature URL before Approve.",
   },
   {
     code: "PRODUCT_FAST_REPORT",
     label: "FlahaFAST report (nutrients) → Knowledge NUTRITION pack",
     accept: ".pdf,.json,application/pdf,application/json",
+    hint: "DRAFT NUTRITION pack. Human review + real literature URL before Approve.",
   },
 ];
 
@@ -109,6 +125,61 @@ function statusColor(s: string): "default" | "success" | "warning" | "error" | "
   if (s === "PROMOTING" || s === "CLASSIFIED") return "warning";
   if (s === "LANDED") return "info";
   return "default";
+}
+
+/** Human-readable promote outcome (intake PROMOTED ≠ pipeline finished). */
+function describePromote(row: IntakeRow): { severity: "success" | "warning" | "info" | "error"; text: string } {
+  const pr = (row.promoteResult || {}) as Record<string, unknown>;
+  const pipe = row.pipeline;
+  const kind = String(pr.kind || row.intakeClass || "");
+  if (kind === "EYES_DOCUMENT" || kind === "EYES_WEBSITE" || pipe?.kind === "eyes_submission") {
+    const overall = String(pipe?.overallStatus || pr.overallStatus || "");
+    const stage = String(pipe?.currentStage || pr.currentStage || "");
+    const subId = String(pipe?.submissionId || pr.submissionId || "").slice(0, 8) || "—";
+    const jobState = pipe?.extractionJobState || pr.extractionJobState;
+    if (pipe?.finished && pipe.governanceCandidateId) {
+      return {
+        severity: "success",
+        text: `Eyes pipeline finished. Candidate ${String(pipe.governanceCandidateId).slice(0, 8)}… — open Content / Governance. Not a Knowledge pack.`,
+      };
+    }
+    if (overall === "FAILED" || overall === "CANCELLED") {
+      return {
+        severity: "error",
+        text: `Eyes pipeline ${overall} at ${stage}. Check Jobs. ${pipe?.operatorNote || ""}`,
+      };
+    }
+    if (overall === "RUNNING" || overall === "ACCEPTED" || !pipe?.finished) {
+      return {
+        severity: "warning",
+        text: `Eyes pipeline live: submission ${subId}… · stage ${stage || "?"} · ${overall || "RUNNING"}${jobState ? ` · extract job ${jobState}` : ""}. Intake PROMOTED ≠ finished. Run: npm run ops:pipeline-once (or worker:extraction / normalization). Then Content → Governance.`,
+      };
+    }
+    return {
+      severity: "info",
+      text: pipe?.operatorNote || `Eyes document queued (submission ${subId}…).`,
+    };
+  }
+  if (kind === "PRODUCT_SOIL_REPORT") {
+    const n = pr.casesCreated != null ? Number(pr.casesCreated) : null;
+    return {
+      severity: n && n > 0 ? "success" : "warning",
+      text: `FlahaSOIL: ${n ?? "?"} comparison case(s). Open Knowledge → FlahaSOIL → cases. Not a knowledge pack.`,
+    };
+  }
+  if (kind === "PRODUCT_CALC_REPORT" || kind === "PRODUCT_FAST_REPORT") {
+    return {
+      severity: "success",
+      text: `${String(pr.product || kind)} → DRAFT pack ${String(pr.packCode || pr.packId || "")}. Open Knowledge → ${kind.includes("CALC") ? "FlahaCALC" : "FlahaFAST"}. Attach HTTPS literature before Approve.`,
+    };
+  }
+  if (kind.includes("MARKET") || kind === "MARKET_MAHASEEL_PDF" || kind === "MARKET_JO_AMMAN_EXCEL") {
+    return { severity: "success", text: "Markets promote — check Markets for price rows." };
+  }
+  return {
+    severity: "info",
+    text: pr.kind ? `Promote: ${JSON.stringify(pr).slice(0, 220)}` : "No promote detail.",
+  };
 }
 
 export function SubmitPage(props: {
@@ -216,6 +287,24 @@ export function SubmitPage(props: {
       setTab("recent");
     } catch (e) {
       setError(e instanceof Error ? e.message : "File intake failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function advanceEyes(row: IntakeRow) {
+    const subId = row.productSubmissionId || row.pipeline?.submissionId;
+    if (!subId) return;
+    setBusy(true);
+    setError("");
+    try {
+      const sub = await api.advanceSubmission(String(subId));
+      setInfo(
+        `Submission advanced: stage ${String(sub.currentStage || "?")} · status ${String(sub.overallStatus || "?")}. If still stuck, run npm run ops:pipeline-once (workers).`,
+      );
+      await loadRecent();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Advance failed — extraction job may still be READY (need workers).");
     } finally {
       setBusy(false);
     }
@@ -382,8 +471,8 @@ export function SubmitPage(props: {
                   </Select>
                 </FormControl>
                 <Typography variant="caption" color="text.secondary">
-                  {FILE_CLASS_OPTIONS.find((o) => o.code === fileClass)?.label}. PPTX and executables rejected.
-                  FlahaCALC (irrigation/weather) and FlahaFAST (nutrients) are separate promotes — never one product.
+                  {FILE_CLASS_OPTIONS.find((o) => o.code === fileClass)?.hint || ""} PPTX rejected. Sister products
+                  stay separate (SOIL · CALC · FAST).
                 </Typography>
                 <Button variant="outlined" component="label">
                   Choose file
@@ -453,12 +542,16 @@ export function SubmitPage(props: {
                       {row.errorCode}: {row.errorMessage}
                     </Typography>
                   )}
-                  {row.promoteResult && (
-                    <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
-                      Promote: {JSON.stringify(row.promoteResult).slice(0, 180)}
-                      {JSON.stringify(row.promoteResult).length > 180 ? "…" : ""}
-                    </Typography>
-                  )}
+                  {row.promoteResult && (() => {
+                    const d = describePromote(row);
+                    return (
+                      <Alert severity={d.severity} sx={{ mt: 1, py: 0.5 }}>
+                        <Typography variant="caption" component="div">
+                          {d.text}
+                        </Typography>
+                      </Alert>
+                    );
+                  })()}
                   <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
                     {(row.status === "LANDED" ||
                       row.status === "CLASSIFIED" ||
@@ -489,9 +582,22 @@ export function SubmitPage(props: {
                         size="small"
                         onClick={() => props.onOpenSubmission?.(String(row.productSubmissionId))}
                       >
-                        Open submission
+                        Open Jobs (pipeline)
                       </Button>
                     )}
+                    {row.productSubmissionId &&
+                      row.pipeline &&
+                      !row.pipeline.finished &&
+                      (row.intakeClass === "EYES_DOCUMENT" || row.intakeClass === "EYES_WEBSITE") && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={busy}
+                          onClick={() => void advanceEyes(row)}
+                        >
+                          Advance submission
+                        </Button>
+                      )}
                   </Box>
                 </CardContent>
               </Card>

@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-19
  */
 import {
   Alert,
@@ -44,6 +44,8 @@ export function ReviewInboxPage(props: {
   const [pendingPrices, setPendingPrices] = useState<Array<Record<string, unknown>>>([]);
   const [soilCases, setSoilCases] = useState<Array<Record<string, unknown>>>([]);
   const [intakes, setIntakes] = useState<Array<Record<string, unknown>>>([]);
+  const [priceBusy, setPriceBusy] = useState(false);
+  const [priceInfo, setPriceInfo] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,9 +69,9 @@ export function ReviewInboxPage(props: {
           return s === "FAILED" || s === "LANDED" || s === "CLASSIFIED";
         }),
       );
-      // Sample pending prices (first page)
+      // Pending queue (batch review cap is 200)
       try {
-        const prices = await api.marketPrices({ reviewState: "PENDING_REVIEW", limit: 25 });
+        const prices = await api.marketPrices({ reviewState: "PENDING_REVIEW", limit: 200 });
         setPendingPrices((prices.prices || []) as Array<Record<string, unknown>>);
       } catch {
         setPendingPrices([]);
@@ -84,6 +86,35 @@ export function ReviewInboxPage(props: {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function reviewPendingPrices(reviewState: "APPROVED" | "REJECTED") {
+    const ids = pendingPrices.map((r) => String(r.id || "")).filter(Boolean);
+    if (!ids.length) return;
+    const verb = reviewState === "APPROVED" ? "approve" : "reject";
+    const ok = window.confirm(
+      `${verb} ${ids.length} pending official-market row(s)? Only do this after a spot-check vs the publisher. This is a human decision (not channel policy).`,
+    );
+    if (!ok) return;
+    setPriceBusy(true);
+    setPriceInfo("");
+    setError("");
+    try {
+      const res = await api.reviewMarketPricesBatch({
+        priceIds: ids,
+        reviewState,
+        note:
+          reviewState === "APPROVED"
+            ? "Review inbox: human approve after official-source spot-check"
+            : "Review inbox: human reject",
+      });
+      setPriceInfo(`${res.updated} row(s) → ${res.reviewState} (${res.reviewDecisionSource}).`);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : `Price ${verb} failed.`);
+    } finally {
+      setPriceBusy(false);
+    }
+  }
 
   if (loading) return <BrandedState label="Loading review inbox…" loading />;
 
@@ -265,18 +296,58 @@ export function ReviewInboxPage(props: {
             </Typography>
             {priceSummary && (
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-                <Chip label={`Pending ${priceSummary.pendingReview ?? 0}`} color="warning" />
-                <Chip label={`Policy auto ${priceSummary.approvedByChannelPolicy ?? 0}`} variant="outlined" />
-                <Chip label={`Human ${priceSummary.approvedByHuman ?? 0}`} color="success" variant="outlined" />
+                <Chip
+                  label={`Needs review ${priceSummary.pendingReview ?? 0}`}
+                  color={(priceSummary.pendingReview ?? 0) > 0 ? "warning" : "default"}
+                />
+                <Chip
+                  label={`Approved (official policy) ${priceSummary.approvedByChannelPolicy ?? 0}`}
+                  color="success"
+                  variant="outlined"
+                />
+                <Chip
+                  label={`Approved (human) ${priceSummary.approvedByHuman ?? 0}`}
+                  color="success"
+                  variant="outlined"
+                />
                 <Chip label={`Rejected ${priceSummary.rejected ?? 0}`} color="error" variant="outlined" />
               </Box>
             )}
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-              Full channel review and trends live on Markets hub. Sample pending rows below.
+              Official QA/JO harvest should usually auto-approve when the channel is{" "}
+              <code>AUTO_APPROVE_OFFICIAL</code> + ACCEPTED + ownership verified. These {priceSummary?.pendingReview ?? 0}{" "}
+              rows are waiting for a <strong>human</strong> decision. Spot-check 1–2 commodities on Markets vs the
+              publisher, then approve. Do not approve junk or unknown imports. Batch max 200.
             </Typography>
+            {priceInfo && (
+              <Alert severity="success" sx={{ mb: 1 }} onClose={() => setPriceInfo("")}>
+                {priceInfo}
+              </Alert>
+            )}
+            {pendingPrices.length > 0 && (
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  disabled={priceBusy}
+                  onClick={() => void reviewPendingPrices("APPROVED")}
+                >
+                  Approve loaded ({pendingPrices.length})
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                  disabled={priceBusy}
+                  onClick={() => void reviewPendingPrices("REJECTED")}
+                >
+                  Reject loaded
+                </Button>
+              </Box>
+            )}
             {!pendingPrices.length ? (
               <Typography color="text.secondary" variant="body2">
-                No PENDING_REVIEW rows in first page (or all auto-approved by channel policy).
+                No PENDING_REVIEW rows (or all auto-approved by channel policy).
               </Typography>
             ) : (
               pendingPrices.slice(0, 20).map((row) => (
@@ -291,6 +362,11 @@ export function ReviewInboxPage(props: {
                   </Typography>
                 </Box>
               ))
+            )}
+            {(priceSummary?.pendingReview ?? 0) > pendingPrices.length && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                Showing {pendingPrices.length} of {priceSummary?.pendingReview}. Approve, refresh, repeat.
+              </Typography>
             )}
             <Button size="small" sx={{ mt: 1 }} onClick={() => props.onNavigate?.("markets")}>
               Open Markets hub
