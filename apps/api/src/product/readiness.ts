@@ -211,10 +211,13 @@ export async function collectSystemReadiness(
     if (await exists(backupPath)) {
       const st = await stat(backupPath);
       const ageHours = (Date.now() - st.mtimeMs) / 3_600_000;
+      const rpoHours = Number(process.env.FLAHA_BACKUP_RPO_HOURS || 24);
+      const degradedHours = Number(process.env.FLAHA_BACKUP_DEGRADED_HOURS || rpoHours + 168);
+      const rpoLabel = rpoHours >= 24 ? `${Math.round(rpoHours / 24)}d` : `${rpoHours}h`;
       components.push({
         component: "BackupRecency",
-        state: ageHours <= 24 ? "READY" : ageHours <= 48 ? "DEGRADED" : "UNAVAILABLE",
-        detail: `Last backup marker age ${Math.round(ageHours)}h (RPO target 24h).`,
+        state: ageHours <= rpoHours ? "READY" : ageHours <= degradedHours ? "DEGRADED" : "UNAVAILABLE",
+        detail: `Last backup marker age ${Math.round(ageHours)}h (RPO target ${rpoLabel}).`,
       });
     } else {
       components.push({

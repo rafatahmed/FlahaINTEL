@@ -40,7 +40,7 @@ fi
 
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 cat > "${dest}/manifest.json" <<EOF
-{"createdAt":"${created_at}","destination":"${dest}","rpoHours":24,"rtoHours":4,"components":["postgres","artifacts","config-marker"]}
+{"createdAt":"${created_at}","destination":"${dest}","rpoHours":${FLAHA_BACKUP_RPO_HOURS:-744},"rtoHours":4,"components":["postgres","artifacts","config-marker"]}
 EOF
 cp "${dest}/manifest.json" "${STATE_DIR}/last-backup.json"
 chown -R flahaintel:flahaintel "${BACKUP_ROOT}" "${STATE_DIR}/last-backup.json"

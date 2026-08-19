@@ -3,7 +3,7 @@
 # Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
 #
 # Title: Daily backup timer (small host)
-# Introduction: 03:00 UTC daily so BackupRecency stays within 24h RPO.
+# Introduction: First of each month 03:00 UTC. Trial host is not daily-backup.
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
@@ -13,7 +13,7 @@
 Description=FlahaINTEL daily backup
 
 [Timer]
-OnCalendar=*-*-* 03:00:00
+OnCalendar=*-*-01 03:00:00
 Persistent=true
 AccuracySec=5min
 Unit=flahaintel-backup.service

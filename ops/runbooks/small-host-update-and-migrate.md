@@ -38,7 +38,7 @@ Do **not** run `install-small-host.sh` again on a live box. That script is first
 | `/var/lib/flahaintel/artifacts` | **No** | Immutable ArtifactStore. |
 | `/var/lib/flahaintel/state` | **No** | `last-backup.json`, `pipeline-heartbeat.json`, sessions. |
 | `/var/lib/flahaintel/web` | Built | `rsync` from `apps/web/dist` on each update. |
-| `/var/lib/flahaintel/backups` | **No** | Daily 03:00 UTC dumps. Copy off-host. |
+| `/var/lib/flahaintel/backups` | **No** | Monthly (1st, 03:00 UTC) dumps. Copy off-host when you trust the host. |
 | `/etc/systemd/system/flahaintel-*` | Copied from `ops/systemd/small-host/` | Re-copy on unit changes, then `daemon-reload`. |
 | `/etc/caddy/Caddyfile` | Copied | Env: `FLAHA_PUBLIC_HOST=intel.flaha.org`. |
 | Swap `/swapfile` 2 GiB | Host | Required. Do not remove. |
@@ -100,7 +100,7 @@ Recorded after first production-like install. Re-check after each update.
 | Droplet | `Flaha-Intel` · 2 vCPU Premium Intel · 2 GB RAM · 90 GB disk · Ubuntu 24.04 |
 | Swap | 2 GiB `/swapfile`, swappiness 20 |
 | Always on | `postgresql` · `flahaintel-api` (loopback `:3003`) · `caddy` (TLS) |
-| Timers | pipeline every 15 min · harvest 05:30 UTC · backup 03:00 UTC |
+| Timers | pipeline every 15 min · harvest 05:30 UTC · backup **1st of month** 03:00 UTC |
 | Worker mode | `FLAHA_WORKER_MODE=serial` — never five persistent worker daemons |
 | Pipeline memory | `MemoryMax=1400M` (Chromium/Docling one family at a time) |
 | API memory | `MemoryMax=450M` |
@@ -120,7 +120,7 @@ They answer different questions. Keep both.
 |--------|--------|---------|
 | CPU / memory / disk % | **DigitalOcean** Graphs + Alerts | Kernel/host pressure (noisy neighbor, swap storm, disk fill) |
 | DiskCapacity | Flaha Settings readiness | App gate: warn 10% free, block 5% (`DISK_*_FREE_RATIO`) |
-| BackupRecency | Flaha | `last-backup.json` ≤ 24 h |
+| BackupRecency | Flaha | `last-backup.json` ≤ **31 days** on this trial host (`FLAHA_BACKUP_RPO_HOURS=744`) |
 | WorkerLoops | Flaha | Serial: `pipeline-heartbeat.json` ≤ 45 min |
 | Engine probes | Flaha | Binary actually ran (`--version` / `import docling` / Tika `--help`) |
 
