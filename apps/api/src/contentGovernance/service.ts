@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 
 import type {
@@ -472,7 +472,7 @@ export class ContentGovernanceService {
         documentTitle: candidate.documentTitle,
         language: candidate.language,
         contentType: candidate.contentType,
-        plainTextPreview: "",
+        plainTextPreview: "Preview unavailable. The normalized artifact could not be loaded.",
         truncated: false,
         authors: [],
         publicationDate: null,
@@ -481,6 +481,7 @@ export class ContentGovernanceService {
         finalAcquiredLocator: null,
         contentHash: candidate.normalizedContentHash,
         headings: [],
+        previewUnavailable: true,
       };
     }
   }

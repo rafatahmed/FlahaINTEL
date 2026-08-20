@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 
 export type HealthState = "READY" | "DEGRADED" | "UNAVAILABLE" | "NOT_CONFIGURED";
@@ -66,6 +66,51 @@ export function scoreWorkerLoops(liveFamilies: readonly string[], isProduction: 
     detail: missing.length
       ? `Families live: ${unique.join(", ")}; waiting: ${missing.join(", ")}.`
       : `Families live: ${unique.join(", ")}.`,
+  };
+}
+
+export type SerialPipelineHeartbeat = {
+  startedAt?: string;
+  finishedAt?: string;
+  mode?: string;
+  familyExits?: Record<string, number>;
+};
+
+export function scoreSerialPipeline(
+  heartbeat: SerialPipelineHeartbeat | null,
+  ageMs: number | null,
+  staleMs: number,
+): ComponentHealth {
+  if (ageMs === null || !heartbeat) {
+    return {
+      component: "WorkerLoops",
+      state: "DEGRADED",
+      detail: "Serial pipeline heartbeat missing. Enable flahaintel-pipeline.timer and run it once.",
+    };
+  }
+  const ageMin = Math.round(ageMs / 60_000);
+  const staleMin = Math.round(staleMs / 60_000);
+  const failed = Object.entries(heartbeat.familyExits ?? {})
+    .filter(([, code]) => code !== 0)
+    .map(([name]) => name);
+  if (ageMs > staleMs) {
+    return {
+      component: "WorkerLoops",
+      state: "DEGRADED",
+      detail: `Serial pipeline overdue (${ageMin}m since last tick; stale after ${staleMin}m). Check flahaintel-pipeline.timer.`,
+    };
+  }
+  if (failed.length) {
+    return {
+      component: "WorkerLoops",
+      state: "DEGRADED",
+      detail: `Serial pipeline last tick ${ageMin}m ago; last tick failed: ${failed.join(", ")}.`,
+    };
+  }
+  return {
+    component: "WorkerLoops",
+    state: "READY",
+    detail: `Serial pipeline last tick ${ageMin}m ago (stale after ${staleMin}m).`,
   };
 }
 

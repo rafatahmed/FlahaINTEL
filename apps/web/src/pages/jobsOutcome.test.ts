@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 import { describe, expect, it } from "vitest";
 import { explainExtractorError, jobOutcomeSummary, jobStateLabel, providerLabel } from "./jobsOutcome";
@@ -30,13 +30,16 @@ describe("jobOutcomeSummary", () => {
     });
     expect(summary.severity).toBe("error");
     expect(summary.title).toBe("Tika failed");
-    expect(summary.body).toContain("Tika could not start");
+    expect(summary.body).toContain("could not extract this file");
     expect(summary.body).toContain("will not retry");
     expect(summary.body).not.toContain("TIKA_PARSE_FAILURE");
   });
 
   it("maps raw runtime errors to operator language", () => {
-    expect(explainExtractorError("TIKA_PARSE_FAILURE exit=1 jar=/missing.jar")).toBe("Tika could not start. The jar or Java path is wrong.");
+    expect(explainExtractorError("TIKA_JAVA_MISSING missing=/usr/bin/java")).toContain("could not find Java");
+    expect(explainExtractorError("TIKA_RUNTIME_MISSING missing=/opt/tika.jar")).toContain("jar or allowlist");
+    expect(explainExtractorError("TIKA_PARSE_FAILURE exit=1 jar=/opt/tika.jar")).toContain("could not extract this file");
+    expect(explainExtractorError("Worker has no adapter for document.docling-slim.")).toContain("cannot run the selected extractor");
     expect(jobStateLabel("DEAD_LETTER")).toBe("Stopped");
   });
 

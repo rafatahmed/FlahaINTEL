@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 
 export type JobRecord = Record<string, unknown>;
@@ -50,11 +50,17 @@ export function explainExtractorError(raw: string): string {
   const text = raw.trim();
   if (!text) return "No error text was stored.";
   const lower = text.toLowerCase();
-  if (lower.includes("tika_java") || (lower.includes("java") && lower.includes("missing"))) {
-    return "Tika could not find Java.";
+  if (lower.includes("tika_java") || lower.includes("tika_java_missing")) {
+    return "Tika could not find Java. Check JAVA_BIN.";
   }
-  if (lower.includes("tika_parse_failure") || lower.includes("tika_runtime") || lower.includes("tika-app")) {
-    return "Tika could not start. The jar or Java path is wrong.";
+  if (lower.includes("tika_runtime_missing") || (lower.includes("tika_runtime") && lower.includes("missing"))) {
+    return "Tika jar or allowlist file is missing. Check TIKA_JAR and TIKA_ALLOWLIST.";
+  }
+  if (lower.includes("no adapter for")) {
+    return "This worker cannot run the selected extractor. Submit again after the host is updated.";
+  }
+  if (lower.includes("tika_parse_failure")) {
+    return "Tika started but could not extract this file (corrupt PDF, unsupported type, or Tika error).";
   }
   if (lower.includes("timed out") || lower.includes("timeout")) {
     return "The extractor ran out of time.";

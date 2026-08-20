@@ -8,10 +8,10 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 
-import { access, constants, readdir, stat, statfs } from "node:fs/promises";
+import { access, constants, readFile, readdir, stat, statfs } from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -19,7 +19,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { FilesystemArtifactStore } from "@flaha-intel/artifact-store";
 import { getProductionConfig } from "../production/config.js";
 import { readWorkerHeartbeats } from "../production/workerHeartbeats.js";
-import { rollupOverall, scoreWorkerLoops, type HealthState as RollupState } from "./readinessRollup.js";
+import { rollupOverall, scoreSerialPipeline, scoreWorkerLoops, type HealthState as RollupState, type SerialPipelineHeartbeat } from "./readinessRollup.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -169,21 +169,15 @@ export async function collectSystemReadiness(
       try {
         const st = await stat(pipelineHb);
         const ageMs = Date.now() - st.mtimeMs;
-        const ageMin = Math.round(ageMs / 60_000);
-        components.push({
-          component: "WorkerLoops",
-          state: ageMs <= staleMs ? "READY" : "DEGRADED",
-          detail:
-            ageMs <= staleMs
-              ? `Serial pipeline last tick ${ageMin}m ago (stale after ${Math.round(staleMs / 60_000)}m).`
-              : `Serial pipeline overdue (${ageMin}m since last tick). Check flahaintel-pipeline.timer.`,
-        });
+        let parsed: SerialPipelineHeartbeat | null = null;
+        try {
+          parsed = JSON.parse(await readFile(pipelineHb, "utf8")) as SerialPipelineHeartbeat;
+        } catch {
+          parsed = {};
+        }
+        components.push(scoreSerialPipeline(parsed, ageMs, staleMs));
       } catch {
-        components.push({
-          component: "WorkerLoops",
-          state: "DEGRADED",
-          detail: "Serial pipeline heartbeat missing. Enable flahaintel-pipeline.timer and run it once.",
-        });
+        components.push(scoreSerialPipeline(null, null, staleMs));
       }
     } else {
       components.push(scoreWorkerLoops(hearts.live.map((w) => w.family), cfg.isProduction));

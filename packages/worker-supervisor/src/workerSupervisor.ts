@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-20
  */
 
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
@@ -44,14 +44,12 @@ export class WorkerSupervisor {
       const timeout = setTimeout(() => { failure = new WorkerTimeoutError("Worker exceeded its wall-clock timeout."); forcedTermination = true; void terminateProcessTree(child!); }, this.options.timeoutMs);
       child.stderr.on("data", chunk => {
         const text = Buffer.from(chunk).toString("utf8");
-        if (Buffer.byteLength(stderr) + Buffer.byteLength(text) > this.options.maximumStderrBytes) {
-          failure = new WorkerProtocolError("Worker exceeded the stderr limit."); forcedTermination = true; void terminateProcessTree(child!); return;
-        }
-        if (stderr.length < this.options.maximumStderrBytes) {
-          const bounded = text.slice(0, this.options.maximumStderrBytes - stderr.length);
-          stderr += bounded;
-          this.options.onDiagnostic?.(bounded);
-        }
+        const used = Buffer.byteLength(stderr);
+        if (used >= this.options.maximumStderrBytes) return;
+        const remaining = this.options.maximumStderrBytes - used;
+        const bounded = Buffer.byteLength(text) <= remaining ? text : text.slice(0, remaining);
+        stderr += bounded;
+        if (bounded) this.options.onDiagnostic?.(bounded);
       });
       child.stdout.on("data", chunk => {
         if (failure) return;

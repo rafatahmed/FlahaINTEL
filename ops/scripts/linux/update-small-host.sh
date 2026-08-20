@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-19
+# Last modified: 2026-08-20
 #
 # Usage (root): bash /opt/flahaintel/current/ops/scripts/linux/update-small-host.sh
 # Optional: --runtimes  also re-run provision-runtimes.sh
@@ -61,10 +61,9 @@ cd "${CURRENT}"
 npm ci
 npm i @rolldown/binding-linux-x64-gnu --no-fund --no-audit || true
 npx prisma generate --schema=apps/api/prisma/schema.prisma
-npm run build --workspace=@flaha-intel/artifact-store
-npm run build --workspace=@flaha-intel/worker-supervisor
-npm run build --workspace=@flaha-intel/ingestion-provider-core
-npm run build --workspace=@flaha-intel/api || true
+npm run build:packages
+npm run build --workspace=@flaha-intel/api
+test -f apps/api/dist/server.js
 (cd apps/web && npx vite build)
 rsync -a --delete "${CURRENT}/apps/web/dist/" /var/lib/flahaintel/web/
 chown -R flahaintel:flahaintel "${CURRENT}" /var/lib/flahaintel/web
