@@ -13,17 +13,18 @@ FlahaINGEST should be an internal FlahaINTEL subsystem, not a separate repositor
 
 The first implementation gate should introduce contracts and an artifact-store abstraction, then a PostgreSQL-backed leased job queue and a local Python subprocess worker. It should prove one end-to-end document path before generalizing RSS. Existing RSS behavior must remain operational and unchanged until a compatibility adapter passes the existing suite and dedicated parity tests.
 
-Recommended engine posture:
+**Live operate posture (binding, 2026-08):** see AGENTS.md, Phase 3F catalogue, Phase 3I routing.
 
-- Scrapy is the preferred candidate for allowlisted HTTP crawling and sitemap fan-out.
-- Trafilatura is the preferred static-HTML extraction benchmark, but its GPL-3.0-or-later licence requires explicit legal acceptance or process isolation; a permissively licensed Readability implementation and selector profiles must also be benchmarked.
-- Playwright is a last-resort rendered-page fetch provider, never a discovery crawler.
-- Docling is the preferred PDF/document conversion candidate behind a provider interface.
-- Tesseract is the initial offline OCR baseline, including Arabic; PaddleOCR is deferred to a benchmark gate.
-- Apache Tika is a broad-format fallback candidate, not the default PDF-to-Markdown engine.
-- PyArrow is the canonical columnar interchange layer, Polars the preferred transformation engine, DuckDB the bounded inspection/query engine, and pandas a compatibility tool for difficult Excel/ecosystem cases.
+- Scrapy — allowlisted static HTTP / crawl.
+- Playwright — last-resort dynamic fetch only (`DYNAMIC_RENDER_REQUIRED`); never discovery.
+- HTML text — Python stdlib HTMLParser primary; lxml/selectolax structural fallback. Trafilatura remains deferred.
+- Document **text** — Apache Tika only (PDF, DOCX, RTF, TXT).
+- Document inspection — pypdf, inspection/metadata/inventory only.
+- Docling — **rejected**. Do not provision, launch, or restore.
+- Layout / section / table — no provider until a dedicated MinerU gate.
+- OCR (Tesseract / PaddleOCR) and PPTX — not implemented.
 
-**Operate (2026-08):** Apache Tika is the live document text extractor. Docling is rejected. The bullets above remain the original 3A evaluation record.
+**Original 3A evaluation (2026-07-15, not live routing):** Docling scored as the preferred PDF conversion *benchmark* candidate; Tika as broad-format fallback; Tesseract as initial OCR baseline; Trafilatura as HTML benchmark subject to GPL review. Scores in §25 remain that evaluation record.
 
 This report proposes designs only. It adds no production code, dependencies, migrations, services, or database changes.
 
@@ -337,7 +338,9 @@ interface DocumentConversionProvider {
 
 `DocumentConversionResult` returns provider-native structured JSON, Markdown, referenced assets, page/element spans, tables, detected languages, OCR usage, metrics, and stable warnings. It never returns an approved item.
 
-Provider routing should be policy-driven: Docling default for PDF/DOCX/PPTX with layout; Tika fallback for broad type/metadata extraction; Tesseract OCR provider for scanned pages; PaddleOCR only after benchmark approval. Flaha normalization consumes provider-neutral blocks and owns final Markdown conventions. Preserve provider output unchanged alongside normalized output so a normalization bug can be fixed without reconversion.
+**Operate routing (live):** PDF/DOCX/RTF/TXT text → Apache Tika. Layout/section/table → no provider. Docling is not launched. PPTX and OCR are unsupported. pypdf is inspection-only.
+
+**Original 3A evaluation (not live):** policy-driven Docling default for PDF/DOCX/PPTX with layout; Tika fallback for broad type/metadata; Tesseract for scanned pages; PaddleOCR only after benchmark approval. Flaha normalization consumes provider-neutral blocks and owns final Markdown conventions. Preserve provider output unchanged alongside normalized output so a normalization bug can be fixed without reconversion.
 
 Benchmark Arabic on native text, mixed Arabic/English, RTL tables, scans, rotated pages, ligatures/diacritics, and numerals. Measure character/word error rate, reading order, table cell accuracy, and human review time.
 
@@ -425,8 +428,8 @@ Scrapy is cross-platform, Python 3.10+, BSD-3-Clause, and actively maintained, b
 
 | Engine | Fit | Mat | Ext | Win | Off | Perf | Ar | Tbl | Lay | Lic | Maint | Int | Risk | Role |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Docling | 5 | 4 | 5 | 4 | 4 | 3 | 3 | 5 | 5 | 5 | 5 | 3 | 3 | Preferred conversion benchmark |
-| Apache Tika | 3 | 5 | 4 | 4 | 5 | 3 | 3 | 2 | 2 | 5 | 5 | 2 | 3 | Broad-format/type/metadata fallback |
+| Docling | 5 | 4 | 5 | 4 | 4 | 3 | 3 | 5 | 5 | 5 | 5 | 3 | 3 | 3A conversion benchmark; **operate REJECTED** |
+| Apache Tika | 3 | 5 | 4 | 4 | 5 | 3 | 3 | 2 | 2 | 5 | 5 | 2 | 3 | 3A broad-format fallback; **operate live text extractor** |
 | Tesseract | 4 | 5 | 4 | 4 | 5 | 3 | 4 | 1 | 1 | 5 | 4 | 3 | 4 | Initial OCR baseline |
 | PaddleOCR | 4 | 4 | 4 | 3 | 3 | 3 | 3 | 5 | 5 | 5 | 5 | 2 | 2 | Deferred OCR/layout benchmark |
 
@@ -454,7 +457,7 @@ Maintenance is currently strong across the shortlisted projects, but “active�
 ## 27. Windows and offline-operation assessment
 
 - Maintain a locked Python virtual environment with hashes and a documented supported CPython version. Build an offline wheelhouse during an approved connected setup step.
-- Pre-download and checksum Docling/OCR models. Providers must fail closed if a model is missing; no runtime model download.
+- Pre-download and checksum OCR models if an OCR gate is later approved. **Operate does not install Docling models.** Providers must fail closed if a required model is missing; no runtime model download.
 - Preinstall one Playwright Chromium revision into a configured local cache; set browser download off at runtime.
 - Tika requires a pinned local Java runtime/JAR. Tesseract requires a pinned executable and `ara.traineddata` checksum.
 - Prefer binary wheels for Scrapy native dependencies, PyArrow, Polars, DuckDB, and document engines; test on a clean Windows machine without Visual Studio.
