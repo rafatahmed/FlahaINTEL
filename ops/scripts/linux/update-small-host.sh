@@ -95,6 +95,7 @@ fi
 systemctl daemon-reload
 systemctl restart flahaintel-pipeline.timer || true
 systemctl restart flahaintel-api
+systemctl stop flahaintel-pipeline.service || true
 systemctl start --no-block flahaintel-pipeline.service || true
 sleep 3
 curl -fsS --max-time 10 http://127.0.0.1:3003/health

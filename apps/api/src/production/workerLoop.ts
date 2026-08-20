@@ -60,6 +60,7 @@ export async function runWorkerLoop(options: WorkerLoopOptions): Promise<void> {
 
   const startedAt = Date.now();
   const maxRuntimeMs = Number(process.env.WORKER_MAX_RUNTIME_MS || 0) || 0;
+  const exitOnIdle = Number(process.env.WORKER_EXIT_ON_IDLE || 0) || 0;
 
   while (!stopping) {
     if (maxRuntimeMs > 0 && Date.now() - startedAt > maxRuntimeMs) {
@@ -92,6 +93,10 @@ export async function runWorkerLoop(options: WorkerLoopOptions): Promise<void> {
       } else {
         consecutiveIdle += 1;
         incMetric(`worker.${options.family}.idle`);
+        if (exitOnIdle > 0 && consecutiveIdle >= exitOnIdle) {
+          opsLog("info", "Worker idle exit", { component: options.family, outcome: "IDLE" });
+          break;
+        }
       }
 
       await writeWorkerHeartbeat({

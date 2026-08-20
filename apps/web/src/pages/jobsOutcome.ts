@@ -100,7 +100,11 @@ export function jobOutcomeSummary(job: JobRecord): { severity: "success" | "warn
   const next = providerLabel(String(job.selectedProviderId || ""));
   const step = workStep(job);
   if (state === "SUCCEEDED") {
-    return { severity: "success", title: "This step finished", body: `Done: ${step.verb} ${step.noun}.` };
+    return {
+      severity: "success",
+      title: `${step.verb.charAt(0).toUpperCase()}${step.verb.slice(1)} finished`,
+      body: `This step is done (${step.noun}). The next step (extract or prepare for review) starts automatically. Content / Governance appear only after those later steps finish.`,
+    };
   }
   if (failed.length === 0) {
     if (state === "RETRY_WAIT") {
