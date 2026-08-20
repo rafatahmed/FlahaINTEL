@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-21
  */
 
 import { getProductionConfig } from "./config.js";
@@ -134,8 +134,7 @@ export async function runWorkerLoop(options: WorkerLoopOptions): Promise<void> {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    const timer = setTimeout(resolve, ms);
-    timer.unref?.();
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
