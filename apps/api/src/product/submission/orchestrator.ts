@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import { createHash, randomUUID } from "node:crypto";
@@ -351,6 +351,9 @@ export class SubmissionOrchestrator {
           languageHints: [submission.languageHint],
           inputArtifact,
           actor: wire,
+          executionLimits: submission.inputMediaType === "application/pdf"
+            ? { wallTimeoutMs: 180_000, startupTimeoutMs: 60_000 }
+            : undefined,
         });
 
     await this.db.productSubmission.update({

@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 export interface WorkerRequest {
@@ -27,7 +27,12 @@ export interface SupervisorOptions {
   temporaryDirectory?: string;
   timeoutMs: number; cancellationGraceMs: number; maximumLineBytes: number;
   maximumMessages: number; maximumProgress: number; maximumStderrBytes: number;
-  environment?: { FLAHA_WORKER_TEST_MARKER?: string };
+  environment?: {
+    FLAHA_WORKER_TEST_MARKER?: string;
+    TIKA_JAR?: string;
+    TIKA_ALLOWLIST?: string;
+    JAVA_BIN?: string;
+  };
   onDiagnostic?: (text: string) => void;
 }
 export interface SupervisorResult {

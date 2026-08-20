@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-20
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -25,6 +25,20 @@ export type WorkerHeartbeat = {
 };
 
 type Store = { workers: Record<string, WorkerHeartbeat> };
+
+/** Signal 0: process exists. EPERM/EACCES still means live (no kill permission). */
+export function pidExists(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error
+      ? String((error as NodeJS.ErrnoException).code)
+      : "";
+    return code === "EPERM" || code === "EACCES";
+  }
+}
 
 export async function writeWorkerHeartbeat(entry: WorkerHeartbeat): Promise<void> {
   const file = getProductionConfig().workerHeartbeatPath;
@@ -53,7 +67,8 @@ export async function readWorkerHeartbeats(staleMs = 120_000): Promise<{
     const stale: WorkerHeartbeat[] = [];
     for (const w of workers) {
       const age = now - Date.parse(w.lastSeenAt);
-      if (Number.isFinite(age) && age <= staleMs) live.push(w);
+      const fresh = Number.isFinite(age) && age <= staleMs;
+      if (fresh && pidExists(w.pid)) live.push(w);
       else stale.push(w);
     }
     return { workers, live, stale };

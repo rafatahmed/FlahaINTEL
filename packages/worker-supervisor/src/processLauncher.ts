@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
@@ -17,6 +17,25 @@ import path from "node:path";
 import { access, lstat, mkdir } from "node:fs/promises";
 import { WorkerConfigurationError } from "./errors.js";
 import type { SupervisorOptions } from "./types.js";
+
+const RUNTIME_PATH_ENV = ["TIKA_JAR", "TIKA_ALLOWLIST", "JAVA_BIN"] as const;
+
+function absoluteRuntimePath(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed || !path.isAbsolute(trimmed) || trimmed.includes("\0")) return undefined;
+  return path.resolve(trimmed);
+}
+
+export function pickRuntimePathEnv(
+  source: NodeJS.ProcessEnv,
+  overrides: SupervisorOptions["environment"] = {},
+): Record<(typeof RUNTIME_PATH_ENV)[number], string | undefined> {
+  const picked = {} as Record<(typeof RUNTIME_PATH_ENV)[number], string | undefined>;
+  for (const key of RUNTIME_PATH_ENV) {
+    picked[key] = absoluteRuntimePath(overrides?.[key] ?? source[key]);
+  }
+  return picked;
+}
 
 export async function launchWorker(options: SupervisorOptions): Promise<ChildProcessWithoutNullStreams> {
   if (!path.isAbsolute(options.pythonExecutable)) throw new WorkerConfigurationError("Python executable must be an explicit absolute path.");
@@ -33,6 +52,7 @@ export async function launchWorker(options: SupervisorOptions): Promise<ChildPro
     SYSTEMROOT: process.env.SYSTEMROOT, WINDIR: process.env.WINDIR, TEMP: options.temporaryDirectory ?? process.env.TEMP, TMP: options.temporaryDirectory ?? process.env.TMP,
     PYTHONIOENCODING: "utf-8", PYTHONUNBUFFERED: "1",
     FLAHA_WORKER_TEST_MARKER: options.environment?.FLAHA_WORKER_TEST_MARKER,
+    ...pickRuntimePathEnv(process.env, options.environment),
   };
   delete env.DATABASE_URL;
   const args = options.runtime === "NODE" ? [options.workerEntryPoint] : ["-I", "-u", options.workerEntryPoint];
