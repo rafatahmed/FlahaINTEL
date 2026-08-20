@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-19
+# Last modified: 2026-08-20
 #
 # Usage (root):
 #   export FLAHA_PUBLIC_HOST=intel.flaha.org
@@ -312,11 +312,11 @@ step_migrate_bootstrap() {
   DATABASE_URL="${MIGRATOR_DATABASE_URL}" npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
   export DATABASE_URL="postgresql://flaha_app:${FLAHA_APP_DB_PASSWORD}@127.0.0.1:5432/flaha_intel?schema=public"
   ln -sfn /etc/flahaintel/production.env "${CURRENT}/.env"
-  node --import tsx apps/api/src/governance/seedGovernedData.ts
-  node --import tsx apps/api/src/governance/bootstrapLocal.ts
-  node --import tsx apps/api/src/governance/bootstrapAcceptedRssSources.ts || true
-  node --import tsx apps/api/src/governance/backfillSourceMetadata.ts || true
-  node --import tsx apps/api/src/market/seedChannelsFromRegistry.ts || true
+  node --conditions=development --import tsx apps/api/src/governance/seedGovernedData.ts
+  node --conditions=development --import tsx apps/api/src/governance/bootstrapLocal.ts
+  node --conditions=development --import tsx apps/api/src/governance/bootstrapAcceptedRssSources.ts || true
+  node --conditions=development --import tsx apps/api/src/governance/backfillSourceMetadata.ts || true
+  node --conditions=development --import tsx apps/api/src/market/seedChannelsFromRegistry.ts || true
 }
 
 step_systemd() {

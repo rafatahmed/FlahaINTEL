@@ -8,9 +8,9 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-19
+# Last modified: 2026-08-20
 
 set -euo pipefail
 cd /opt/flahaintel/current/apps/api
 export NODE_ENV="${NODE_ENV:-production}"
-exec /usr/bin/node --import tsx src/market/harvest/cli.ts
+exec /usr/bin/node --conditions=development --import tsx src/market/harvest/cli.ts
