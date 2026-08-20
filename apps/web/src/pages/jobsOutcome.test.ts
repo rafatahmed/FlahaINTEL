@@ -70,4 +70,16 @@ describe("jobOutcomeSummary", () => {
     });
     expect(summary.title).toBe("Now: extract the document");
   });
+
+  it("does not call a finished website fetch an extraction", () => {
+    const summary = jobOutcomeSummary({
+      state: "SUCCEEDED",
+      requestedCapability: "STATIC_HTTP_ACQUISITION",
+      selectedProviderId: "acquisition.scrapy",
+      attempts: [],
+    });
+    expect(summary.title).toBe("Fetch finished");
+    expect(summary.body).toContain("Content / Governance");
+    expect(summary.body).not.toMatch(/Extraction succeeded/i);
+  });
 });
