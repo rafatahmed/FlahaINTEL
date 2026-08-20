@@ -25,6 +25,8 @@ jobs:
         run: npm run build:packages
       - name: Typecheck / API build
         run: npm run build --workspace=@flaha-intel/api
+      - name: Linux Vite native binding
+        run: npm i @rolldown/binding-linux-x64-gnu --no-save --no-fund --no-audit
       - name: Web build
         run: npm run build --workspace=@flaha-intel/web
       - name: Prisma validate
