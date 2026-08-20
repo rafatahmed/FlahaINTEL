@@ -12,7 +12,9 @@ export default defineConfig(({ mode }) => {
     envDir,
     plugins: [react()],
     server: {
+      host: "127.0.0.1",
       port: Number.isFinite(configuredPort) ? configuredPort : 5174,
+      strictPort: true,
     },
   };
 });

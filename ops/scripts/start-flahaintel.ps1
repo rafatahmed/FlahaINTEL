@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-07-31
-# Last modified: 2026-08-20
+# Last modified: 2026-08-21
 
 param(
   [ValidateSet("Dev", "Prod")]
@@ -111,6 +111,35 @@ function Wait-ApiHealth {
   return $false
 }
 
+function Start-DetachedProcess {
+  param(
+    [Parameter(Mandatory)][string]$FilePath,
+    [string[]]$ArgumentList = @()
+  )
+  # Refuse empty FilePath. Agent/piped shells that call Start-Process "" surface as
+  # Win32 0x800700E8 (ERROR_NO_DATA / "pipe is being closed") with `when launching `'`.
+  if ([string]::IsNullOrWhiteSpace($FilePath)) {
+    throw "Refusing empty process path (would raise Win32 0x800700E8 ERROR_NO_DATA)."
+  }
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $FilePath
+  if ($ArgumentList.Count -gt 0) {
+    $quoted = foreach ($arg in $ArgumentList) {
+      if ($null -eq $arg) { continue }
+      $text = [string]$arg
+      if ($text -match '[\s"]') {
+        '"' + ($text.Replace('\', '\\').Replace('"', '\"')) + '"'
+      } else {
+        $text
+      }
+    }
+    $psi.Arguments = ($quoted -join " ")
+  }
+  $psi.UseShellExecute = $true
+  $psi.WorkingDirectory = $RepoRoot
+  [void][System.Diagnostics.Process]::Start($psi)
+}
+
 function Start-AppWindow {
   param(
     [string]$Title,
@@ -136,11 +165,13 @@ Write-Host 'Process exited. Press Enter to close.' -ForegroundColor Yellow
 Read-Host | Out-Null
 "@
   $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
-  Start-Process -FilePath "powershell.exe" -ArgumentList @(
+  $powershell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+  if (-not (Test-Path -LiteralPath $powershell)) { $powershell = "powershell.exe" }
+  Start-DetachedProcess -FilePath $powershell -ArgumentList @(
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
     "-EncodedCommand", $encoded
-  ) | Out-Null
+  )
 }
 
 # Load env for ports / paths
@@ -282,11 +313,13 @@ while (`$true) {
 }
 "@
   $encodedPipeline = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($pipelineInner))
-  Start-Process -FilePath "powershell.exe" -ArgumentList @(
+  $powershell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+  if (-not (Test-Path -LiteralPath $powershell)) { $powershell = "powershell.exe" }
+  Start-DetachedProcess -FilePath $powershell -ArgumentList @(
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
     "-EncodedCommand", $encodedPipeline
-  ) | Out-Null
+  )
   Write-Host "[start] Pipeline window launched (Tika extract)"
 }
 
@@ -296,10 +329,14 @@ if ($runApi -and -not $SkipHealthWait) {
 }
 
 if ($runWeb -and -not $NoBrowser) {
-  try {
-    Start-Process $webUrl | Out-Null
-  } catch {
-    Write-Host "[info] Open browser manually: $webUrl"
+  if ($webUrl -notmatch '^https?://\S+') {
+    Write-Host "[info] Skip browser launch (empty or non-http WEB_ORIGIN). Open manually if needed."
+  } else {
+    try {
+      Start-DetachedProcess -FilePath $webUrl
+    } catch {
+      Write-Host "[info] Open browser manually: $webUrl"
+    }
   }
 }
 

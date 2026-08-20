@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-21
  */
 
 import type { SourceGovernancePolicy } from "@prisma/client";
@@ -86,7 +86,7 @@ export function runDeterministicChecks(input: CheckInput): EvaluationSnapshot {
     if (input.policy.allowedLanguages.length > 0 && language && !input.policy.allowedLanguages.includes(language)) {
       checks.push({ code: "SOURCE_POLICY_LANGUAGE", severity: "BLOCKER", message: "Source policy disallows this language." });
     }
-  } else {
+  } else if (input.sourceActive !== null) {
     checks.push({ code: "SOURCE_POLICY_MISSING", severity: "WARNING", message: "No source governance policy is configured; promotion will be blocked until policy permits." });
   }
 
@@ -159,6 +159,8 @@ export function runDeterministicChecks(input: CheckInput): EvaluationSnapshot {
     hasExtraction: input.extractionJobSucceeded === true,
     hasNormalization: input.normalizationJobSucceeded,
     hasSourceId: Boolean(input.policy?.sourceId) || Boolean(input.content.canonicalSourceLocator),
+    hasRssSource: input.sourceActive !== null || Boolean(input.policy),
+    acquisitionJobSucceeded: input.acquisitionJobSucceeded,
     checks,
   });
 
