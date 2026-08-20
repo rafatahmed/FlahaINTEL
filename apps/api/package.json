@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "node --conditions=development --env-file=../../.env --watch --import tsx src/server.ts",
+    "prebuild": "prisma generate",
     "build": "tsc -p tsconfig.json",
     "prestart": "npm run build:packages --prefix ../..",
     "start": "node --env-file=../../.env dist/server.js",
+    "pretest": "prisma generate",
     "test": "vitest run src",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
@@ -89,5 +91,8 @@
     "tsx": "4.23.1",
     "typescript": "5.8.3",
     "vitest": "4.1.10"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
   }
 }

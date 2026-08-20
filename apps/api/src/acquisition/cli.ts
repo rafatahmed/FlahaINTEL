@@ -45,7 +45,7 @@ try {
     const jobs = new IngestionJobService(prisma), job = await jobs.getJob(args.jobId), attempts = await jobs.listJobAttempts(args.jobId), transitions = await jobs.listJobTransitions(args.jobId);
     const artifacts = await prisma.ingestionArtifactLink.findMany({ where: { jobId: args.jobId }, select: { id: true, artifactId: true, attemptId: true, relationship: true, mediaType: true, sha256: true, byteSize: true, createdAt: true } });
     const provenance = await prisma.ingestionProvenance.findMany({ where: { jobId: args.jobId }, select: { providerId: true, providerVersion: true, capability: true, policyVersion: true, inputHashes: true, outputHashes: true, determinismClassification: true, createdAt: true } });
-    console.log(JSON.stringify({ job, attempts, transitions, artifacts: artifacts.map(value => ({ ...value, byteSize: value.byteSize.toString() })), provenance }));
+    console.log(JSON.stringify({ job, attempts, transitions, artifacts: artifacts.map((row) => ({ ...row, byteSize: row.byteSize.toString() })), provenance }));
   } else if (command === "artifact") { const value = await store.metadata(args.artifactId); console.log(JSON.stringify({ artifactId: value.artifactId, state: value.state, byteLength: value.byteLength, checksum: value.checksum, createdAt: value.createdAt, updatedAt: value.updatedAt })); }
   else throw new Error("Expected create, worker-once, job, or artifact command.");
 } finally { await prisma.$disconnect(); }
