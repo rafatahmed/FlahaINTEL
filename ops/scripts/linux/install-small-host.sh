@@ -289,10 +289,9 @@ step_build() {
   npm ci
   npm i @rolldown/binding-linux-x64-gnu --no-fund --no-audit || true
   npx prisma generate --schema=apps/api/prisma/schema.prisma
-  npm run build --workspace=@flaha-intel/artifact-store
-  npm run build --workspace=@flaha-intel/worker-supervisor
-  npm run build --workspace=@flaha-intel/ingestion-provider-core
-  npm run build --workspace=@flaha-intel/api || true
+  npm run build:packages
+  npm run build --workspace=@flaha-intel/api
+  test -f apps/api/dist/server.js
   (cd apps/web && npx vite build)
   rsync -a --delete "${CURRENT}/apps/web/dist/" /var/lib/flahaintel/web/
   chmod +x "${CURRENT}/ops/scripts/linux/"*.sh

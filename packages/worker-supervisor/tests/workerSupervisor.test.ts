@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-20
  */
 
 import { access, readFile } from "node:fs/promises";
@@ -143,8 +143,11 @@ describe("isolation and lifecycle", () => {
     await expectCode(running.result, "WORKER_CANCELLED");
     await waitForExit(pid);
   });
-  test("stderr overflow is a terminal protocol failure", async () => {
-    await expectCode(start("stderr_overflow", {}, { maximumStderrBytes: 64 }).result, "WORKER_PROTOCOL_ERROR");
+  test("stderr overflow is truncated and does not kill the worker", async () => {
+    const value = await start("stderr_overflow", {}, { maximumStderrBytes: 64 }).result;
+    expect(value.outcome).toBe("SUCCEEDED");
+    expect(Buffer.byteLength(value.stderr)).toBeLessThanOrEqual(64);
+    expect(value.forcedTermination).toBe(false);
   });
   test("environment is allowlisted and DATABASE_URL is not inherited", async () => {
     const priorDatabase = process.env.DATABASE_URL, priorSecret = process.env.FLAHA_UNRELATED_SECRET;
