@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 import type { GovernanceCandidate, GovernancePreview } from "../types";
 
@@ -76,7 +76,7 @@ export function shortLabel(candidate: Pick<GovernanceCandidate, "documentTitle" 
 }
 
 export function headlineChips(candidate: GovernanceCandidate): string[] {
-  const chips = [candidate.reviewState];
+  const chips: string[] = [candidate.reviewState];
   if (isOneShotEyes(candidate)) {
     chips.push(reuseLabel(candidate));
     return chips;

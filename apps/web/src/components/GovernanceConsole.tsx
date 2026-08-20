@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 import {
   Alert,
@@ -39,6 +39,7 @@ import type {
 import { BrandedState } from "./BrandedState";
 import {
   headlineChips,
+  isOneShotEyes,
   locatorLine,
   originLine,
   reviewerLine,

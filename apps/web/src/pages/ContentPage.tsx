@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -81,7 +81,7 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
                 <Typography variant="caption" color="text.secondary">
                   {originLine(item)}
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }} useFlexGap>
                   {headlineChips(item).map((label) => (
                     <Chip key={label} size="small" label={label} />
                   ))}

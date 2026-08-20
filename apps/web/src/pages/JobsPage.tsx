@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
@@ -105,7 +105,7 @@ export function JobsPage() {
             {!selected ? <Typography color="text.secondary">Select a job.</Typography> : (
               <Stack spacing={1.5}>
                 <Typography variant="h6">{String(selected.requestedCapability)}</Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }} useFlexGap>
                   <Chip color={String(selected.state) === "DEAD_LETTER" || String(selected.state) === "FAILED" ? "error" : "default"} label={jobStateLabel(String(selected.state))} />
                   <Chip size="small" variant="outlined" label={`${String(selected.attemptCount)} / ${String(selected.maxAttempts)} attempts`} />
                   <Chip size="small" variant="outlined" label={String(selected.mediaType || "—")} />
@@ -134,8 +134,8 @@ export function JobsPage() {
                             p: 1.25,
                           }}
                         >
-                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                            <Typography variant="body2" fontWeight={600}>
+                          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
                               Attempt {String(attempt.attemptNumber)}
                             </Typography>
                             <Chip
