@@ -14,7 +14,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertUrlAllowedByPolicy, crawlLimitsFromPolicy, type CrawlPolicy } from "./crawlPolicy.js";
+import { assertOperatorWebsiteUrl, assertUrlAllowedByPolicy, crawlLimitsFromPolicy, type CrawlPolicy } from "./crawlPolicy.js";
 
 const policy: CrawlPolicy = {
   version: "test",
@@ -34,6 +34,11 @@ const policy: CrawlPolicy = {
 };
 
 describe("crawl policy", () => {
+  it("one-shot Submit accepts any public http(s) host without a harvest list", () => {
+    expect(assertOperatorWebsiteUrl("https://sqm.com/en/noticia/consejo-minero-incorpora-a-sqm-como-nuevo-socio/").host).toBe("sqm.com");
+    expect(() => assertOperatorWebsiteUrl("ftp://sqm.com/x")).toThrow(/http/i);
+  });
+
   it("allows approved host and path", () => {
     const result = assertUrlAllowedByPolicy("https://example.com/docs/a", policy);
     expect(result.host).toBe("example.com");

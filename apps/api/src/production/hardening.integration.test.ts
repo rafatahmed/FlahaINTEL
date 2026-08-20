@@ -143,7 +143,7 @@ suite("phase 3m hardening", () => {
     expect(["FORGED_ACTOR_ID", "VALIDATION_ERROR"]).toContain(res.json().error.code);
   });
 
-  it("enforces crawl host allowlist when policy configured", async () => {
+  it("one-shot website submit is not blocked by the crawl host list", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/submissions/website",
@@ -153,12 +153,13 @@ suite("phase 3m hardening", () => {
         "x-flaha-correlation-id": `${namespace}.crawl`,
       },
       payload: {
-        url: "https://not-allowed.example/",
-        idempotencyKey: `${namespace}.denied-host`,
+        url: "https://sqm.com/en/noticia/x/",
+        idempotencyKey: `${namespace}.any-host`,
+        chainMode: "MANUAL_STAGE",
       },
     });
-    expect(res.statusCode).toBe(403);
-    expect(res.json().error.code).toMatch(/CRAWL_HOST_NOT_ALLOWED|FORBIDDEN/);
+    expect(res.json().error?.code ?? "").not.toMatch(/CRAWL_HOST_NOT_ALLOWED|CRAWL_PATH_NOT_ALLOWED/);
+    expect(res.statusCode).not.toBe(403);
   });
 
   it("accepts allowlisted website submission metadata path", async () => {

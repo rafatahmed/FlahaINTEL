@@ -26,7 +26,7 @@ export const INTAKE_CLASS_META: Record<
     label: "One webpage",
     lane: "eyes",
     promote: "Fetch that page → extract → Governance (not RSS)",
-    acceptHint: "Paste one https URL on the Eyes harvest list",
+    acceptHint: "Paste any public https page URL (one page, not RSS)",
   },
   EYES_DOCUMENT: {
     label: "General document",

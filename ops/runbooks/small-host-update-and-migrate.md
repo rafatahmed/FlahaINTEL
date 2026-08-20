@@ -157,7 +157,7 @@ Submit → **Website (Eyes)** lands a URL, then the **serial pipeline** acquires
 - Jobs sitting in **READY** wait for the serial oneshot. Submit kicks `flahaintel-pipeline.service` (`--no-block`). The timer is **boot-only**, not every 15 minutes. Do **not** start `npm run worker:*` on this host.
 - Run one tick now: `systemctl start flahaintel-pipeline.service`
 - Intake **PROMOTED** means queued, not finished. Human **Approve** in Governance is the product end-state (**VAULTED** in Content). RSS promotion eligibility does not apply.
-- Production only accepts **allowlisted** hosts/paths in `ops/config/crawl-policy.json` (copied to `/etc/flahaintel/crawl-policy.json` on update). Current Eyes hosts: MoCI, Mahaseel, Amman market, Yara `/corporate-releases/`. Adding a new site is an allowlist change, not a free crawl.
+- **One webpage Submit** fetches the URL the operator pasted (one page). It is **not** limited to `crawl-policy.json` hosts. Private/loopback addresses are still blocked. RSS feeds stay under Sources. Bounded crawls (depth/pages) remain capped; this is not an open spider.
 
 ---
 

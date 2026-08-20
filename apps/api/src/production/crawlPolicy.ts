@@ -85,19 +85,12 @@ export async function loadCrawlPolicy(pathOverride?: string): Promise<CrawlPolic
   }
 }
 
-export async function assertWebsiteUrlIfEnforced(urlText: string): Promise<void> {
-  const enforce =
-    getProductionConfig().isProduction
-    || process.env.CRAWL_POLICY_ENFORCE === "true";
-  if (!enforce) return;
-  const policy = await loadCrawlPolicy();
-  assertUrlAllowedByPolicy(urlText, policy);
-}
-
-export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): {
-  host: string;
-  pathWithQuery: string;
-} {
+/**
+ * One-shot Submit: operator pasted one page. Not RSS, not a crawl spider.
+ * Host/path harvest lists are not applied — do not make the operator edit a list per site.
+ * Private/loopback destinations are still blocked at acquisition (SSRF).
+ */
+export function assertOperatorWebsiteUrl(urlText: string): { host: string; pathWithQuery: string } {
   let url: URL;
   try {
     url = new URL(urlText.trim());
@@ -111,6 +104,19 @@ export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): 
     throw new ProductError("URL_CREDENTIALS_FORBIDDEN", "URLs must not include credentials.", 400, "INPUT");
   }
   const host = url.hostname.toLowerCase();
+  return { host, pathWithQuery: `${url.pathname || "/"}${url.search || ""}` };
+}
+
+export async function assertWebsiteUrlIfEnforced(urlText: string): Promise<void> {
+  assertOperatorWebsiteUrl(urlText);
+}
+
+export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): {
+  host: string;
+  pathWithQuery: string;
+} {
+  const { host } = assertOperatorWebsiteUrl(urlText);
+  const url = new URL(urlText.trim());
   if (policy.allowedHosts.length === 0) {
     // Empty allowlist: production crawl submissions that require policy fail closed when policy enforced
     return { host, pathWithQuery: `${url.pathname || "/"}${url.search || ""}` };

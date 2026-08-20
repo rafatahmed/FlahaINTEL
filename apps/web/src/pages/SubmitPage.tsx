@@ -437,31 +437,18 @@ export function SubmitPage(props: {
                 One webpage
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Paste <strong>one page URL</strong>. Flaha fetches that page, extracts text, then you Approve it in
-                Governance. This is <strong>not RSS</strong> (RSS feeds are registered under Sources and run on a
-                schedule). It is also not an open-web crawl: the host only fetches sites on the Eyes harvest list
-                below. If the URL is not on that list, Submit stops immediately — nothing appears in Jobs.
+                Paste any public <strong>https page URL</strong>. Flaha fetches that one page, extracts text, then you
+                Approve it in Governance. You do not edit a harvest list for each new site. This is <strong>not
+                RSS</strong> (feeds are under Sources). Private/internal addresses are blocked. This is not a spider
+                of the whole web — only the URL you paste.
               </Typography>
-              {(matrix?.harvest?.hosts?.length ?? 0) > 0 && (
-                <Box sx={{ my: 1, p: 1, bgcolor: "action.hover", borderRadius: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                    Eyes harvest list (host + path). Adding a new site is an ops list change, not “allow anything”.
-                  </Typography>
-                  {matrix!.harvest!.hosts.map((h) => (
-                    <Typography key={h.host} variant="caption" sx={{ display: "block", fontFamily: "monospace" }}>
-                      {h.host}
-                      {h.pathPrefixes?.length ? ` → ${h.pathPrefixes.join(", ")}` : ""}
-                    </Typography>
-                  ))}
-                </Box>
-              )}
               <Stack spacing={1.5}>
                 <TextField
                   label="Page URL"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   fullWidth
-                  placeholder="https://www.yara.com/corporate-releases/…"
+                  placeholder="https://…"
                 />
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
                   <TextField
