@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-21
  */
 
 import type { EvidenceCompleteness } from "@prisma/client";
@@ -22,6 +22,10 @@ export function classifyEvidenceCompleteness(input: {
   hasExtraction: boolean;
   hasNormalization: boolean;
   hasSourceId: boolean;
+  /** Linked RSS source (policy or source row). False for one-shot Submit. */
+  hasRssSource: boolean;
+  /** null = no acquisition job (document upload skipped crawl). */
+  acquisitionJobSucceeded: boolean | null;
   checks: GovernanceCheckResult[];
 }): { completeness: EvidenceCompleteness; reasons: EvidenceReason[] } {
   const reasons: EvidenceReason[] = [
@@ -58,6 +62,14 @@ export function classifyEvidenceCompleteness(input: {
   if (requiredMissing.length > 0) {
     return { completeness: "INSUFFICIENT", reasons };
   }
+
+  // Document one-shot never has RSS source, crawl locators, or an acquisition job.
+  // Those gaps must not trip the RSS "≥3 important missing → INSUFFICIENT" rule.
+  const documentOneShot = !input.hasRssSource && input.acquisitionJobSucceeded === null;
+  if (documentOneShot) {
+    return { completeness: "PARTIAL", reasons };
+  }
+
   if (importantMissing.length >= 3) {
     return { completeness: "INSUFFICIENT", reasons };
   }

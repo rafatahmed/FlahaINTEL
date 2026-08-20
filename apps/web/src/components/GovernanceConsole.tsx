@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 import {
   Alert,
@@ -38,6 +38,8 @@ import type {
 } from "../types";
 import { BrandedState } from "./BrandedState";
 import {
+  artifactStoreLine,
+  evidenceCompletenessHelp,
   headlineChips,
   isOneShotEyes,
   locatorLine,
@@ -45,6 +47,7 @@ import {
   reviewerLine,
   reuseLabel,
   shortLabel,
+  showsInvalidLinkHelp,
 } from "../governance/oneShotLabels";
 
 const STATES: GovernanceReviewState[] = [
@@ -229,6 +232,10 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
     );
   }
 
+  const completenessHelp = detail
+    ? evidenceCompletenessHelp(evidence?.evidenceCompleteness, isAdHocDocument(detail))
+    : null;
+
   return (
     <Stack spacing={2}>
       <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, justifyContent: "space-between", gap: 2 }}>
@@ -358,22 +365,29 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                     acquisition={evidence?.lineage.acquisitionJobId ?? "—"} · extraction={evidence?.lineage.extractionJobId ?? "—"} · normalization={evidence?.lineage.normalizationJobId}
                   </Typography>
                   <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: 12 }}>
-                    hash={(detail.normalizedContentHash || "").slice(0, 16)}… · artifact state={evidence?.artifact?.state ?? "?"}
+                    {artifactStoreLine({
+                      contentHash: detail.normalizedContentHash,
+                      artifactState: evidence?.artifact?.state,
+                      promotionState: detail.promotionState,
+                      oneShot: isAdHocDocument(detail),
+                    })}
                   </Typography>
                 </Box>
 
                 <Box>
                   <Typography variant="subtitle2">Evidence panel</Typography>
                   <Typography variant="body2">Completeness: {evidence?.evidenceCompleteness}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                    {evidence?.evidenceCompleteness === "PARTIAL"
-                      ? "PARTIAL is expected for one-shot website submits: no RSS source id. Acquire → extract → normalize still completed. Review here; do not expect RSS promotion policy."
-                      : null}
-                  </Typography>
+                  {completenessHelp ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      {completenessHelp}
+                    </Typography>
+                  ) : null}
                   <Typography variant="body2">Warnings: {asStringList(evidence?.warnings).join("; ") || "none"}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                    “Invalid link skipped” means an empty or unsafe href on the page was dropped (for example Yara’s leave-site dialog). It is not a failed extract.
-                  </Typography>
+                  {showsInvalidLinkHelp(evidence?.warnings) ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      “Invalid link skipped” means an empty or unsafe href on the page was dropped (for example Yara’s leave-site dialog). It is not a failed extract.
+                    </Typography>
+                  ) : null}
                   <Typography variant="body2">Quality: {asStringList(evidence?.qualityIndicators).join(", ") || "none"}</Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
                     MISSING_DATE / MISSING_AUTHOR mean no article date or byline was selected from metadata. Visible page text is not inferred. Corporate releases often have no author field.

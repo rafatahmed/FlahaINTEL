@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 import type { GovernanceCandidate, GovernancePreview } from "../types";
 
@@ -83,4 +83,46 @@ export function headlineChips(candidate: GovernanceCandidate): string[] {
   }
   chips.push(candidate.priority, candidate.evidenceCompleteness, candidate.promotionState);
   return chips;
+}
+
+function asWarningList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
+/** Normalization dropped an empty or javascript: href. Not a failed extract. */
+export function showsInvalidLinkHelp(warnings: unknown): boolean {
+  return asWarningList(warnings).some((warning) =>
+    /invalid link skipped|unsafe link scheme skipped/i.test(warning),
+  );
+}
+
+export function evidenceCompletenessHelp(
+  completeness: string | undefined,
+  oneShot: boolean,
+): string | null {
+  if (!oneShot) return null;
+  if (completeness === "PARTIAL") {
+    return "PARTIAL is expected for one-shot Submit: no RSS source id. Extract → normalize still completed. Review here; RSS promotion does not apply.";
+  }
+  if (completeness === "INSUFFICIENT") {
+    return "INSUFFICIENT here means required extract/normalize hashes, language, or content type are missing — not “no RSS source”.";
+  }
+  return null;
+}
+
+export function artifactStoreLine(args: {
+  contentHash?: string | null;
+  artifactState?: string | null;
+  promotionState?: string | null;
+  oneShot: boolean;
+}): string {
+  const hash = (args.contentHash || "").slice(0, 16);
+  const hashBit = hash ? `hash=${hash}…` : "hash=—";
+  const store = args.artifactState === "PROMOTED"
+    ? "ArtifactStore sealed"
+    : `ArtifactStore ${args.artifactState ?? "?"}`;
+  const rss = args.oneShot
+    ? "RSS promotion does not apply"
+    : `RSS promotion=${args.promotionState ?? "?"}`;
+  return `${hashBit} · ${store} · ${rss}`;
 }
