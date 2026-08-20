@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 import type { EvidenceIntakeClass, EvidenceIntakeStatus, PrismaClient } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
@@ -20,6 +20,7 @@ import { EvidenceIntakeService, IntakeError } from "../intake/service.js";
 import { assertPermission, resolveProductActor } from "../product/auth.js";
 import { isProductError } from "../product/errors.js";
 import { getProductionConfig } from "../production/config.js";
+import { harvestList, loadCrawlPolicy } from "../production/crawlPolicy.js";
 import { SubmissionOrchestrator } from "../product/submission/orchestrator.js";
 
 function mapError(error: unknown): never {
@@ -50,10 +51,16 @@ export function intakeRoutes(
     app.get("/intake/matrix", async (request) => {
       try {
         await resolveProductActor(prisma, request);
+        const policy = await loadCrawlPolicy();
         return {
           principle: "Land once on the evidence spine; promote into domain engines — do not re-ingest per model.",
           classes: CLASSES.map((c) => ({ code: c, ...INTAKE_CLASS_META[c] })),
           flow: ["LAND", "CLASSIFY", "PROMOTE"],
+          harvest: {
+            kind: "one_page_fetch",
+            notRss: true,
+            hosts: harvestList(policy),
+          },
           governance: {
             neverAutoWritesProductEngines: true,
             /** Three separate products — FlahaCALC ≠ FlahaFAST */

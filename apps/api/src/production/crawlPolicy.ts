@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 
 import { readFile } from "node:fs/promises";
@@ -85,19 +85,12 @@ export async function loadCrawlPolicy(pathOverride?: string): Promise<CrawlPolic
   }
 }
 
-export async function assertWebsiteUrlIfEnforced(urlText: string): Promise<void> {
-  const enforce =
-    getProductionConfig().isProduction
-    || process.env.CRAWL_POLICY_ENFORCE === "true";
-  if (!enforce) return;
-  const policy = await loadCrawlPolicy();
-  assertUrlAllowedByPolicy(urlText, policy);
-}
-
-export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): {
-  host: string;
-  pathWithQuery: string;
-} {
+/**
+ * One-shot Submit: operator pasted one page. Not RSS, not a crawl spider.
+ * Host/path harvest lists are not applied — do not make the operator edit a list per site.
+ * Private/loopback destinations are still blocked at acquisition (SSRF).
+ */
+export function assertOperatorWebsiteUrl(urlText: string): { host: string; pathWithQuery: string } {
   let url: URL;
   try {
     url = new URL(urlText.trim());
@@ -111,12 +104,31 @@ export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): 
     throw new ProductError("URL_CREDENTIALS_FORBIDDEN", "URLs must not include credentials.", 400, "INPUT");
   }
   const host = url.hostname.toLowerCase();
+  return { host, pathWithQuery: `${url.pathname || "/"}${url.search || ""}` };
+}
+
+export async function assertWebsiteUrlIfEnforced(urlText: string): Promise<void> {
+  assertOperatorWebsiteUrl(urlText);
+}
+
+export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): {
+  host: string;
+  pathWithQuery: string;
+} {
+  const { host } = assertOperatorWebsiteUrl(urlText);
+  const url = new URL(urlText.trim());
   if (policy.allowedHosts.length === 0) {
     // Empty allowlist: production crawl submissions that require policy fail closed when policy enforced
     return { host, pathWithQuery: `${url.pathname || "/"}${url.search || ""}` };
   }
   if (!policy.allowedHosts.includes(host)) {
-    throw new ProductError("CRAWL_HOST_NOT_ALLOWED", "Host is not on the controlled crawl allowlist.", 403, "INPUT");
+    const hosts = harvestHostNames(policy);
+    throw new ProductError(
+      "CRAWL_HOST_NOT_ALLOWED",
+      `This page is not on the Eyes harvest list (${host}). FlahaINTEL fetches one pasted URL from listed hosts only — it does not crawl the open web, and this is not RSS. Harvest hosts: ${hosts.join(", ") || "(none configured)"}.`,
+      403,
+      "INPUT",
+    );
   }
   const pathWithQuery = `${url.pathname || "/"}${url.search || ""}`;
   const pathOnly = url.pathname || "/";
@@ -127,7 +139,12 @@ export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): 
     return pathWithQuery === prefix || pathWithQuery.startsWith(prefix) || pathOnly === prefix || pathOnly.startsWith(prefix);
   });
   if (!allowed) {
-    throw new ProductError("CRAWL_PATH_NOT_ALLOWED", "Path is not on the controlled crawl allowlist.", 403, "INPUT");
+    throw new ProductError(
+      "CRAWL_PATH_NOT_ALLOWED",
+      `This path is not harvestable on ${host}. Allowed path prefixes: ${prefixes.join(", ")}. Paste a URL under one of those paths. This is one page fetch, not RSS.`,
+      403,
+      "INPUT",
+    );
   }
   return { host, pathWithQuery };
 }
@@ -154,6 +171,18 @@ export function crawlLimitsFromPolicy(policy: CrawlPolicy): {
     wallTimeoutMs: 60_000,
     userAgent: policy.userAgent,
   };
+}
+
+export function harvestHostNames(policy: CrawlPolicy): string[] {
+  return policy.allowedHosts.filter((host) => !host.includes("example."));
+}
+
+/** Operator-facing harvest list (fixture hosts omitted). */
+export function harvestList(policy: CrawlPolicy): Array<{ host: string; pathPrefixes: string[] }> {
+  return harvestHostNames(policy).map((host) => ({
+    host,
+    pathPrefixes: policy.allowedPathPrefixes[host] ?? ["/"],
+  }));
 }
 
 export function resetCrawlPolicyCache(): void {

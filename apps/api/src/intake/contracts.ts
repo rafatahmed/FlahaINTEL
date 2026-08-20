@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-21
  */
 import type { EvidenceIntakeClass } from "@prisma/client";
 
@@ -23,10 +23,10 @@ export const INTAKE_CLASS_META: Record<
     acceptHint: "Any landed evidence awaiting class",
   },
   EYES_WEBSITE: {
-    label: "Website URL",
+    label: "One webpage",
     lane: "eyes",
-    promote: "Product submission → acquire → extract → governance",
-    acceptHint: "http(s) URL",
+    promote: "Fetch that page → extract → Governance (not RSS)",
+    acceptHint: "Paste any public https page URL (one page, not RSS)",
   },
   EYES_DOCUMENT: {
     label: "General document",

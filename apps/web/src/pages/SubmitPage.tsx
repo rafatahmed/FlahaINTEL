@@ -200,6 +200,7 @@ export function SubmitPage(props: {
   const [matrix, setMatrix] = useState<{
     principle: string;
     classes: ClassMeta[];
+    harvest?: { hosts: Array<{ host: string; pathPrefixes: string[] }> };
   } | null>(null);
   const [intakes, setIntakes] = useState<IntakeRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -230,7 +231,7 @@ export function SubmitPage(props: {
     void (async () => {
       try {
         const m = await api.intakeMatrix();
-        setMatrix({ principle: m.principle, classes: m.classes as ClassMeta[] });
+        setMatrix({ principle: m.principle, classes: m.classes as ClassMeta[], harvest: m.harvest });
       } catch {
         setMatrix(null);
       }
@@ -251,12 +252,14 @@ export function SubmitPage(props: {
         idempotencyKey: `web-ui-${Date.now()}`,
       });
       const intake = res.intake as IntakeRow;
-      setInfo(`Landed + promoted website intake ${intake.id} · ${intake.status}`);
+      setInfo(
+        `Accepted this page. Fetch starts now (one item at a time). Open Jobs to watch; Content / Governance fill after extract finishes.`,
+      );
+      await loadRecent();
+      setTab("recent");
       if (intake.productSubmissionId && props.onOpenSubmission) {
         props.onOpenSubmission(String(intake.productSubmissionId));
       }
-      await loadRecent();
-      setTab("recent");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Website intake failed.");
     } finally {
@@ -431,15 +434,17 @@ export function SubmitPage(props: {
           <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Website (Eyes)
+                One webpage
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                One-shot allowlisted URL. Product finish is human <strong>Approve</strong> in Governance (vaulted in
-                Content). This is not RSS and does not need a registered source or promotion eligibility.
+                Paste any public <strong>https page URL</strong>. Flaha fetches that one page, extracts text, then you
+                Approve it in Governance. You do not edit a harvest list for each new site. This is <strong>not
+                RSS</strong> (feeds are under Sources). Private/internal addresses are blocked. This is not a spider
+                of the whole web — only the URL you paste.
               </Typography>
               <Stack spacing={1.5}>
                 <TextField
-                  label="Governed URL"
+                  label="Page URL"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   fullWidth
@@ -465,11 +470,11 @@ export function SubmitPage(props: {
                   </FormControl>
                   <FormControlLabel
                     control={<Switch checked={autoChain} onChange={(e) => setAutoChain(e.target.checked)} />}
-                    label="Auto-chain stages"
+                    label="Then extract and send to Governance"
                   />
                 </Box>
                 <Button variant="contained" disabled={busy || !url.trim()} onClick={() => void landWebsite()}>
-                  Land website → promote Eyes
+                  Fetch this page
                 </Button>
               </Stack>
             </CardContent>
@@ -537,11 +542,11 @@ export function SubmitPage(props: {
           <Card variant="outlined">
             <CardContent>
               <Typography variant="subtitle2" gutterBottom>
-                Recurring RSS
+                RSS feeds (separate)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Recurring sources are not one-shot uploads. Register them under <strong>Sources</strong> with
-                governance policy (still part of the Eyes plane, separate from file land).
+                RSS is a registered feed that Flaha collects on a schedule under <strong>Sources</strong>. Pasting a
+                webpage URL here does not create an RSS source and does not use RSS rules.
               </Typography>
             </CardContent>
           </Card>
