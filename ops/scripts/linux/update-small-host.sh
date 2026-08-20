@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-20
+# Last modified: 2026-08-21
 #
 # Usage (root): bash /opt/flahaintel/current/ops/scripts/linux/update-small-host.sh
 # Optional: --runtimes  also re-run provision-runtimes.sh
@@ -83,9 +83,19 @@ fi
 echo "==== systemd ===="
 cp "${CURRENT}/ops/systemd/small-host/"*.service /etc/systemd/system/ || true
 cp "${CURRENT}/ops/systemd/small-host/"*.timer /etc/systemd/system/ || true
+if [[ -f "${CURRENT}/ops/sudoers/flahaintel-pipeline-kick" ]]; then
+  cp "${CURRENT}/ops/sudoers/flahaintel-pipeline-kick" /etc/sudoers.d/flahaintel-pipeline-kick
+  sed -i 's/\r$//' /etc/sudoers.d/flahaintel-pipeline-kick
+  chmod 440 /etc/sudoers.d/flahaintel-pipeline-kick
+  visudo -c >/dev/null
+fi
+if [[ -f /etc/flahaintel/production.env ]] && ! grep -q '^FLAHA_PIPELINE_KICK_CMD=' /etc/flahaintel/production.env; then
+  echo 'FLAHA_PIPELINE_KICK_CMD=sudo -n /usr/bin/systemctl start --no-block flahaintel-pipeline.service' >> /etc/flahaintel/production.env
+fi
 systemctl daemon-reload
+systemctl restart flahaintel-pipeline.timer || true
 systemctl restart flahaintel-api
-systemctl start flahaintel-pipeline.service || true
+systemctl start --no-block flahaintel-pipeline.service || true
 sleep 3
 curl -fsS --max-time 10 http://127.0.0.1:3003/health
 echo

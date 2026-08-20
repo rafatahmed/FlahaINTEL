@@ -1,0 +1,3 @@
+# FlahaINTEL — flahaintel may start the serial pipeline oneshot without waiting.
+# Install: cp to /etc/sudoers.d/flahaintel-pipeline-kick && chmod 440 && visudo -c
+flahaintel ALL=(root) NOPASSWD: /usr/bin/systemctl start --no-block flahaintel-pipeline.service

@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-20
+# Last modified: 2026-08-21
 #
 # Usage (root):
 #   export FLAHA_PUBLIC_HOST=intel.flaha.org
@@ -326,6 +326,12 @@ step_systemd() {
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-harvest.timer" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-backup.service" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-backup.timer" /etc/systemd/system/
+  if [[ -f "${CURRENT}/ops/sudoers/flahaintel-pipeline-kick" ]]; then
+    cp "${CURRENT}/ops/sudoers/flahaintel-pipeline-kick" /etc/sudoers.d/flahaintel-pipeline-kick
+    sed -i 's/\r$//' /etc/sudoers.d/flahaintel-pipeline-kick
+    chmod 440 /etc/sudoers.d/flahaintel-pipeline-kick
+    visudo -c >/dev/null
+  fi
   systemctl daemon-reload
   systemctl enable --now flahaintel-api.service
   systemctl enable --now flahaintel-pipeline.timer

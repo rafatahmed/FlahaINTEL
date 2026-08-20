@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 import { describe, expect, it } from "vitest";
 import { explainExtractorError, jobOutcomeSummary, jobStateLabel, providerLabel } from "./jobsOutcome";
@@ -46,5 +46,28 @@ describe("jobOutcomeSummary", () => {
   it("labels Tika as the document extractor", () => {
     expect(providerLabel("document.apache-tika")).toContain("Tika");
     expect(providerLabel("document.docling-slim")).toContain("retired");
+  });
+
+  it("does not say Queued or Current provider for a waiting website fetch", () => {
+    const summary = jobOutcomeSummary({
+      state: "READY",
+      requestedCapability: "STATIC_HTTP_ACQUISITION",
+      selectedProviderId: "acquisition.scrapy",
+      attempts: [],
+    });
+    expect(summary.title).toBe("Waiting to fetch the website");
+    expect(summary.body).toContain("one item at a time");
+    expect(summary.body).not.toMatch(/Current provider/i);
+    expect(jobStateLabel("READY")).toBe("Waiting to start");
+  });
+
+  it("says the document is extracting when Tika is running", () => {
+    const summary = jobOutcomeSummary({
+      state: "RUNNING",
+      requestedCapability: "DOCUMENT_TEXT_EXTRACTION",
+      selectedProviderId: "document.apache-tika",
+      attempts: [],
+    });
+    expect(summary.title).toBe("Now: extract the document");
   });
 });
