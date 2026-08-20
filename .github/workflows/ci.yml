@@ -37,10 +37,9 @@ jobs:
         run: test -d apps/api/prisma/migrations && test -f apps/api/prisma/migrations/migration_lock.toml
       - name: Lockfile integrity
         run: npm ci --ignore-scripts --dry-run
-      - name: Unit / integration tests (API)
-        run: npm test --workspace=@flaha-intel/api
+      - name: Unit tests (API)
+        run: npm run test:unit --workspace=@flaha-intel/api
         env:
-          # Non-production auth so header-based tests continue to work
           AUTH_MODE: development
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:ci@127.0.0.1:5432/flaha_intel

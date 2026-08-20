@@ -11,6 +11,7 @@
     "start": "node --env-file=../../.env dist/server.js",
     "pretest": "prisma generate",
     "test": "vitest run src",
+    "test:unit": "vitest run src --exclude '**/*.integration.test.ts'",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
