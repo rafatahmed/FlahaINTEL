@@ -10,7 +10,7 @@ and what lives only on the droplet (not in git).
 
 Created by: Rafat Al Khashan
 Created date: 2026-08-19
-Last modified: 2026-08-19
+Last modified: 2026-08-20
 -->
 
 # Small-host update, migrate, and live inventory
@@ -89,6 +89,8 @@ bash /opt/flahaintel/current/ops/scripts/linux/update-small-host.sh --runtimes
 ```
 
 Pins (from `ops/scripts/provision-runtimes.ps1` / Linux provisioner): Scrapy 2.17.0 · Playwright 1.61.1 · Chromium r1228 · Tika 3.3.1 · Java 21.
+
+tsx workers (`serial-pipeline.sh`, harvest, `flahaintel-worker@.service`) pass `--conditions=development` so workspace packages load TypeScript source (Tika-only catalogue). The API is `node dist/server.js` and uses package **dist**; `update-small-host.sh` rebuilds artifact-store, worker-supervisor, and ingestion-provider-core before restart.
 
 To drop leftover Docling disk (~5 GB) after code update:
 

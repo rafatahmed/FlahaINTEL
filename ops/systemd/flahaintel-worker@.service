@@ -10,7 +10,7 @@ Group=flahaintel
 WorkingDirectory=/opt/flahaintel/current/apps/api
 EnvironmentFile=/etc/flahaintel/production.env
 Environment=WORKER_ID=%i.%H
-ExecStart=/usr/bin/node --import tsx src/production/workers/cli.ts %i
+ExecStart=/usr/bin/node --conditions=development --import tsx src/production/workers/cli.ts %i
 Restart=on-failure
 RestartSec=10
 StartLimitBurst=10
