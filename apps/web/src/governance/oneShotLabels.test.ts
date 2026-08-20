@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import {
   artifactStoreLine,
   evidenceCompletenessHelp,
+  metadataGapHelp,
   showsInvalidLinkHelp,
 } from "./oneShotLabels";
 
@@ -34,6 +35,14 @@ describe("evidenceCompletenessHelp", () => {
   it("explains PARTIAL for one-shot Submit", () => {
     expect(evidenceCompletenessHelp("PARTIAL", true)).toContain("RSS promotion does not apply");
     expect(evidenceCompletenessHelp("PARTIAL", false)).toBeNull();
+  });
+});
+
+describe("metadataGapHelp", () => {
+  it("does not treat the operator or company name as the article author", () => {
+    expect(metadataGapHelp("MISSING_AUTHOR")).toContain("not you");
+    expect(metadataGapHelp("MISSING_AUTHOR")).toContain("Yara");
+    expect(metadataGapHelp("MISSING_DATE")).toContain("Harvest time");
   });
 });
 

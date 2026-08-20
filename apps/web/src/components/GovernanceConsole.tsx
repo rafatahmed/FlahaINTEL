@@ -40,9 +40,11 @@ import { BrandedState } from "./BrandedState";
 import {
   artifactStoreLine,
   evidenceCompletenessHelp,
+  formatInstant,
   headlineChips,
   isOneShotEyes,
   locatorLine,
+  metadataGapHelp,
   originLine,
   reviewerLine,
   reuseLabel,
@@ -357,9 +359,15 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                     Locator: {locatorLine(detail, preview)}
                   </Typography>
                   <Typography variant="body2">
-                    Published: {preview?.publicationDate || "not in extracted metadata"}
-                    {preview?.authors?.length ? ` · authors: ${preview.authors.join(", ")}` : ""}
-                    {preview?.publisher ? ` · publisher: ${preview.publisher}` : ""}
+                    Article publish date: {preview?.publicationDate || "not in page/PDF metadata"}
+                  </Typography>
+                  <Typography variant="body2">
+                    Harvested (Flaha fetch): {formatInstant(evidence?.lineage.harvestedAt)}
+                    {evidence?.lineage.submittedAt ? ` · submitted: ${formatInstant(evidence.lineage.submittedAt)}` : ""}
+                  </Typography>
+                  <Typography variant="body2">
+                    Journalist byline: {preview?.authors?.length ? preview.authors.join(", ") : "none in page metadata (not the operator)"}
+                    {preview?.publisher ? ` · publisher field: ${preview.publisher}` : ""}
                   </Typography>
                   <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: 12 }}>
                     acquisition={evidence?.lineage.acquisitionJobId ?? "—"} · extraction={evidence?.lineage.extractionJobId ?? "—"} · normalization={evidence?.lineage.normalizationJobId}
@@ -388,10 +396,17 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                       “Invalid link skipped” means an empty or unsafe href on the page was dropped (for example Yara’s leave-site dialog). It is not a failed extract.
                     </Typography>
                   ) : null}
-                  <Typography variant="body2">Quality: {asStringList(evidence?.qualityIndicators).join(", ") || "none"}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                    MISSING_DATE / MISSING_AUTHOR mean no article date or byline was selected from metadata. Visible page text is not inferred. Corporate releases often have no author field.
+                  <Typography variant="body2">
+                    Page metadata: {asStringList(evidence?.qualityIndicators).join(", ") || "none"}
                   </Typography>
+                  {asStringList(evidence?.qualityIndicators).map((code) => {
+                    const help = metadataGapHelp(code);
+                    return help ? (
+                      <Typography key={code} variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                        {code}: {help}
+                      </Typography>
+                    ) : null;
+                  })}
                   <Typography variant="body2">
                     Policy: {evidence?.sourcePolicy
                       ? `${evidence.sourcePolicy.sourceStatus} / ${evidence.sourcePolicy.trustTier} v${evidence.sourcePolicy.version}`

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 
 import type {
@@ -410,12 +410,23 @@ export class ContentGovernanceService {
       artifactMeta = { artifactId: candidate.normalizedArtifactId, state: "UNAVAILABLE", checksum: null, finalKey: null, byteLength: null };
     }
 
+    let harvestedAt: string | null = null;
+    if (candidate.sourceAcquisitionJobId) {
+      const acquisition = await this.db.ingestionJob.findUnique({
+        where: { id: candidate.sourceAcquisitionJobId },
+        select: { completedAt: true, createdAt: true },
+      });
+      harvestedAt = (acquisition?.completedAt ?? acquisition?.createdAt)?.toISOString() ?? null;
+    }
+
     const lineage = {
       acquisitionJobId: candidate.sourceAcquisitionJobId,
       extractionJobId: candidate.sourceExtractionJobId,
       normalizationJobId: candidate.sourceNormalizationJobId,
       normalizedArtifactId: candidate.normalizedArtifactId,
       normalizedContentHash: candidate.normalizedContentHash,
+      harvestedAt,
+      submittedAt: candidate.createdAt.toISOString(),
     };
 
     return {

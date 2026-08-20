@@ -285,6 +285,8 @@ export interface GovernanceEvidence {
     normalizationJobId: string;
     normalizedArtifactId: string;
     normalizedContentHash: string;
+    harvestedAt?: string | null;
+    submittedAt?: string | null;
   };
   artifact: {
     artifactId: string;

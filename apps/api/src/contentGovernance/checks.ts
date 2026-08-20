@@ -108,11 +108,19 @@ export function runDeterministicChecks(input: CheckInput): EvaluationSnapshot {
     if (!qualityIndicators.includes("MISSING_TITLE")) qualityIndicators.push("MISSING_TITLE");
   }
   if (!input.content.publicationDate) {
-    checks.push({ code: "MISSING_DATE", severity: "WARNING", message: "Publication date is missing." });
+    checks.push({
+      code: "MISSING_DATE",
+      severity: "WARNING",
+      message: "No article publication date in page/PDF metadata. Harvest/submit time is recorded separately.",
+    });
     if (!qualityIndicators.includes("MISSING_DATE")) qualityIndicators.push("MISSING_DATE");
   }
   if (!input.content.authors?.length) {
-    checks.push({ code: "MISSING_AUTHOR", severity: "WARNING", message: "Author metadata is missing." });
+    checks.push({
+      code: "MISSING_AUTHOR",
+      severity: "WARNING",
+      message: "No journalist byline in page/PDF metadata. The operator who submitted this is not the article author.",
+    });
     if (!qualityIndicators.includes("MISSING_AUTHOR")) qualityIndicators.push("MISSING_AUTHOR");
   }
   if (qualityIndicators.includes("TRUNCATED_OUTPUT") || warnings.some(w => /truncat/i.test(w))) {
