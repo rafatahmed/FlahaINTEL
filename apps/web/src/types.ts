@@ -322,6 +322,7 @@ export interface GovernancePreview {
   canonicalSourceLocator?: string | null;
   finalAcquiredLocator?: string | null;
   contentHash: string;
+  previewUnavailable?: boolean;
 }
 
 export interface GovernanceAuthContext {

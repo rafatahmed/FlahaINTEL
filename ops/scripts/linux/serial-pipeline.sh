@@ -22,21 +22,34 @@ started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 node_tsx() {
   /usr/bin/node --conditions=development --import tsx "$@"
 }
+family_exits=""
+record_exit() {
+  local name="$1" code="$2"
+  if [[ -n "${family_exits}" ]]; then family_exits+=","; fi
+  family_exits+="\"${name}\":${code}"
+}
+run_step() {
+  local name="$1"; shift
+  echo "[pipeline] start ${name} ${started}"
+  if node_tsx "$@"; then
+    record_exit "${name}" 0
+  else
+    local code=$?
+    record_exit "${name}" "${code}"
+    echo "[pipeline] ${name} exited ${code}"
+  fi
+  echo "[pipeline] end ${name} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
 # Advance after each family so one timer tick can finish acquire → extract → normalize → governance.
 families=(acquisition extraction normalization)
 for family in "${families[@]}"; do
-  echo "[pipeline] start ${family} ${started}"
-  node_tsx src/production/workers/cli.ts "${family}" || echo "[pipeline] ${family} exited $?"
-  echo "[pipeline] end ${family} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  echo "[pipeline] start submission-advance after ${family} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  node_tsx src/production/workers/cli.ts submission-advance || echo "[pipeline] submission-advance exited $?"
+  run_step "${family}" src/production/workers/cli.ts "${family}"
+  run_step "submission-advance-after-${family}" src/production/workers/cli.ts submission-advance
 done
-echo "[pipeline] start stale-recovery ${started}"
-node_tsx src/production/workers/cli.ts stale-recovery || echo "[pipeline] stale-recovery exited $?"
-echo "[pipeline] end stale-recovery $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+run_step stale-recovery src/production/workers/cli.ts stale-recovery
 finished="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 umask 022
 cat > "${STATE_DIR}/pipeline-heartbeat.json" <<EOF
-{"startedAt":"${started}","finishedAt":"${finished}","mode":"serial"}
+{"startedAt":"${started}","finishedAt":"${finished}","mode":"serial","familyExits":{${family_exits}}}
 EOF
 chown flahaintel:flahaintel "${STATE_DIR}/pipeline-heartbeat.json" 2>/dev/null || true

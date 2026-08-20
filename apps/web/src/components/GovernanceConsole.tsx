@@ -338,7 +338,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                 <Box>
                   <Typography variant="subtitle2">Normalized preview</Typography>
                   <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", maxHeight: 220, overflow: "auto", bgcolor: "action.hover", p: 1.5, borderRadius: 1 }}>
-                    {preview?.plainTextPreview || "Preview unavailable"}
+                    {preview?.plainTextPreview || (preview?.previewUnavailable ? "Preview unavailable. The normalized artifact could not be loaded." : "Preview unavailable")}
                     {preview?.truncated ? "\n…(truncated)" : ""}
                   </Typography>
                 </Box>

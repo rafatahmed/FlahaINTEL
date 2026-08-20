@@ -8,10 +8,10 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 import { describe, expect, it } from "vitest";
-import { rollupOverall, scoreWorkerLoops, type ComponentHealth } from "./readinessRollup.js";
+import { rollupOverall, scoreSerialPipeline, scoreWorkerLoops, type ComponentHealth } from "./readinessRollup.js";
 
 function row(component: string, state: ComponentHealth["state"]): ComponentHealth {
   return { component, state, detail: "" };
@@ -80,5 +80,19 @@ describe("scoreWorkerLoops", () => {
     expect(scoreWorkerLoops(["extraction"], false).detail).toContain("normalization");
     expect(scoreWorkerLoops(["extraction", "normalization"], true).state).toBe("DEGRADED");
     expect(scoreWorkerLoops(["extraction", "normalization"], true).detail).toContain("acquisition");
+  });
+});
+
+describe("scoreSerialPipeline", () => {
+  it("is READY when the last tick is fresh and all families exited 0", () => {
+    const scored = scoreSerialPipeline({ familyExits: { extraction: 0, normalization: 0 } }, 60_000, 2_700_000);
+    expect(scored.state).toBe("READY");
+    expect(scored.detail).toContain("last tick");
+  });
+
+  it("degrades when a family failed even if the tick is recent", () => {
+    const scored = scoreSerialPipeline({ familyExits: { extraction: 1 } }, 60_000, 2_700_000);
+    expect(scored.state).toBe("DEGRADED");
+    expect(scored.detail).toContain("extraction");
   });
 });
