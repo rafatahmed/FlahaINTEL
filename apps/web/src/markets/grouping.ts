@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-07-31
+ * Last modified: 2026-08-20
  */
 
 export type PriceRowLike = {
@@ -27,6 +27,9 @@ export type PriceRowLike = {
   packDescription?: string | null;
   unitPrice?: string | number | null;
   priceMode?: string | number | null;
+  priceHigh?: string | number | null;
+  priceLow?: string | number | null;
+  quantityTons?: string | number | null;
   currency: string;
   reviewState: string;
 };

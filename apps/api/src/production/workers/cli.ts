@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 
 import path from "node:path";
@@ -25,6 +25,7 @@ import { IngestionJobService } from "../../ingestionJobs/service.js";
 import { SubmissionOrchestrator } from "../../product/submission/orchestrator.js";
 import { assertSafeToStart, loadProductionConfig } from "../config.js";
 import { runWorkerLoop, type WorkerFamily } from "../workerLoop.js";
+import { resolvePython, resolveScrapyPython } from "../runtimeBins.js";
 
 const family = (process.argv[2] || "") as WorkerFamily;
 const allowed: WorkerFamily[] = ["acquisition", "extraction", "normalization", "submission-advance", "stale-recovery"];
@@ -47,13 +48,8 @@ async function main(): Promise<void> {
   const actor = { type: "SYSTEM" as const, id: workerId, correlationId: `worker.${family}.${Date.now()}` };
   const schemas = path.join(repositoryRoot, "packages/ingestion-contracts/schemas/v1");
 
-  function resolvePython(): string {
-    return process.env.PYTHON_BIN || process.env.SCRAPY_PYTHON || "python";
-  }
-
   async function acquisitionTick() {
-    const scrapyPython =
-      process.env.SCRAPY_PYTHON || path.join(repositoryRoot, ".benchmark-runtime/crawler-scrapy-2.17.0/Scripts/python.exe");
+    const scrapyPython = resolveScrapyPython(repositoryRoot);
     const scrapy = new ScrapyAcquisitionAdapter({
       executable: scrapyPython,
       script: path.join(repositoryRoot, "apps/ingest-worker/src/acquisition_scrapy_worker.py"),
@@ -82,7 +78,7 @@ async function main(): Promise<void> {
 
   async function extractionTick() {
     const script = path.join(repositoryRoot, "apps/ingest-worker/src/extraction_worker.py");
-    const python = resolvePython();
+    const python = resolvePython(repositoryRoot);
     const specs: [string, string, string][] = [
       ["html.stdlib-htmlparser", "3.14", python],
       ["document.apache-tika", "3.3.1", python],

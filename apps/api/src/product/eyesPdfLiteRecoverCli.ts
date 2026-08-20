@@ -299,9 +299,6 @@ for (const job of ready) {
           id: "eyes-pdf-lite-norm",
           correlationId: sub.correlationId,
         });
-        if (!r?.worked && r?.outcome !== "CLAIMED" && !(r as { outcome?: string })?.outcome) {
-          // continue even if shape differs
-        }
         if (!r) break;
         advanced = await orchestrator.advanceUntilBlocked(actorCtx, sub.id);
       }

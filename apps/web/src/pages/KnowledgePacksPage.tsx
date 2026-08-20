@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-30
- * Last modified: 2026-08-01
+ * Last modified: 2026-08-20
  *
  * Fix: Research tab must not call packsForLane("research") (undefined lane → white page).
  * Operate: New pack + append extract (real content) — no seed-samples path.
@@ -1190,7 +1190,7 @@ export function KnowledgePacksPage(props?: {
                       </List>
                     </Box>
                   )}
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
                     Metadata from api.crossref.org — not full-text, not auto product write. Prefer real DOIs;
                     set <code>FLAHA_CROSSREF_MAILTO</code> for polite pool. Domain filter below applied on
                     register when set.
@@ -1480,7 +1480,7 @@ export function KnowledgePacksPage(props?: {
                             {litClaims.map((c) => {
                               const pack = c.pack as Record<string, unknown> | undefined;
                               return (
-                                <Typography key={String(c.id)} variant="caption" display="block">
+                                <Typography key={String(c.id)} variant="caption" sx={{ display: "block" }}>
                                   {String(c.extractKind)} · {String(c.title).slice(0, 60)} · pack{" "}
                                   {String(pack?.code || "?")} ({String(pack?.reviewState || "?")})
                                 </Typography>
@@ -1599,7 +1599,7 @@ export function KnowledgePacksPage(props?: {
                                     {lit ? String(lit.title) : String(m.memberKind)}
                                   </Typography>
                                   {lit && (
-                                    <Typography variant="caption" color="text.secondary" display="block">
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                                       {String(lit.year ?? "n.d.")} · {String(lit.reviewState)} ·{" "}
                                       {String(lit.code)}
                                     </Typography>
@@ -1630,7 +1630,7 @@ export function KnowledgePacksPage(props?: {
                           minRows={6}
                           fullWidth
                           value={colBiblio}
-                          InputProps={{ readOnly: true }}
+                          slotProps={{ htmlInput: { readOnly: true } }}
                           sx={{ fontFamily: "Georgia, serif", "& textarea": { fontSize: 13 } }}
                         />
                         <Button

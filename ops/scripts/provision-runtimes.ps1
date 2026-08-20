@@ -61,7 +61,7 @@ $paths = [ordered]@{
     "C:\Program Files\PostgreSQL\17\bin",
     "C:\Program Files\PostgreSQL\16\bin"
   )
-  ARTIFACT_STORE_ROOT = if ($env:ARTIFACT_STORE_ROOT) { $env:ARTIFACT_STORE_ROOT } else { Join-Path $RepoRoot ".flaha-artifacts-prod" }
+  ARTIFACT_STORE_ROOT = if ($env:ARTIFACT_STORE_ROOT) { $env:ARTIFACT_STORE_ROOT } elseif ($env:FLAHA_ARTIFACT_ROOT) { $env:FLAHA_ARTIFACT_ROOT } else { Join-Path $RepoRoot ".flaha-artifacts-local" }
 }
 
 # Expand chromium wildcard if needed

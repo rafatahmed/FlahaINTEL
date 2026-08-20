@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-07-31
-# Last modified: 2026-08-19
+# Last modified: 2026-08-20
 
 param(
   [ValidateSet("Dev", "Prod")]
@@ -187,6 +187,14 @@ $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
 $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
 if (-not $nodeCmd -or -not $npmCmd) {
   throw "Node.js and npm are required on PATH (Node >= 20)."
+}
+if ($runApi) {
+  if (-not $env:TIKA_JAR -or -not (Test-Path -LiteralPath $env:TIKA_JAR)) {
+    Write-Warning "TIKA_JAR is missing. PDF extract needs npm run ops:provision-verify, then JAVA_BIN/TIKA_JAR in .env."
+  }
+  if (-not $env:PLAYWRIGHT_CHROMIUM_PATH -or -not (Test-Path -LiteralPath $env:PLAYWRIGHT_CHROMIUM_PATH)) {
+    Write-Warning "Chromium is not provisioned. Website Submit needs: powershell -File ops/scripts/provision-runtimes.ps1 -InstallPlaywrightChromium"
+  }
 }
 
 if ($Mode -eq "Prod") {

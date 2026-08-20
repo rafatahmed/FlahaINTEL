@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=@flaha-intel/api & npm run dev --workspace=@flaha-intel/web",
     "build": "npm run build --workspaces",
+    "build:packages": "npm run build --workspace=@flaha-intel/artifact-store && npm run build --workspace=@flaha-intel/worker-supervisor && npm run build --workspace=@flaha-intel/ingestion-provider-core",
     "test": "npm run test --workspace=@flaha-intel/api",
     "test:web": "npm run test --workspace=@flaha-intel/web",
     "prisma:generate": "npm run prisma:generate --workspace=@flaha-intel/api",

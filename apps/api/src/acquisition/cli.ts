@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-20
  */
 import path from "node:path";
 import { FilesystemArtifactRepository, FilesystemArtifactStore } from "@flaha-intel/artifact-store";
@@ -18,16 +18,17 @@ import { IngestionJobService } from "../ingestionJobs/service.js";
 import { PlaywrightAcquisitionAdapter, ScrapyAcquisitionAdapter } from "./adapters.js";
 import type { AcquisitionAdapter } from "./contracts.js";
 import { AcquisitionWorkflowService } from "./service.js";
+import { resolveScrapyPython } from "../production/runtimeBins.js";
 
 const pairs: [string, string][] = [];
 for (let index = 3; index < process.argv.length; index += 1) if (process.argv[index].startsWith("--")) pairs.push([process.argv[index].slice(2), process.argv[index + 1] ?? ""]);
 const args = Object.fromEntries(pairs), command = process.argv[2];
 const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
-const root = path.resolve(process.env.FLAHA_ARTIFACT_ROOT ?? path.join(repositoryRoot, ".flaha-artifacts"));
+const root = path.resolve(process.env.FLAHA_ARTIFACT_ROOT ?? process.env.ARTIFACT_STORE_ROOT ?? path.join(repositoryRoot, ".flaha-artifacts-local"));
 const repository = new FilesystemArtifactRepository(root); await repository.initialize();
 const store = new FilesystemArtifactStore(root, repository); await store.initialize();
 const schemas = path.join(repositoryRoot, "packages/ingestion-contracts/schemas/v1");
-const scrapy = new ScrapyAcquisitionAdapter({ executable: path.join(repositoryRoot, ".benchmark-runtime/crawler-scrapy-2.17.0/Scripts/python.exe"), script: path.join(repositoryRoot, "apps/ingest-worker/src/acquisition_scrapy_worker.py"), runtime: "PYTHON", schemas });
+const scrapy = new ScrapyAcquisitionAdapter({ executable: resolveScrapyPython(repositoryRoot), script: path.join(repositoryRoot, "apps/ingest-worker/src/acquisition_scrapy_worker.py"), runtime: "PYTHON", schemas });
 const playwright = new PlaywrightAcquisitionAdapter({ executable: process.execPath, script: path.join(repositoryRoot, "apps/ingest-worker/src/acquisition_playwright_worker.mjs"), runtime: "NODE", schemas });
 const adapters = new Map<string, AcquisitionAdapter>([[scrapy.providerId, scrapy], [playwright.providerId, playwright]]);
 const workflow = new AcquisitionWorkflowService(prisma, store, adapters);
