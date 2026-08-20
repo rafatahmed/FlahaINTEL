@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 
 import { readFile } from "node:fs/promises";
@@ -116,7 +116,13 @@ export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): 
     return { host, pathWithQuery: `${url.pathname || "/"}${url.search || ""}` };
   }
   if (!policy.allowedHosts.includes(host)) {
-    throw new ProductError("CRAWL_HOST_NOT_ALLOWED", "Host is not on the controlled crawl allowlist.", 403, "INPUT");
+    const hosts = harvestHostNames(policy);
+    throw new ProductError(
+      "CRAWL_HOST_NOT_ALLOWED",
+      `This page is not on the Eyes harvest list (${host}). FlahaINTEL fetches one pasted URL from listed hosts only — it does not crawl the open web, and this is not RSS. Harvest hosts: ${hosts.join(", ") || "(none configured)"}.`,
+      403,
+      "INPUT",
+    );
   }
   const pathWithQuery = `${url.pathname || "/"}${url.search || ""}`;
   const pathOnly = url.pathname || "/";
@@ -127,7 +133,12 @@ export function assertUrlAllowedByPolicy(urlText: string, policy: CrawlPolicy): 
     return pathWithQuery === prefix || pathWithQuery.startsWith(prefix) || pathOnly === prefix || pathOnly.startsWith(prefix);
   });
   if (!allowed) {
-    throw new ProductError("CRAWL_PATH_NOT_ALLOWED", "Path is not on the controlled crawl allowlist.", 403, "INPUT");
+    throw new ProductError(
+      "CRAWL_PATH_NOT_ALLOWED",
+      `This path is not harvestable on ${host}. Allowed path prefixes: ${prefixes.join(", ")}. Paste a URL under one of those paths. This is one page fetch, not RSS.`,
+      403,
+      "INPUT",
+    );
   }
   return { host, pathWithQuery };
 }
@@ -154,6 +165,18 @@ export function crawlLimitsFromPolicy(policy: CrawlPolicy): {
     wallTimeoutMs: 60_000,
     userAgent: policy.userAgent,
   };
+}
+
+export function harvestHostNames(policy: CrawlPolicy): string[] {
+  return policy.allowedHosts.filter((host) => !host.includes("example."));
+}
+
+/** Operator-facing harvest list (fixture hosts omitted). */
+export function harvestList(policy: CrawlPolicy): Array<{ host: string; pathPrefixes: string[] }> {
+  return harvestHostNames(policy).map((host) => ({
+    host,
+    pathPrefixes: policy.allowedPathPrefixes[host] ?? ["/"],
+  }));
 }
 
 export function resetCrawlPolicyCache(): void {

@@ -298,6 +298,11 @@ export const api = {
       principle: string;
       classes: Array<{ code: string; label: string; lane: string; promote: string; acceptHint: string }>;
       flow: string[];
+      harvest?: {
+        kind: string;
+        notRss: boolean;
+        hosts: Array<{ host: string; pathPrefixes: string[] }>;
+      };
       governance: Record<string, unknown>;
     }>("/api/intake/matrix"),
   intakeList: (filters: { status?: string; intakeClass?: string; limit?: number } = {}) =>

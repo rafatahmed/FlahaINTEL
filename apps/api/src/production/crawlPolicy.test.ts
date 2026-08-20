@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 
 import { readFileSync } from "node:fs";
@@ -41,11 +41,11 @@ describe("crawl policy", () => {
   });
 
   it("rejects off-allowlist host", () => {
-    expect(() => assertUrlAllowedByPolicy("https://evil.example/x", policy)).toThrow(/not on the controlled crawl allowlist/i);
+    expect(() => assertUrlAllowedByPolicy("https://evil.example/x", policy)).toThrow(/not on the Eyes harvest list/i);
   });
 
   it("rejects disallowed path prefix", () => {
-    expect(() => assertUrlAllowedByPolicy("https://example.com/private", policy)).toThrow(/Path is not on the controlled crawl allowlist/i);
+    expect(() => assertUrlAllowedByPolicy("https://example.com/private", policy)).toThrow(/not harvestable/i);
   });
 
   it("allows the Yara corporate-releases prefix from the shipped policy", () => {
