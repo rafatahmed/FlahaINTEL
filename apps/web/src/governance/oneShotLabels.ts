@@ -110,6 +110,29 @@ export function evidenceCompletenessHelp(
   return null;
 }
 
+/** Page metadata gaps — not the operator, not harvest time. */
+export function metadataGapHelp(code: string): string | null {
+  switch (code) {
+    case "MISSING_AUTHOR":
+      return "No journalist byline in the page/PDF metadata. That is not you (the operator) and not the company name (for example Yara) unless the page put a person in an author field.";
+    case "MISSING_DATE":
+      return "No article publication date in page/PDF metadata. Harvest time (when Flaha fetched or you uploaded it) is a different clock and is shown under Source and lineage.";
+    case "MISSING_TITLE":
+      return "No title field in metadata. Visible headings in the body are not copied into the title field.";
+    case "STRUCTURE_UNAVAILABLE":
+      return "No table/heading structure from the extractor (Tika is text-only; HTML may still have weak structure).";
+    default:
+      return null;
+  }
+}
+
+export function formatInstant(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const parsed = Date.parse(iso);
+  if (Number.isNaN(parsed)) return iso;
+  return new Date(parsed).toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
+}
+
 export function artifactStoreLine(args: {
   contentHash?: string | null;
   artifactState?: string | null;
