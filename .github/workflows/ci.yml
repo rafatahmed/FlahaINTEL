@@ -31,6 +31,8 @@ jobs:
         run: npm run build --workspace=@flaha-intel/web
       - name: Prisma validate
         run: npm run prisma:validate --workspace=@flaha-intel/api
+        env:
+          DATABASE_URL: postgresql://postgres:ci@127.0.0.1:5432/flaha_intel
       - name: Migration folders present
         run: test -d apps/api/prisma/migrations && test -f apps/api/prisma/migrations/migration_lock.toml
       - name: Lockfile integrity
@@ -41,6 +43,7 @@ jobs:
           # Non-production auth so header-based tests continue to work
           AUTH_MODE: development
           NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:ci@127.0.0.1:5432/flaha_intel
       - name: Web unit tests
         run: npm run test:web
       - name: Secret scan (basic)
