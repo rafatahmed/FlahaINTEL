@@ -50,11 +50,15 @@ function persistLoginHints(next?: Pick<AuthState, "email" | "tenantCode" | "user
   const tenant = next.tenantCode || next.tenantId;
   if (account) {
     localStorage.setItem(HINT_ACCOUNT_KEY, account);
-    localStorage.setItem(HINT_USER_KEY, account);
+  }
+  if (next.userId) {
+    localStorage.setItem(HINT_USER_KEY, next.userId);
   }
   if (tenant) {
     localStorage.setItem(HINT_TENANT_KEY, tenant);
-    localStorage.setItem(HINT_TENANT_ID_KEY, tenant);
+  }
+  if (next.tenantId) {
+    localStorage.setItem(HINT_TENANT_ID_KEY, next.tenantId);
   }
 }
 

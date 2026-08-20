@@ -43,6 +43,7 @@ import {
   originLine,
   reviewerLine,
   reuseLabel,
+  shortLabel,
 } from "../governance/oneShotLabels";
 
 const STATES: GovernanceReviewState[] = [
@@ -80,10 +81,15 @@ function isAdHocDocument(candidate: GovernanceCandidate): boolean {
   return isOneShotEyes(candidate);
 }
 
+function storedUuid(key: string): string {
+  const value = localStorage.getItem(key) ?? "";
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : "";
+}
+
 export function GovernanceConsole(props: { initialCandidateId?: string | null; hideAuthForm?: boolean } = {}) {
   const { auth } = useAuth();
-  const [userId, setUserId] = useState(auth?.userId ?? localStorage.getItem("flaha.governance.userId") ?? "");
-  const [tenantId, setTenantId] = useState(auth?.tenantId ?? localStorage.getItem("flaha.governance.tenantId") ?? "");
+  const [userId, setUserId] = useState(auth?.userId ?? storedUuid("flaha.governance.userId"));
+  const [tenantId, setTenantId] = useState(auth?.tenantId ?? storedUuid("flaha.governance.tenantId"));
   const [stateFilter, setStateFilter] = useState<string>("");
   const [candidates, setCandidates] = useState<GovernanceCandidate[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(props.initialCandidateId ?? null);
@@ -93,7 +99,8 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
   const [decisions, setDecisions] = useState<GovernanceDecision[]>([]);
   const [reasonCode, setReasonCode] = useState("REVIEWER_DECISION");
   const [note, setNote] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -124,7 +131,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
 
   const loadQueue = useCallback(async () => {
     if (!authed) return;
-    setLoading(true);
+    setQueueLoading(true);
     try {
       const page = await api.governanceCandidates({
         reviewState: stateFilter || undefined,
@@ -135,30 +142,31 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Failed to load candidates.");
     } finally {
-      setLoading(false);
+      setQueueLoading(false);
     }
   }, [authed, stateFilter]);
 
   useEffect(() => { void loadQueue(); }, [loadQueue]);
 
   const loadDetail = useCallback(async (id: string) => {
-    setLoading(true);
+    setDetailLoading(true);
+    setPreview(null);
     try {
-      const [candidate, ev, prev, hist] = await Promise.all([
-        api.governanceCandidate(id),
-        api.governanceEvidence(id),
-        api.governancePreview(id).catch(() => null),
-        api.governanceDecisions(id),
-      ]);
+      const candidate = await api.governanceCandidate(id);
       setDetail(candidate);
-      setEvidence(ev);
-      setPreview(prev);
-      setDecisions(hist.items);
       setError("");
+      const [ev, hist] = await Promise.all([
+        api.governanceEvidence(id).catch(() => null),
+        api.governanceDecisions(id).catch(() => ({ items: [] as GovernanceDecision[] })),
+      ]);
+      if (ev) setEvidence(ev);
+      setDecisions(hist.items);
+      const prev = await api.governancePreview(id).catch(() => null);
+      setPreview(prev);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Failed to load candidate.");
     } finally {
-      setLoading(false);
+      setDetailLoading(false);
     }
   }, []);
 
@@ -178,7 +186,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
 
   async function submitAction(action: typeof ACTIONS[number]["key"]) {
     if (!detail) return;
-    setLoading(true);
+    setDetailLoading(true);
     setMessage("");
     try {
       const result = await api.governanceDecision(detail.id, action, {
@@ -197,7 +205,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Decision failed.");
     } finally {
-      setLoading(false);
+      setDetailLoading(false);
     }
   }
 
@@ -238,7 +246,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
               {STATES.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
             </Select>
           </FormControl>
-          <Button variant="outlined" onClick={() => void loadQueue()} disabled={loading}>Refresh</Button>
+          <Button variant="outlined" onClick={() => void loadQueue()} disabled={queueLoading}>Refresh</Button>
         </Box>
       </Box>
 
@@ -249,7 +257,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
         <Card sx={{ flex: 1, minWidth: 0 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>Candidate queue</Typography>
-            {loading && candidates.length === 0 ? <BrandedState label="Loading candidates…" /> : null}
+            {queueLoading && candidates.length === 0 ? <BrandedState label="Loading candidates…" /> : null}
             <Stack spacing={1}>
               {candidates.map((candidate) => (
                 <Box
@@ -275,7 +283,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                       />
                     ))}
                   </Box>
-                  <Typography sx={{ mt: 1, fontWeight: 600 }}>{candidate.documentTitle || candidate.titlePreview || "Untitled"}</Typography>
+                  <Typography sx={{ mt: 1, fontWeight: 600 }}>{shortLabel(candidate)}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     {originLine(candidate)} · {candidate.contentType} · {candidate.language} · age {ageLabel(candidate.createdAt)}
                   </Typography>
@@ -284,16 +292,18 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                   </Typography>
                 </Box>
               ))}
-              {!loading && candidates.length === 0 && <Typography color="text.secondary">No candidates in queue.</Typography>}
+              {!queueLoading && candidates.length === 0 && <Typography color="text.secondary">No candidates in queue.</Typography>}
             </Stack>
           </CardContent>
         </Card>
 
         <Card sx={{ flex: 1.4, minWidth: 0 }}>
           <CardContent>
-            {!detail ? <Typography color="text.secondary">Select a candidate to inspect evidence and decide.</Typography> : (
+            {detailLoading && !detail ? <BrandedState label="Opening review…" loading /> : null}
+            {!detail && !detailLoading ? <Typography color="text.secondary">Select a candidate to inspect evidence and decide.</Typography> : null}
+            {detail ? (
               <Stack spacing={2}>
-                <Typography variant="h6">{detail.documentTitle || detail.titlePreview || detail.id}</Typography>
+                <Typography variant="h6">{shortLabel(detail)}</Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                   <Chip label={detail.reviewState} color="primary" />
                   <Chip label={reuseLabel(detail)} />
@@ -347,7 +357,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                     acquisition={evidence?.lineage.acquisitionJobId ?? "—"} · extraction={evidence?.lineage.extractionJobId ?? "—"} · normalization={evidence?.lineage.normalizationJobId}
                   </Typography>
                   <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: 12 }}>
-                    hash={detail.normalizedContentHash.slice(0, 16)}… · artifact state={evidence?.artifact?.state ?? "?"}
+                    hash={(detail.normalizedContentHash || "").slice(0, 16)}… · artifact state={evidence?.artifact?.state ?? "?"}
                   </Typography>
                 </Box>
 
@@ -399,7 +409,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                     />
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                       {availableActions.map((action) => (
-                        <Button key={action.key} variant="contained" size="small" disabled={loading} onClick={() => void submitAction(action.key)}>
+                        <Button key={action.key} variant="contained" size="small" disabled={detailLoading} onClick={() => void submitAction(action.key)}>
                           {action.label}
                         </Button>
                       ))}
@@ -426,7 +436,7 @@ export function GovernanceConsole(props: { initialCandidateId?: string | null; h
                   </Stack>
                 </Box>
               </Stack>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </Box>

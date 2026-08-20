@@ -197,6 +197,7 @@ npm run ops:smoke
 | Command | Purpose |
 |---------|---------|
 | `npm test` | API tests |
+| `npm run test:web` | Web unit tests (Jobs outcome copy) |
 | `npm run build` | Build workspaces |
 | `npm run prisma:generate` | Prisma client |
 | `npm run governance:seed` | Seed taxonomy + org types |

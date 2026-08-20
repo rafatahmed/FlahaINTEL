@@ -10,14 +10,16 @@
  * Created date: 2026-07-16
  * Last modified: 2026-08-19
  */
-import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { BrandedState } from "../components/BrandedState";
+import { attemptError, explainExtractorError, jobOutcomeSummary, jobStateLabel, providerLabel, type JobRecord } from "./jobsOutcome";
 
 export function JobsPage() {
   const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
   const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
+  const [selectedId, setSelectedId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -25,13 +27,16 @@ export function JobsPage() {
     try {
       const page = await api.jobs({ limit: 40 });
       setItems(page.items as Array<Record<string, unknown>>);
+      if (selectedId) {
+        setSelected(await api.job(selectedId));
+      }
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load jobs.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedId]);
 
   useEffect(() => {
     void load();
@@ -41,6 +46,7 @@ export function JobsPage() {
 
   async function openJob(id: string) {
     try {
+      setSelectedId(id);
       setSelected(await api.job(id));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load job.");
@@ -63,23 +69,13 @@ export function JobsPage() {
         <Button onClick={() => void load()}>Refresh</Button>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
-      {items.some((j) => String(j.state) === "READY") && (
+      {items.some((j) => ["READY", "RETRY_WAIT"].includes(String(j.state))) && (
         <Alert severity="warning">
-          {import.meta.env.PROD ? (
-            <>
-              One or more jobs are <strong>READY</strong> and waiting for the serial pipeline
-              (every 15 minutes on this host, or <code>systemctl start flahaintel-pipeline.service</code>).
-              Do not start long-lived npm workers here. Content / Governance fill after acquire → extract → normalize.
-            </>
-          ) : (
-            <>
-              One or more jobs are <strong>READY</strong> but not running. Start workers, e.g.{" "}
-              <code>npm run worker:extraction --workspace=@flaha-intel/api</code> and{" "}
-              <code>npm run worker:normalization --workspace=@flaha-intel/api</code>, or{" "}
-              <code>npm run ops:pipeline-once</code>. Without workers, Content/Governance stay empty even if Submit
-              shows PROMOTED.
-            </>
-          )}
+          {items.some((j) => String(j.state) === "RETRY_WAIT")
+            ? "A job is waiting to retry the next extractor. The serial pipeline picks it up on the next tick."
+            : import.meta.env.PROD
+              ? "Queued jobs wait for the serial pipeline. Do not start long-lived npm workers on this host."
+              : "Queued jobs need workers (npm run ops:pipeline-once) before Content/Governance fill."}
         </Alert>
       )}
       <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 2 }}>
@@ -94,10 +90,10 @@ export function JobsPage() {
             {items.map((job) => (
               <Box
                 key={String(job.id)}
-                sx={{ display: "flex", gap: 1, py: 1, cursor: "pointer", borderBottom: 1, borderColor: "divider" }}
+                sx={{ display: "flex", gap: 1, py: 1, cursor: "pointer", borderBottom: 1, borderColor: "divider", bgcolor: selectedId === String(job.id) ? "action.selected" : undefined }}
                 onClick={() => void openJob(String(job.id))}
               >
-                <Chip size="small" label={String(job.state)} />
+                <Chip size="small" color={String(job.state) === "DEAD_LETTER" || String(job.state) === "FAILED" ? "error" : "default"} label={jobStateLabel(String(job.state))} />
                 <Typography variant="body2" sx={{ flex: 1 }}>{String(job.requestedCapability)}</Typography>
                 <Typography variant="caption">{String(job.jobType)}</Typography>
               </Box>
@@ -107,24 +103,86 @@ export function JobsPage() {
         <Card sx={{ flex: 1.2 }}>
           <CardContent>
             {!selected ? <Typography color="text.secondary">Select a job.</Typography> : (
-              <Stack spacing={1}>
+              <Stack spacing={1.5}>
                 <Typography variant="h6">{String(selected.requestedCapability)}</Typography>
-                <Chip label={String(selected.state)} />
-                <Typography variant="body2">Provider: {String(selected.selectedProviderId || "—")}</Typography>
-                <Typography variant="body2">Attempts: {String(selected.attemptCount)} / {String(selected.maxAttempts)}</Typography>
-                <Typography variant="body2">Media: {String(selected.mediaType)}</Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip color={String(selected.state) === "DEAD_LETTER" || String(selected.state) === "FAILED" ? "error" : "default"} label={jobStateLabel(String(selected.state))} />
+                  <Chip size="small" variant="outlined" label={`${String(selected.attemptCount)} / ${String(selected.maxAttempts)} attempts`} />
+                  <Chip size="small" variant="outlined" label={String(selected.mediaType || "—")} />
+                </Stack>
+                {(() => {
+                  const summary = jobOutcomeSummary(selected);
+                  return (
+                    <Alert severity={summary.severity}>
+                      <Typography variant="subtitle2">{summary.title}</Typography>
+                      <Typography variant="body2">{summary.body}</Typography>
+                    </Alert>
+                  );
+                })()}
+                <Typography variant="subtitle2">What ran</Typography>
+                {(selected.attempts as JobRecord[] | undefined)?.length
+                  ? (selected.attempts as JobRecord[]).map((attempt) => {
+                      const failed = String(attempt.state) === "FAILED";
+                      const message = attemptError(attempt);
+                      return (
+                        <Box
+                          key={String(attempt.id)}
+                          sx={{
+                            border: 1,
+                            borderColor: failed ? "error.main" : "divider",
+                            borderRadius: 1,
+                            p: 1.25,
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                            <Typography variant="body2" fontWeight={600}>
+                              Attempt {String(attempt.attemptNumber)}
+                            </Typography>
+                            <Chip
+                              size="small"
+                              color={failed ? "error" : String(attempt.state) === "SUCCEEDED" ? "success" : "default"}
+                              label={jobStateLabel(String(attempt.state))}
+                            />
+                          </Stack>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            {providerLabel(String(attempt.providerId || ""))}
+                          </Typography>
+                          {failed && (
+                            <Box sx={{ mt: 0.75 }}>
+                              <Typography variant="body2" color="error">
+                                {explainExtractorError(message)}
+                              </Typography>
+                              {message && explainExtractorError(message) !== message && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, wordBreak: "break-word" }}>
+                                  Technical: {message}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })
+                  : <Typography variant="body2" color="text.secondary">No extractor has run yet.</Typography>}
                 <Typography variant="subtitle2">Artifacts</Typography>
-                {(selected.artifacts as Array<Record<string, unknown>> | undefined)?.map((a) => (
-                  <Typography key={String(a.id)} variant="caption" sx={{ display: "block" }}>
-                    {String(a.relationship)} · {String(a.mediaType)} · {String(a.sha256).slice(0, 12)}…
-                  </Typography>
-                )) || <Typography variant="body2" color="text.secondary">None</Typography>}
-                <Typography variant="subtitle2">Transitions</Typography>
-                {(selected.transitions as Array<Record<string, unknown>> | undefined)?.map((t) => (
-                  <Typography key={String(t.id)} variant="caption" sx={{ display: "block" }}>
-                    {String(t.fromState)} → {String(t.toState)} · {String(t.reasonCode)}
-                  </Typography>
-                ))}
+                {(selected.artifacts as JobRecord[] | undefined)?.length
+                  ? (selected.artifacts as JobRecord[]).map((a) => (
+                      <Typography key={String(a.id)} variant="caption" sx={{ display: "block" }}>
+                        {String(a.relationship)} · {String(a.mediaType)} · {String(a.sha256).slice(0, 12)}…
+                      </Typography>
+                    ))
+                  : <Typography variant="body2" color="text.secondary">None</Typography>}
+                <Accordion disableGutters elevation={0} sx={{ "&:before": { display: "none" }, border: 1, borderColor: "divider", borderRadius: 1 }}>
+                  <AccordionSummary>
+                    <Typography variant="body2">Technical log</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    {(selected.transitions as JobRecord[] | undefined)?.map((t) => (
+                      <Typography key={String(t.id)} variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        {String(t.fromState ?? "—")} → {String(t.toState)} · {String(t.reasonCode)}
+                      </Typography>
+                    ))}
+                  </AccordionDetails>
+                </Accordion>
                 {["READY", "PENDING", "LEASED", "RUNNING", "RETRY_WAIT"].includes(String(selected.state)) && (
                   <Button
                     color="warning"

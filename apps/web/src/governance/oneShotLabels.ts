@@ -67,6 +67,14 @@ export function reviewerLine(candidate: GovernanceCandidate): string {
   return `reviewer: ${candidate.assignedReviewerId ?? "unassigned"}`;
 }
 
+export function shortLabel(candidate: Pick<GovernanceCandidate, "documentTitle" | "titlePreview" | "id">): string {
+  const raw = String(candidate.titlePreview || candidate.documentTitle || candidate.id || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!raw) return "Untitled";
+  return raw.length > 120 ? `${raw.slice(0, 117)}…` : raw;
+}
+
 export function headlineChips(candidate: GovernanceCandidate): string[] {
   const chips = [candidate.reviewState];
   if (isOneShotEyes(candidate)) {
