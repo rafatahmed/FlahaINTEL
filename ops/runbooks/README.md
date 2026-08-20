@@ -11,7 +11,6 @@
 | PostgreSQL failure | [postgres-failure.md](./postgres-failure.md) |
 | Acquisition worker failure | [worker-acquisition.md](./worker-acquisition.md) |
 | Chromium failure | [chromium-failure.md](./chromium-failure.md) |
-| Docling failure | [docling-failure.md](./docling-failure.md) |
 | Java/Tika failure | [tika-failure.md](./tika-failure.md) |
 | Stuck jobs | [stuck-jobs.md](./stuck-jobs.md) |
 | Stale leases | [stale-leases.md](./stale-leases.md) |

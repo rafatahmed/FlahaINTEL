@@ -9,10 +9,12 @@ Tracks benchmark state separately from any future production adoption decision.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-16
+Last modified: 2026-08-19
 -->
 
 # Adoption decision register
+
+**Operate supersession (2026-08-19):** production routing uses Apache Tika for PDF/DOCX/RTF/TXT text. Docling is REJECTED for operate and must not be restored. Structured PDF later is MinerU under a new approved gate. Rows below remain the original benchmark record.
 
 | Candidate | Benchmark state | Adoption status | Basis |
 | --- | --- | --- | --- |

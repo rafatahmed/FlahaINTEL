@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-20
  */
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -463,13 +463,12 @@ async function main() {
     ]),
   );
 
-  const python = process.env.DOCLING_PYTHON || process.env.PYTHON_BIN || scrapyPy;
+  const python = process.env.PYTHON_BIN || scrapyPy;
   const extractScript = path.join(repoRoot, "apps/ingest-worker/src/extraction_worker.py");
   const extractionAdapters = new Map(
     [
       ["html.stdlib-htmlparser", "3.14", python],
       ["html.lxml", "6.1.1", path.join(repoRoot, ".benchmark-envs/html-lxml-6.1.1-py314/Scripts/python.exe")],
-      ["document.docling-slim", "2.111.0", process.env.DOCLING_PYTHON || python],
       ["document.apache-tika", "3.3.1", python],
     ].map(([id, version, executable]) => {
       const adapter = new SupervisedExtractionAdapter(id, version, {
@@ -505,7 +504,6 @@ async function main() {
       FLAHA_ARTIFACT_ROOT: artifactRoot,
       SCRAPY_PYTHON: scrapyPy,
       PYTHON_BIN: python,
-      DOCLING_PYTHON: process.env.DOCLING_PYTHON || python,
       JAVA_BIN: process.env.JAVA_BIN || "",
       TIKA_JAR: process.env.TIKA_JAR || "",
       PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || "",

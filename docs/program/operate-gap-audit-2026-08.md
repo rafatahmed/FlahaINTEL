@@ -106,7 +106,7 @@ Private PA intelligence: trusted eyes worldwide → structure markets + science 
 1. ~~Intake list/get enriches live ProductSubmission pipeline status~~  
 2. ~~Submit UI: live stage / extract job state; Advance submission button~~  
 3. ~~Jobs UI: READY = need workers; `npm run ops:pipeline-once`~~  
-4. Residual: always-on worker service on host; Docling/Tika provision when PDF extract fails  
+4. Residual: always-on worker service on host; Tika provision when PDF extract fails  
 
 ### Wave B residual — pack from literature (**SHIPPED 2026-08-01**)
 
@@ -141,7 +141,7 @@ npm run markets:harvest -- --force   # ongoing for EARLY MoCI
 2. ~~`ops:eyes-advance`~~ attaches RESULT/METADATA and advances submission → Content  
 3. ~~`ops:pipeline-once`~~ includes eyes-pdf-lite after workers  
 4. ~~McLean DOCUMENT_UPLOAD~~ SUCCEEDED + governance candidate READY_FOR_REVIEW  
-5. Residual: always-on workers; Docling/Tika for hard PDFs; PDF KEY WORDS auto-extract  
+5. Residual: always-on workers; Tika for PDF/Word/TXT; PDF KEY WORDS auto-extract  
 
 ### Wave B residual — science packs (**SHIPPED 2026-08-01**)
 

@@ -9,10 +9,12 @@ Records host evidence for Gate 3N acceptance without embedding secrets or large 
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-30
+Last modified: 2026-08-20
 -->
 
 # Phase 3N evidence — Windows production-like
+
+This file is the historical 3N ACCEPT record. **Operate supersession (2026-08-19):** document text extraction is Tika only; Docling is rejected and is not re-provisioned.
 
 ## Gate decision
 
@@ -46,7 +48,7 @@ Command: `npm run ops:provision-verify` / `ops/scripts/provision-runtimes.ps1 -V
 | Scrapy | READY (2.17.0) |
 | Playwright | READY (1.61.1) |
 | Chromium r1228 | READY (path + size; `--version` skipped on Windows) |
-| Docling + models | READY |
+| Docling + models | READY (historical 3N probe; operate later rejected Docling — do not re-provision) |
 | Java / Tika | READY (Java stderr version still treated ready) |
 | `pg_dump` | READY (PostgreSQL 17.5) |
 | `allReady` | **True** |

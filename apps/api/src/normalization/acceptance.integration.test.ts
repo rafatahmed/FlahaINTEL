@@ -73,7 +73,7 @@ async function createExtractionJob(args: {
       requestFingerprint: createHash("sha256").update(key).digest("hex"),
       requestedCapability: args.capability,
       providerFamily: args.family,
-      selectedProviderId: args.family === "HTML_EXTRACTION" ? "html.stdlib-htmlparser" : "document.docling-slim",
+      selectedProviderId: args.family === "HTML_EXTRACTION" ? "html.stdlib-htmlparser" : "document.apache-tika",
       selectionDecision: { status: "SELECTED" },
       requestEnvelope: {
         requestId: `extraction.${key}`,

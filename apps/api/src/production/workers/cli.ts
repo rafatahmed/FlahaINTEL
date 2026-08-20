@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 
 import path from "node:path";
@@ -85,7 +85,6 @@ async function main(): Promise<void> {
     const python = resolvePython();
     const specs: [string, string, string][] = [
       ["html.stdlib-htmlparser", "3.14", python],
-      ["document.docling-slim", "2.111.0", process.env.DOCLING_PYTHON || python],
       ["document.apache-tika", "3.3.1", python],
     ];
     const adapters = new Map<string, ExtractionAdapter>(

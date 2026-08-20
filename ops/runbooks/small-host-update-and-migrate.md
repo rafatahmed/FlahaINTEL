@@ -34,7 +34,7 @@ Do **not** run `install-small-host.sh` again on a live box. That script is first
 | `/etc/flahaintel/migrator.env` | **No** | Migrator `DATABASE_URL` (no `?schema=` for `pg_dump`). |
 | `/etc/flahaintel/db-passwords.env` | **No** | App + migrator passwords. |
 | `/etc/flahaintel/crawl-policy.json` | Copy from repo | Replace only when crawl policy in git changes. |
-| `/opt/flahaintel/runtimes/` | **No** | Java/Tika/Docling/Scrapy/Playwright/Chromium (~6 GB). Re-provision with `--runtimes`. |
+| `/opt/flahaintel/runtimes/` | **No** | Java/Tika/Scrapy/Playwright/Chromium. Re-provision with `--runtimes`. |
 | `/var/lib/flahaintel/artifacts` | **No** | Immutable ArtifactStore. |
 | `/var/lib/flahaintel/intakes` | **No** | Submit file land (`FLAHA_INTAKE_ROOT`). API cannot write under `/opt/flahaintel/current`. |
 | `/var/lib/flahaintel/state` | **No** | `last-backup.json`, `pipeline-heartbeat.json`, sessions. |
@@ -68,7 +68,7 @@ Flags:
 
 ```text
 --skip-backup     only if you just backed up
---runtimes        also re-run provision-runtimes.sh (Chromium/Docling/Tika/Scrapy)
+--runtimes        also re-run provision-runtimes.sh (Chromium/Tika/Scrapy)
 ```
 
 ### New Prisma migration
@@ -88,7 +88,17 @@ Caddy site name is `FLAHA_PUBLIC_HOST` in `/etc/systemd/system/caddy.service.d/f
 bash /opt/flahaintel/current/ops/scripts/linux/update-small-host.sh --runtimes
 ```
 
-Pins (from `ops/scripts/provision-runtimes.ps1` / Linux provisioner): Scrapy 2.17.0 · Playwright 1.61.1 · Chromium r1228 · Docling-slim 2.111.0 · Tika 3.3.1 · Java 21.
+Pins (from `ops/scripts/provision-runtimes.ps1` / Linux provisioner): Scrapy 2.17.0 · Playwright 1.61.1 · Chromium r1228 · Tika 3.3.1 · Java 21.
+
+To drop leftover Docling disk (~5 GB) after code update:
+
+```bash
+sed -i '/^DOCLING_/d' /etc/flahaintel/production.env
+# if PYTHON_BIN still points at the Docling venv:
+sed -i 's|^PYTHON_BIN=.*|PYTHON_BIN=/opt/flahaintel/runtimes/scrapy/bin/python|' /etc/flahaintel/production.env
+rm -rf /opt/flahaintel/runtimes/docling /opt/flahaintel/runtimes/docling-models
+systemctl restart flahaintel-api
+```
 
 ---
 
@@ -103,11 +113,10 @@ Recorded after first production-like install. Re-check after each update.
 | Always on | `postgresql` · `flahaintel-api` (loopback `:3003`) · `caddy` (TLS) |
 | Timers | pipeline every 15 min · harvest 05:30 UTC · backup **1st of month** 03:00 UTC |
 | Worker mode | `FLAHA_WORKER_MODE=serial` — never five persistent worker daemons |
-| Pipeline memory | `MemoryMax=1400M` (Chromium/Docling one family at a time) |
+| Pipeline memory | `MemoryMax=1400M` (Chromium one family at a time) |
 | API memory | `MemoryMax=450M` |
 | Public host | `intel.flaha.org` (Let’s Encrypt) |
-| Runtimes disk | Docling ~5.1 G · Chromium/Playwright ~0.66 G · Scrapy 96 M · Tika 63 M |
-| Docling models dir | `/opt/flahaintel/runtimes/docling-models` (fills on first PDF extract) |
+| Runtimes disk | Chromium/Playwright ~0.66 G · Scrapy 96 M · Tika 63 M (Docling trees may be deleted) |
 
 **Bootstrap identity (change when you add a real operator):** tenant `flaha-local`; sign in with `admin@flaha.local` and tenant code `flaha-local`, or with the membership user UUID and tenant UUID. No password.
 
@@ -160,13 +169,13 @@ They answer different questions. Keep both.
 | DiskCapacity | Flaha Settings readiness | App gate: warn 10% free, block 5% (`DISK_*_FREE_RATIO`) |
 | BackupRecency | Flaha | `last-backup.json` ≤ **31 days** on this trial host (`FLAHA_BACKUP_RPO_HOURS=744`) |
 | WorkerLoops | Flaha | Serial: `pipeline-heartbeat.json` ≤ 45 min |
-| Engine probes | Flaha | Binary actually ran (`--version` / `import docling` / Tika `--help`) |
+| Engine probes | Flaha | Binary actually ran (`--version` / Tika `--help`) |
 
 Recommended DigitalOcean alerts on this droplet:
 
-- **CPU** ≥ 80% for 10 minutes (harvest + Docling will spike; 10 min avoids false pages)  
+- **CPU** ≥ 80% for 10 minutes (harvest will spike; 10 min avoids false pages)  
 - **Memory** ≥ 90% for 5 minutes (2 GB + swap is the safety net)  
-- **Disk** ≥ 80% used (today ~18%; Docling models and backups grow)  
+- **Disk** ≥ 80% used (backups grow)  
 - Optional: droplet **down** / ping
 
 Flaha Settings **overall READY** does **not** replace DO graphs. A 100% CPU harvest can still be READY in-app.

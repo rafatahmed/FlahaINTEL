@@ -9,7 +9,7 @@ Collects a redacted, dependency-free inventory without network access.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-15
+Last modified: 2026-08-20
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CANDIDATE_PACKAGES = ["docling", "trafilatura", "paddleocr", "pandas", "polars", "pyarrow", "duckdb"]
+CANDIDATE_PACKAGES = ["trafilatura", "paddleocr", "pandas", "polars", "pyarrow", "duckdb"]
 COMMANDS = ["node", "npm", "java", "tesseract", "docker", "magick", "pdftotext", "qpdf", "libreoffice"]
 
 

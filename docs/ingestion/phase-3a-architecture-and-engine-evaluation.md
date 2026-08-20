@@ -5,6 +5,8 @@ Date: 2026-07-15
 Branch audited: `phase-3a-ingestion-architecture`
 Baseline release: `v0.4.0-intelligence-foundation`
 
+**Operate supersession (2026-08-19):** live document text extraction is Apache Tika only. Docling is rejected and must not be re-added. Structured PDF (layout/tables) is a future MinerU gate, not a 3A follow-on. The engine scores below remain the original evaluation record.
+
 ## 1. Decision summary
 
 FlahaINGEST should be an internal FlahaINTEL subsystem, not a separate repository or independently governed product. PostgreSQL should own source governance, job state, provenance metadata, review state, and audit history. An immutable local artifact store should hold raw bytes and versioned normalized outputs. TypeScript should remain the control plane and sole database writer; Python workers should perform bounded collection, conversion, extraction, and dataset processing through versioned, provider-neutral contracts.
@@ -20,6 +22,8 @@ Recommended engine posture:
 - Tesseract is the initial offline OCR baseline, including Arabic; PaddleOCR is deferred to a benchmark gate.
 - Apache Tika is a broad-format fallback candidate, not the default PDF-to-Markdown engine.
 - PyArrow is the canonical columnar interchange layer, Polars the preferred transformation engine, DuckDB the bounded inspection/query engine, and pandas a compatibility tool for difficult Excel/ecosystem cases.
+
+**Operate (2026-08):** Apache Tika is the live document text extractor. Docling is rejected. The bullets above remain the original 3A evaluation record.
 
 This report proposes designs only. It adds no production code, dependencies, migrations, services, or database changes.
 

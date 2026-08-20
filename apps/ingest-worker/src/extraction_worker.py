@@ -78,19 +78,22 @@ def html_extract(provider,path):
  else: raise ValueError('INVALID_PROVIDER_REQUEST')
  value['encoding']={'selected':decoded.encoding,'reason':decoded.reason,'hadBom':decoded.had_bom};text=value.get('content',{}).get('text','');metadata={'document':value.get('document',{}).get('metadata',{}),'links':value.get('links',[]),'encoding':value.get('encoding',{}),'warnings':value.get('warnings',[])};structure={'headings':value.get('content',{}).get('headings',[]),'domEvidence':value.get('domEvidence',{}),'structuredData':value.get('structuredData',[])}
  return {'EXTRACTED_TEXT':text,'METADATA':json.dumps(metadata,ensure_ascii=False,separators=(',',':')),'STRUCTURE':json.dumps(structure,ensure_ascii=False,separators=(',',':')),'TABLE':json.dumps(value.get('tables',[]),ensure_ascii=False,separators=(',',':')),'RESULT':json.dumps({'textLength':len(text),'linkCount':len(value.get('links',[])),'tableCount':len(value.get('tables',[]))},separators=(',',':'))},{'linkCount':len(value.get('links',[])),'tableCount':len(value.get('tables',[]))}
+def require_file(path,code):
+ target=Path(path)
+ if not target.is_file(): raise RuntimeError(f"{code} missing={target}")
+ return str(target)
 def document_extract(provider,path,payload):
- if provider=='document.docling-slim':
-  os.environ.update({'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','HF_DATASETS_OFFLINE':'1','DO_NOT_TRACK':'1','NO_PROXY':'*','no_proxy':'*'});from docling.datamodel.accelerator_options import AcceleratorDevice,AcceleratorOptions;from docling.datamodel.base_models import InputFormat;from docling.datamodel.pipeline_options import PdfPipelineOptions;from docling.document_converter import DocumentConverter,PdfFormatOption
-  cache=os.environ.get('DOCLING_CACHE_PATH') or str(ROOT/'.benchmark-models/document-docling-slim-2.111.0')
-  options=PdfPipelineOptions(artifacts_path=cache,do_ocr=False,do_table_structure=True,enable_remote_services=False,allow_external_plugins=False,accelerator_options=AcceleratorOptions(device=AcceleratorDevice.CPU,num_threads=2));doc=DocumentConverter(format_options={InputFormat.PDF:PdfFormatOption(pipeline_options=options)}).convert(path).document;text=doc.export_to_text();markdown=doc.export_to_markdown();meta={'pages':len(doc.pages),'ocrEnabled':False,'remoteServicesEnabled':False};structure={'markdown':markdown};tables=[]
- elif provider=='document.apache-tika':
+ if provider=='document.apache-tika':
   runtime=ROOT/'.benchmark-runtime/document-tika-3.3.1'
   java=os.environ.get('JAVA_BIN') or next(iter(list((runtime/'jre').glob('*/bin/java'))+list((runtime/'jre').glob('*/bin/java.exe'))), 'java')
   jar=os.environ.get('TIKA_JAR') or str(runtime/'tika-app-3.3.1.jar')
   config=os.environ.get('TIKA_ALLOWLIST') or str(ROOT/'benchmarks/ingestion/config/document-tika-parser-allowlist.xml')
+  java=require_file(java,'TIKA_JAVA_MISSING');jar=require_file(jar,'TIKA_RUNTIME_MISSING');config=require_file(config,'TIKA_RUNTIME_MISSING')
   temp=Path(os.environ.get('TEMP') or os.environ.get('TMPDIR') or '/tmp')
   command=[str(java),'-Xms64m','-Xmx384m',f'-Djava.io.tmpdir={temp}',f'-Dpdfbox.fontcache={temp}',f'-Duser.home={temp}','-Djava.awt.headless=true','-jar',str(jar),f'--config={config}','-t',str(path)];completed=subprocess.run(command,capture_output=True,timeout=max(1,payload['executionLimits']['wallTimeoutMs']//1000),check=False);text=completed.stdout.decode('utf-8','replace');meta={'exitCode':completed.returncode};structure={};tables=[]
-  if completed.returncode!=0: raise RuntimeError('TIKA_PARSE_FAILURE')
+  if completed.returncode!=0:
+    err=completed.stderr.decode('utf-8','replace').strip().replace('\n',' ')[:240]
+    raise RuntimeError(f"TIKA_PARSE_FAILURE exit={completed.returncode} jar={jar} {err}")
  elif provider=='document.pypdf-inspection':
   from pypdf import PdfReader
   reader=PdfReader(path);text='';meta={'pages':len(reader.pages),'encrypted':reader.is_encrypted,'metadata':{str(k):str(v) for k,v in (reader.metadata or {}).items()}};structure={'annotations':sum(len(page.get('/Annots') or []) for page in reader.pages)};tables=[]

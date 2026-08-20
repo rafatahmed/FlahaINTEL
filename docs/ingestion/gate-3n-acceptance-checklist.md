@@ -9,7 +9,7 @@ Checklist for Windows production-like acceptance of FlahaINTEL after Phase 3M.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-30
+Last modified: 2026-08-20
 -->
 
 # Gate 3N acceptance checklist
@@ -31,7 +31,7 @@ Work on branch `phase-3n-windows-production-like` from accepted Phase 3M.
 - [x] `ops/scripts/provision-runtimes.ps1` run (or `-VerifyOnly` after prior provision)
 - [x] `.flaha-runtimes/runtime-paths.env` generated
 - [x] `.flaha-runtimes/provision-report.json` shows runtimes ready
-- [x] Node, Scrapy, Playwright, Chromium, Docling (+ models), Tika/Java, `pg_dump` probed
+- [x] Node, Scrapy, Playwright, Chromium, Tika/Java, `pg_dump` probed (Docling later rejected; not re-probed)
 
 ## C. Database
 

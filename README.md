@@ -22,7 +22,7 @@ RSS remains a first-class, compatibility-preserved path alongside the general pi
 - Node.js 20 or newer  
 - PostgreSQL on `localhost:5432` (database `flaha_intel`)  
 - All Prisma migrations under `apps/api/prisma/migrations` applied  
-- Optional for full ingestion: pinned Scrapy / Playwright / Docling / Tika runtimes (see Phase 3N)
+- Optional for full ingestion: pinned Scrapy / Playwright / Tika runtimes (see Phase 3N)
 
 ## Setup (development)
 

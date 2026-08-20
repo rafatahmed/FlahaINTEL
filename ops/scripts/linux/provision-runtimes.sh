@@ -3,14 +3,14 @@
 # Precision Agriculture Division
 # Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
 #
-# Title: Linux runtime provision (Chromium, Docling, Tika, Scrapy)
+# Title: Linux runtime provision (Chromium, Tika, Scrapy)
 # Introduction: Installs pinned 3M engines under /opt/flahaintel/runtimes and writes production.env paths.
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
 # Last modified: 2026-08-19
 #
-# Pins: scrapy 2.17.0 · playwright 1.61.1 · chromium r1228 · docling-slim 2.111.0 · tika 3.3.1 · Java 21
+# Pins: scrapy 2.17.0 · playwright 1.61.1 · chromium r1228 · tika 3.3.1 · Java 21
 
 set -euo pipefail
 ROOT="${INSTALL_ROOT:-/opt/flahaintel/current}"
@@ -64,17 +64,7 @@ step 03-scrapy bash -c "
   '${RT}/scrapy/bin/scrapy' version
 "
 
-step 04-docling bash -c "
-  python3 -m venv '${RT}/docling'
-  '${RT}/docling/bin/pip' install --quiet --upgrade pip
-  '${RT}/docling/bin/pip' install --quiet 'docling-slim[format-pdf,models-local]==2.111.0' || \
-    '${RT}/docling/bin/pip' install --quiet 'docling==2.111.0'
-  mkdir -p '${RT}/docling-models'
-  HF_HOME='${RT}/docling-models' TRANSFORMERS_CACHE='${RT}/docling-models' \
-    '${RT}/docling/bin/python' -c 'import docling; print(docling.__version__ if hasattr(docling,\"__version__\") else \"ok\")'
-"
-
-step 05-playwright bash -c "
+step 04-playwright bash -c "
   mkdir -p '${RT}/playwright' '${RT}/ms-playwright'
   cd '${RT}/playwright'
   npm init -y >/dev/null
@@ -93,12 +83,13 @@ TIKA_ALLOW="${ROOT}/benchmarks/ingestion/config/document-tika-parser-allowlist.x
 PW_CLI="${RT}/playwright/node_modules/.bin/playwright"
 PW_MODULE="${RT}/playwright/node_modules/playwright"
 
+if [[ -f "${ENV_FILE}" ]]; then
+  sed -i '/^DOCLING_PYTHON=/d;/^DOCLING_CACHE_PATH=/d' "${ENV_FILE}" || true
+fi
 set_env JAVA_BIN "${JAVA_BIN}"
 set_env TIKA_JAR "${RT}/tika/tika-app-3.3.1.jar"
 set_env TIKA_ALLOWLIST "${TIKA_ALLOW}"
-set_env PYTHON_BIN "${RT}/docling/bin/python"
-set_env DOCLING_PYTHON "${RT}/docling/bin/python"
-set_env DOCLING_CACHE_PATH "${RT}/docling-models"
+set_env PYTHON_BIN "${RT}/scrapy/bin/python"
 set_env SCRAPY_PYTHON "${RT}/scrapy/bin/python"
 set_env SCRAPY_BIN "${RT}/scrapy/bin/scrapy"
 set_env PLAYWRIGHT_CLI "${PW_CLI}"
@@ -113,6 +104,5 @@ chown -R flahaintel:flahaintel "${RT}" "${ROOT}/.benchmark-runtime" || true
 echo "Provision complete. Chromium=${CHROME}"
 "${JAVA_BIN}" -version
 "${RT}/scrapy/bin/scrapy" version
-"${RT}/docling/bin/python" -c 'import docling; print("docling-ok")'
 [[ -n "${CHROME}" ]] && "${CHROME}" --version || true
 "${PW_CLI}" --version
