@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
@@ -69,13 +69,11 @@ export function JobsPage() {
         <Button onClick={() => void load()}>Refresh</Button>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
-      {items.some((j) => ["READY", "RETRY_WAIT"].includes(String(j.state))) && (
-        <Alert severity="warning">
-          {items.some((j) => String(j.state) === "RETRY_WAIT")
-            ? "A job is waiting to retry the next extractor. The serial pipeline picks it up on the next tick."
-            : import.meta.env.PROD
-              ? "Queued jobs wait for the serial pipeline. Do not start long-lived npm workers on this host."
-              : "Queued jobs need workers (npm run ops:pipeline-once) before Content/Governance fill."}
+      {items.some((j) => ["READY", "RETRY_WAIT", "RUNNING", "LEASED"].includes(String(j.state))) && (
+        <Alert severity="info">
+          Submit checks the file or URL first, then this list runs <strong>one item at a time</strong> (fetch → extract →
+          prepare for review). “Waiting to start” means this item is in line — not failed. When the current item
+          finishes, the next one starts. You do not set a wait time.
         </Alert>
       )}
       <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 2 }}>
@@ -83,8 +81,8 @@ export function JobsPage() {
           <CardContent>
             {items.length === 0 && (
               <Typography color="text.secondary">
-                No pipeline jobs listed. If you just submitted a general document, refresh — or confirm the API is up
-                and you are logged in. READY jobs need workers (see warning above).
+                No pipeline jobs listed. If you just submitted a website or PDF, refresh. Items appear here after
+                Submit accepts them, then run one at a time.
               </Typography>
             )}
             {items.map((job) => (

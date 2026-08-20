@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 import {
   Alert,
@@ -136,7 +136,6 @@ function describePromote(row: IntakeRow): { severity: "success" | "warning" | "i
     const overall = String(pipe?.overallStatus || pr.overallStatus || "");
     const stage = String(pipe?.currentStage || pr.currentStage || "");
     const subId = String(pipe?.submissionId || pr.submissionId || "").slice(0, 8) || "—";
-    const jobState = pipe?.extractionJobState || pr.extractionJobState;
     if (pipe?.finished && pipe.governanceCandidateId) {
       return {
         severity: "success",
@@ -150,16 +149,24 @@ function describePromote(row: IntakeRow): { severity: "success" | "warning" | "i
       };
     }
     if (overall === "RUNNING" || overall === "ACCEPTED" || !pipe?.finished) {
+      const step =
+        stage === "ACQUISITION"
+          ? "fetch the website"
+          : stage === "EXTRACTION"
+            ? "extract text"
+            : stage === "NORMALIZATION"
+              ? "prepare for review"
+              : stage === "GOVERNANCE"
+                ? "open in Governance"
+                : (stage || "process");
       return {
-        severity: "warning",
-        text: import.meta.env.PROD
-          ? `Eyes pipeline live: submission ${subId}… · stage ${stage || "?"} · ${overall || "RUNNING"}${jobState ? ` · extract job ${jobState}` : ""}. Intake PROMOTED ≠ finished. The serial pipeline (every 15 minutes) will advance it; then open Content → Governance.`
-          : `Eyes pipeline live: submission ${subId}… · stage ${stage || "?"} · ${overall || "RUNNING"}${jobState ? ` · extract job ${jobState}` : ""}. Intake PROMOTED ≠ finished. Run: npm run ops:pipeline-once (or worker:extraction / normalization). Then Content → Governance.`,
+        severity: "info",
+        text: `Accepted (submission ${subId}…). Now: ${step}. The host does one item at a time; this starts when the previous item finishes. Open Jobs to watch. Then Content → Governance.`,
       };
     }
     return {
       severity: "info",
-      text: pipe?.operatorNote || `Eyes document queued (submission ${subId}…).`,
+      text: `Accepted (submission ${subId}…). Waiting to start the next step — one item at a time.`,
     };
   }
   if (kind === "PRODUCT_SOIL_REPORT") {
@@ -207,7 +214,7 @@ export function SubmitPage(props: {
 
   // file form
   const [fileClass, setFileClass] = useState<IntakeClassCode>("EYES_DOCUMENT");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [autoPromote, setAutoPromote] = useState(true);
 
   const loadRecent = useCallback(async () => {
@@ -258,37 +265,52 @@ export function SubmitPage(props: {
   }
 
   async function landFile() {
-    if (!file) {
+    if (!files.length) {
       setError("Choose a file.");
       return;
     }
     setBusy(true);
     setError("");
     setInfo("");
+    const notes: string[] = [];
+    let lastSubId: string | null = null;
+    let lastDeepLink: { nav: string; lane?: string; soilTool?: string; channelCode?: string } | null = null;
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("intakeClass", fileClass);
-      form.append("autoPromote", autoPromote ? "true" : "false");
-      form.append("idempotencyKey", `file-ui-${Date.now()}`);
-      const res = await api.intakeLandFile(form);
-      const intake = res.intake as IntakeRow;
+      for (let i = 0; i < files.length; i++) {
+        const current = files[i]!;
+        setInfo(`Checking ${i + 1} of ${files.length}: ${current.name}…`);
+        const form = new FormData();
+        form.append("file", current);
+        form.append("intakeClass", fileClass);
+        form.append("autoPromote", autoPromote ? "true" : "false");
+        form.append("idempotencyKey", `file-ui-${Date.now()}-${i}`);
+        const res = await api.intakeLandFile(form);
+        const intake = res.intake as IntakeRow;
+        notes.push(
+          `${i + 1}/${files.length} ${current.name}: ${intake.status}` +
+            (intake.errorMessage ? ` (${intake.errorCode})` : ""),
+        );
+        if (intake.productSubmissionId) lastSubId = String(intake.productSubmissionId);
+        const pr = intake.promoteResult as { deepLink?: { nav: string; lane?: string; soilTool?: string; channelCode?: string } } | null;
+        if (pr?.deepLink) lastDeepLink = pr.deepLink;
+      }
       setInfo(
-        `Intake ${intake.id} · class ${intake.intakeClass} · status ${intake.status}` +
-          (intake.errorMessage ? ` · ${intake.errorCode}: ${intake.errorMessage}` : ""),
+        notes.join(" · ") +
+          (files.length > 1
+            ? " Each file was checked then accepted in order. The host processes one at a time; the next starts when the current one finishes."
+            : " Checked and accepted. The host processes one item at a time — open Jobs to watch."),
       );
-      if (intake.productSubmissionId && props.onOpenSubmission) {
-        props.onOpenSubmission(String(intake.productSubmissionId));
-      }
-      const pr = intake.promoteResult as { deepLink?: { nav: string; lane?: string; soilTool?: string; channelCode?: string } } | null;
-      if (pr?.deepLink && props.onDeepLink) {
-        props.onDeepLink(pr.deepLink);
-      }
-      setFile(null);
+      if (lastSubId && props.onOpenSubmission) props.onOpenSubmission(lastSubId);
+      if (lastDeepLink && props.onDeepLink) props.onDeepLink(lastDeepLink);
+      setFiles([]);
       await loadRecent();
       setTab("recent");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "File intake failed.");
+      setError(
+        (e instanceof Error ? e.message : "File intake failed.") +
+          (notes.length ? ` Stopped after ${notes.length} of ${files.length}.` : ""),
+      );
+      await loadRecent();
     } finally {
       setBusy(false);
     }
@@ -302,7 +324,7 @@ export function SubmitPage(props: {
     try {
       const sub = await api.advanceSubmission(String(subId));
       setInfo(
-        `Submission advanced: stage ${String(sub.currentStage || "?")} · status ${String(sub.overallStatus || "?")}. If still stuck, run npm run ops:pipeline-once (workers).`,
+        `Moved to stage ${String(sub.currentStage || "?")} · ${String(sub.overallStatus || "?")}. If it still says waiting to start, the host is finishing the current item.`,
       );
       await loadRecent();
     } catch (e) {
@@ -373,9 +395,9 @@ export function SubmitPage(props: {
       {tab === "new" && (
         <Stack spacing={2}>
           <Alert severity="info">
-            <strong>Flow:</strong> LAND → CLASSIFY → PROMOTE. Choose the <em>type</em> of evidence; the same file is
-            not uploaded separately into each domain. Sister products stay separate: FlahaSOIL (soil) · FlahaCALC
-            (irrigation/weather) · FlahaFAST (nutrients) — <strong>never</strong> auto-written.
+            <strong>Flow:</strong> check the file or URL → accept it → process <em>one at a time</em> (fetch or extract
+            → prepare for review → Governance). Several files: the next waits until the current one finishes. Sister
+            products stay separate: FlahaSOIL · FlahaCALC · FlahaFAST — <strong>never</strong> auto-written.
           </Alert>
 
           {/* Type matrix cards */}
@@ -459,8 +481,8 @@ export function SubmitPage(props: {
                 File (land → classify → promote)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Choose the evidence type, then a file, then <strong>Land file → promote</strong>. Choosing a file
-                alone does not upload. Eyes documents finish at human Approve (not RSS).
+                Choose the evidence type, then one or more files, then <strong>Land file → promote</strong>. Each file
+                is checked, then accepted, then processed in order. Eyes documents finish at human Approve (not RSS).
               </Typography>
               <Stack spacing={1.5}>
                 <FormControl size="small" fullWidth>
@@ -470,7 +492,7 @@ export function SubmitPage(props: {
                     value={fileClass}
                     onChange={(e) => {
                       setFileClass(e.target.value as IntakeClassCode);
-                      setFile(null);
+                      setFiles([]);
                     }}
                   >
                     {FILE_CLASS_OPTIONS.map((o) => (
@@ -485,23 +507,28 @@ export function SubmitPage(props: {
                   stay separate (SOIL · CALC · FAST).
                 </Typography>
                 <Button variant="outlined" component="label">
-                  Choose file
+                  Choose file(s)
                   <input
                     hidden
                     type="file"
+                    multiple
                     accept={accept}
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
                   />
                 </Button>
-                <Typography variant="body2" sx={{ fontWeight: file ? 600 : 400 }}>
-                  {file ? `Selected: ${file.name} (${file.type || "unknown"}, ${file.size} bytes)` : "No file selected yet"}
+                <Typography variant="body2" sx={{ fontWeight: files.length ? 600 : 400 }}>
+                  {files.length
+                    ? files.map((f, i) => `${i + 1}. ${f.name} (${f.size} bytes)`).join(" · ")
+                    : "No file selected yet"}
                 </Typography>
                 <FormControlLabel
                   control={<Switch checked={autoPromote} onChange={(e) => setAutoPromote(e.target.checked)} />}
                   label="Auto-promote after land (recommended)"
                 />
-                <Button variant="contained" disabled={busy || !file} onClick={() => void landFile()}>
-                  Land file{autoPromote ? " → promote" : ""}
+                <Button variant="contained" disabled={busy || !files.length} onClick={() => void landFile()}>
+                  {files.length > 1
+                    ? `Check and accept ${files.length} files in order`
+                    : `Land file${autoPromote ? " → promote" : ""}`}
                 </Button>
               </Stack>
             </CardContent>

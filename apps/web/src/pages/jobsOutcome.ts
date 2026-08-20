@@ -8,17 +8,42 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 
 export type JobRecord = Record<string, unknown>;
 
 export function providerLabel(providerId: string): string {
-  if (providerId.includes("tika")) return "Tika — document extractor";
+  if (providerId.includes("tika")) return "Tika (PDF/Office text)";
   if (providerId.includes("docling")) return "Docling — retired";
   if (providerId.includes("pypdf")) return "pypdf — inspection";
-  if (providerId.includes("html")) return "HTML extractor";
-  return providerId || "Unknown provider";
+  if (providerId.includes("scrapy")) return "website fetch";
+  if (providerId.includes("playwright")) return "browser render";
+  if (providerId.includes("html")) return "HTML text extract";
+  if (providerId.includes("normalization")) return "prepare for review";
+  return providerId || "Unknown step";
+}
+
+/** What this job does, in operator English. Not a runtime/provider id. */
+export function workStep(job: Pick<JobRecord, "requestedCapability" | "selectedProviderId" | "jobType">): {
+  verb: string;
+  noun: string;
+} {
+  const cap = String(job.requestedCapability || "");
+  const provider = String(job.selectedProviderId || "");
+  if (cap.includes("ACQUISITION") || cap.includes("CRAWL") || cap.includes("RENDER") || provider.includes("scrapy") || provider.includes("playwright")) {
+    if (provider.includes("playwright") || cap.includes("RENDER") || cap.includes("JAVASCRIPT")) {
+      return { verb: "render", noun: "the website" };
+    }
+    return { verb: "fetch", noun: "the website" };
+  }
+  if (cap.includes("NORMALIZATION") || provider.includes("normalization")) {
+    return { verb: "prepare", noun: "the text for review" };
+  }
+  if (cap.includes("HTML") || provider.includes("html")) {
+    return { verb: "extract", noun: "the page text" };
+  }
+  return { verb: "extract", noun: "the document" };
 }
 
 export function attemptError(attempt: JobRecord): string {
@@ -33,11 +58,11 @@ export function attemptError(attempt: JobRecord): string {
 export function jobStateLabel(state: string): string {
   switch (state) {
     case "RETRY_WAIT": return "Waiting to retry";
-    case "READY": return "Queued";
-    case "PENDING": return "Created";
-    case "LEASED": return "Claimed";
-    case "RUNNING": return "Running";
-    case "SUCCEEDED": return "Succeeded";
+    case "READY": return "Waiting to start";
+    case "PENDING": return "Accepted";
+    case "LEASED": return "Starting";
+    case "RUNNING": return "In progress";
+    case "SUCCEEDED": return "Finished";
     case "FAILED": return "Failed";
     case "DEAD_LETTER": return "Stopped";
     case "CANCELLED": return "Cancelled";
@@ -73,14 +98,29 @@ export function jobOutcomeSummary(job: JobRecord): { severity: "success" | "warn
   const failed = attempts.filter((a) => String(a.state) === "FAILED");
   const state = String(job.state);
   const next = providerLabel(String(job.selectedProviderId || ""));
+  const step = workStep(job);
   if (state === "SUCCEEDED") {
-    return { severity: "success", title: "Extraction succeeded", body: `Finished with ${next}.` };
+    return { severity: "success", title: "This step finished", body: `Done: ${step.verb} ${step.noun}.` };
   }
   if (failed.length === 0) {
     if (state === "RETRY_WAIT") {
-      return { severity: "warning", title: "Waiting to retry", body: `Next run uses ${next}.` };
+      return { severity: "warning", title: "Waiting to retry", body: `Will ${step.verb} ${step.noun} again. One item at a time.` };
     }
-    return { severity: "info", title: jobStateLabel(state), body: next ? `Current provider: ${next}.` : "No provider selected yet." };
+    if (state === "READY" || state === "PENDING") {
+      return {
+        severity: "info",
+        title: `Waiting to ${step.verb} ${step.noun}`,
+        body: "Accepted. The host does one item at a time. This one starts when the current item finishes. You do not need to click again.",
+      };
+    }
+    if (state === "LEASED" || state === "RUNNING") {
+      return {
+        severity: "info",
+        title: `Now: ${step.verb} ${step.noun}`,
+        body: "This is the item being processed. Anything else you submitted waits until this step finishes.",
+      };
+    }
+    return { severity: "info", title: jobStateLabel(state), body: next ? `Step: ${next}.` : "No step selected yet." };
   }
   const names = failed.map((a) => {
     const id = String(a.providerId || "");

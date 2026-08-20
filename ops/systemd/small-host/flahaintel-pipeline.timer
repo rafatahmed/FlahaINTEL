@@ -3,19 +3,17 @@
 # Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
 #
 # Title: Serial pipeline timer (small host)
-# Introduction: Wakes the oneshot pipeline every 15 minutes.
+# Introduction: After boot only. Submit kicks the oneshot; not a 15-minute clock.
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-19
+# Last modified: 2026-08-21
 
 [Unit]
-Description=FlahaINTEL serial pipeline every 15 minutes
+Description=FlahaINTEL serial pipeline after boot (Submit kicks further runs)
 
 [Timer]
 OnBootSec=3min
-OnUnitActiveSec=15min
-AccuracySec=1min
 Persistent=true
 Unit=flahaintel-pipeline.service
 

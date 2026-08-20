@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 
 import { createHash, randomUUID } from "node:crypto";
@@ -23,6 +23,7 @@ import { NormalizationWorkflowService } from "../../normalization/service.js";
 import type { ProductActor } from "../auth.js";
 import { assertPermission } from "../auth.js";
 import { ProductError } from "../errors.js";
+import { kickSerialPipeline } from "../../production/pipelineKick.js";
 import {
   MAX_UPLOAD_BYTES,
   REJECTED_UPLOAD_TYPES,
@@ -199,6 +200,7 @@ export class SubmissionOrchestrator {
       },
     });
 
+    kickSerialPipeline();
     if (chainMode === "AUTO_CHAIN") {
       return this.advanceUntilBlocked(actor, submission.id);
     }
@@ -303,6 +305,7 @@ export class SubmissionOrchestrator {
     });
 
     await this.startExtractionForDocument(actor, submission.id);
+    kickSerialPipeline();
     if (chainMode === "AUTO_CHAIN") {
       return this.advanceUntilBlocked(actor, submission.id);
     }

@@ -10,7 +10,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-31
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -182,7 +182,7 @@ export class EvidenceIntakeService {
         ? sub.governanceCandidateId
           ? "Pipeline finished — open Content / Governance for the candidate."
           : `Pipeline ${sub.overallStatus} at ${sub.currentStage}.`
-        : "Intake PROMOTED only means queued. Run worker:extraction + worker:normalization (+ submission-advance) until Content appears.",
+        : "Accepted. Waiting to start the next step. The host processes one item at a time.",
     };
 
     // Refresh promoteResult snapshot for honesty (does not change intake status PROMOTED).
