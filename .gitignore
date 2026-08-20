@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-07-15
-# Last modified: 2026-07-30
+# Last modified: 2026-08-20
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -131,6 +131,7 @@ id_ed25519
 # Flaha local runtime, artifacts, backups, and production-like state
 # ---------------------------------------------------------------------------
 .flaha-artifacts/
+.flaha-artifacts-local/
 .flaha-artifacts-prod/
 .flaha-intakes/
 apps/api/.artifacts/

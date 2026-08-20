@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
 import type { GovernanceCandidate, GovernancePreview } from "../types";
 
@@ -67,8 +67,16 @@ export function reviewerLine(candidate: GovernanceCandidate): string {
   return `reviewer: ${candidate.assignedReviewerId ?? "unassigned"}`;
 }
 
+export function shortLabel(candidate: Pick<GovernanceCandidate, "documentTitle" | "titlePreview" | "id">): string {
+  const raw = String(candidate.titlePreview || candidate.documentTitle || candidate.id || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!raw) return "Untitled";
+  return raw.length > 120 ? `${raw.slice(0, 117)}…` : raw;
+}
+
 export function headlineChips(candidate: GovernanceCandidate): string[] {
-  const chips = [candidate.reviewState];
+  const chips: string[] = [candidate.reviewState];
   if (isOneShotEyes(candidate)) {
     chips.push(reuseLabel(candidate));
     return chips;

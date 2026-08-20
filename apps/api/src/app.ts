@@ -46,6 +46,13 @@ function defaultArtifactStore(): FilesystemArtifactStore {
   return new FilesystemArtifactStore(root, repository);
 }
 
+function jsonReplacer(_key: string, value: unknown): unknown {
+  if (typeof value === "bigint") {
+    return value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : value.toString();
+  }
+  return value;
+}
+
 export function buildApp(dependencies: AppDependencies = {}) {
   const prisma = dependencies.prisma ?? defaultPrisma;
   const coordinator = dependencies.coordinator ?? new CollectionCoordinator();
@@ -56,6 +63,7 @@ export function buildApp(dependencies: AppDependencies = {}) {
     logger: { level: prod.logLevel },
     ajv: { customOptions: { removeAdditional: false } },
   });
+  app.setReplySerializer((payload) => JSON.stringify(payload, jsonReplacer));
   app.register(cors, {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);

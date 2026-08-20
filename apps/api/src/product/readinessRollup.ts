@@ -30,7 +30,6 @@ export const OPTIONAL_WHEN_ABSENT = [
   "Scrapy",
   "Playwright",
   "Chromium",
-  "Docling",
   "Java",
   "ApacheTika",
 ] as const;
@@ -41,6 +40,34 @@ const RANK: Record<HealthState, number> = {
   DEGRADED: 2,
   UNAVAILABLE: 3,
 };
+
+/** Local document inspect needs extract + normalize. Acquisition is optional until website work. */
+export function expectedWorkerFamilies(isProduction: boolean): readonly string[] {
+  return isProduction
+    ? ["acquisition", "extraction", "normalization"]
+    : ["extraction", "normalization"];
+}
+
+export function scoreWorkerLoops(liveFamilies: readonly string[], isProduction: boolean): ComponentHealth {
+  const unique = [...new Set(liveFamilies)].sort();
+  const missing = expectedWorkerFamilies(isProduction).filter((family) => !unique.includes(family));
+  if (unique.length === 0) {
+    return {
+      component: "WorkerLoops",
+      state: "NOT_CONFIGURED",
+      detail: isProduction
+        ? "No worker heartbeats."
+        : "No extract workers. Start the Tika pipeline window or npm run worker:extraction.",
+    };
+  }
+  return {
+    component: "WorkerLoops",
+    state: missing.length ? "DEGRADED" : "READY",
+    detail: missing.length
+      ? `Families live: ${unique.join(", ")}; waiting: ${missing.join(", ")}.`
+      : `Families live: ${unique.join(", ")}.`,
+  };
+}
 
 export function rollupOverall(components: ComponentHealth[]): HealthState {
   if (components.some((c) => (CORE_UNAVAILABLE as readonly string[]).includes(c.component) && c.state === "UNAVAILABLE")) {

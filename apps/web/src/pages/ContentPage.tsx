@@ -8,14 +8,14 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-20
  */
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { GovernanceCandidate } from "../types";
 import { BrandedState } from "../components/BrandedState";
-import { headlineChips, isOneShotEyes, originLine, reuseLabel } from "../governance/oneShotLabels";
+import { headlineChips, isOneShotEyes, originLine, reuseLabel, shortLabel } from "../governance/oneShotLabels";
 
 export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) {
   const [items, setItems] = useState<GovernanceCandidate[]>([]);
@@ -38,6 +38,11 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
   }, []);
 
   async function openItem(id: string) {
+    const fromList = items.find((item) => item.id === id);
+    if (fromList) {
+      setSelected(fromList);
+      setPreview("");
+    }
     try {
       const item = await api.contentItem(id);
       setSelected(item);
@@ -72,11 +77,11 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
                 sx={{ py: 1, borderBottom: 1, borderColor: "divider", cursor: "pointer" }}
                 onClick={() => void openItem(item.id)}
               >
-                <Typography sx={{ fontWeight: 600 }}>{item.documentTitle || item.titlePreview || item.id}</Typography>
+                <Typography sx={{ fontWeight: 600 }}>{shortLabel(item)}</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {originLine(item)}
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }} useFlexGap>
                   {headlineChips(item).map((label) => (
                     <Chip key={label} size="small" label={label} />
                   ))}
@@ -90,9 +95,9 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
           <CardContent>
             {!selected ? <Typography color="text.secondary">Select content.</Typography> : (
               <Stack spacing={1}>
-                <Typography variant="h6">{selected.documentTitle || selected.titlePreview}</Typography>
+                <Typography variant="h6">{shortLabel(selected)}</Typography>
                 <Typography variant="body2">{selected.contentType} · {selected.normalizationProfile} v{selected.normalizationVersion}</Typography>
-                <Typography variant="body2">Hash {selected.normalizedContentHash.slice(0, 16)}…</Typography>
+                <Typography variant="body2">Hash {(selected.normalizedContentHash || "").slice(0, 16)}…</Typography>
                 <Typography variant="body2">{originLine(selected)}</Typography>
                 <Typography variant="body2">
                   {isOneShotEyes(selected)
@@ -101,17 +106,12 @@ export function ContentPage(props: { onOpenGovernance?: (id: string) => void }) 
                 </Typography>
                 <Typography variant="subtitle2">Preview</Typography>
                 <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", maxHeight: 280, overflow: "auto", bgcolor: "action.hover", p: 1.5 }}>
-                  {preview || "No preview"}
+                  {(preview || "No preview").slice(0, 4000)}
                 </Typography>
                 {props.onOpenGovernance && (
-                  <Typography
-                    variant="body2"
-                    color="primary"
-                    sx={{ cursor: "pointer" }}
-                    onClick={() => props.onOpenGovernance?.(selected.id)}
-                  >
-                    Open in Governance →
-                  </Typography>
+                  <Button variant="contained" onClick={() => props.onOpenGovernance?.(selected.id)}>
+                    Open in Governance
+                  </Button>
                 )}
               </Stack>
             )}

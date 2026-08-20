@@ -9,7 +9,7 @@ Defines the provider control-plane authority, catalogue, contracts, selection, f
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-16
-Last modified: 2026-07-16
+Last modified: 2026-08-19
 -->
 
 # Phase 3F provider framework
@@ -48,8 +48,8 @@ The immutable built-in catalogue contains:
 | `html.trafilatura` | content extraction | deferred and not selectable |
 | `document.pypdf-inspection` | narrow inspection/metadata/inventory | benchmarked partial candidate |
 | `document.pdfminer-six` | general text extraction | rejected and not selectable |
-| `document.docling-slim` | English PDF text/layout/sections/tables | hardened benchmark primary |
-| `document.apache-tika` | text/metadata/broad-format fallback | benchmarked fallback |
+| `document.docling-slim` | former English PDF layout/table engine | rejected and not selectable |
+| `document.apache-tika` | PDF/DOCX/RTF/TXT text and metadata | hardened operate primary |
 | `acquisition.scrapy` | static HTTP, crawling and link discovery | hardened benchmark primary |
 | `acquisition.playwright` | dynamic rendering and browser evidence | hardened benchmark fallback |
 
@@ -63,7 +63,7 @@ Artifact validation rejects traversal, absolute paths, Windows paths, URLs, devi
 
 ## Selection and fallback
 
-Selection uses a closed capability priority table, never display names or object iteration. Dataset validation chooses stdlib CSV; pandas is only the tabular fallback. Baseline HTML chooses stdlib; structural HTML chooses lxml then selectolax. English PDF text/layout/table chooses Docling with compatible Tika fallback; broad format chooses Tika; inspection chooses pypdf. Arabic or bilingual authoritative document extraction returns governed `NO_ELIGIBLE_PROVIDER` and never reverses or repairs text.
+Selection uses a closed capability priority table, never display names or object iteration. Dataset validation chooses stdlib CSV; pandas is only the tabular fallback. Baseline HTML chooses stdlib; structural HTML chooses lxml then selectolax. English PDF text chooses Tika only; layout/section/table have no provider (MinerU is a future approved gate, not in this catalogue); broad format chooses Tika; inspection chooses pypdf. Arabic or bilingual authoritative document extraction returns governed `NO_ELIGIBLE_PROVIDER` and never reverses or repairs text.
 
 Static acquisition chooses Scrapy. Browser acquisition chooses Playwright only with the typed `DYNAMIC_RENDER_REQUIRED` signal. A generic Scrapy failure never automatically upgrades to a browser.
 

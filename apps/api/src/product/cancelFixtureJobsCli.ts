@@ -120,13 +120,13 @@ try {
     if (tenant && user) {
       const repoRoot = path.resolve(process.cwd(), "../..");
       if (!process.env.ARTIFACT_STORE_ROOT && !process.env.FLAHA_ARTIFACT_ROOT) {
-        process.env.ARTIFACT_STORE_ROOT = path.join(repoRoot, ".flaha-artifacts-prod");
+        process.env.ARTIFACT_STORE_ROOT = path.join(repoRoot, ".flaha-artifacts-local");
       }
       const prod = getProductionConfig();
       const repository = new FilesystemArtifactRepository(prod.artifactRoot);
       const store = new FilesystemArtifactStore(prod.artifactRoot, repository);
       await store.initialize();
-      orch = new SubmissionOrchestrator(prisma, store, jobs);
+      orch = new SubmissionOrchestrator(prisma, store);
       productActor = {
         tenantId: tenant.id,
         userId: user.id,

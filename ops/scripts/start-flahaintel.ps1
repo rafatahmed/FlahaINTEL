@@ -9,7 +9,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-07-31
-# Last modified: 2026-07-31
+# Last modified: 2026-08-20
 
 param(
   [ValidateSet("Dev", "Prod")]
@@ -20,6 +20,7 @@ param(
   [switch]$Stop,
   [switch]$NoBrowser,
   [switch]$SkipHealthWait,
+  [switch]$NoPipeline,
 
   [int]$HealthTimeoutSec = 45
 )
@@ -187,6 +188,14 @@ $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
 if (-not $nodeCmd -or -not $npmCmd) {
   throw "Node.js and npm are required on PATH (Node >= 20)."
 }
+if ($runApi) {
+  if (-not $env:TIKA_JAR -or -not (Test-Path -LiteralPath $env:TIKA_JAR)) {
+    Write-Warning "TIKA_JAR is missing. PDF extract needs npm run ops:provision-verify, then JAVA_BIN/TIKA_JAR in .env."
+  }
+  if (-not $env:PLAYWRIGHT_CHROMIUM_PATH -or -not (Test-Path -LiteralPath $env:PLAYWRIGHT_CHROMIUM_PATH)) {
+    Write-Warning "Chromium is not provisioned. Website Submit needs: powershell -File ops/scripts/provision-runtimes.ps1 -InstallPlaywrightChromium"
+  }
+}
 
 if ($Mode -eq "Prod") {
   $apiDist = Join-Path $RepoRoot "apps\api\dist\server.js"
@@ -240,6 +249,45 @@ if ($runWeb) {
     Start-AppWindow -Title "FlahaINTEL Web (preview)" -WorkingDirectory $RepoRoot -NpmArgs "run preview --workspace=@flaha-intel/web"
   }
   Write-Host "[start] Web window launched"
+}
+
+if ($runApi -and -not $NoPipeline.IsPresent) {
+  $safeRepo = $RepoRoot.Replace("'", "''")
+  $pipelineInner = @"
+`$Host.UI.RawUI.WindowTitle = 'FlahaINTEL pipeline (Tika extract)'
+Set-Location -LiteralPath '$safeRepo'
+foreach (`$envPath in @(
+  (Join-Path '$safeRepo' '.flaha-runtimes\runtime-paths.env'),
+  (Join-Path '$safeRepo' '.env')
+)) {
+  if (-not (Test-Path -LiteralPath `$envPath)) { continue }
+  Get-Content -LiteralPath `$envPath | ForEach-Object {
+    if (`$_ -match '^\s*#' -or `$_ -notmatch '=') { return }
+    `$i = `$_.IndexOf('=')
+    if (`$i -lt 1) { return }
+    `$k = `$_.Substring(0, `$i).Trim()
+    `$v = `$_.Substring(`$i + 1).Trim().Trim('"').Trim("'")
+    if (`$k) { Set-Item -Path "Env:`$k" -Value `$v }
+  }
+}
+Write-Host '=== FlahaINTEL pipeline (Tika extract) ===' -ForegroundColor Cyan
+Write-Host 'Loops: extraction -> normalization -> submission-advance'
+Write-Host 'Close this window to stop workers.' -ForegroundColor DarkGray
+Write-Host ''
+while (`$true) {
+  npm run worker:extraction --workspace=@flaha-intel/api
+  npm run worker:normalization --workspace=@flaha-intel/api
+  npm run worker:submission-advance --workspace=@flaha-intel/api
+  Start-Sleep -Seconds 2
+}
+"@
+  $encodedPipeline = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($pipelineInner))
+  Start-Process -FilePath "powershell.exe" -ArgumentList @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-EncodedCommand", $encodedPipeline
+  ) | Out-Null
+  Write-Host "[start] Pipeline window launched (Tika extract)"
 }
 
 if ($runApi -and -not $SkipHealthWait) {

@@ -7,7 +7,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-07-31
-# Last modified: 2026-07-31
+# Last modified: 2026-08-20
 
 param(
   [ValidateSet("Dev", "Prod")]
@@ -17,6 +17,7 @@ param(
   [switch]$Stop,
   [switch]$NoBrowser,
   [switch]$SkipHealthWait,
+  [switch]$NoPipeline,
   [int]$HealthTimeoutSec = 45
 )
 

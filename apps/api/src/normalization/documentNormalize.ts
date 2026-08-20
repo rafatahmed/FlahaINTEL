@@ -4,11 +4,11 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Document Normalization
- * Introduction: Maps Docling, Tika, and inspection extraction artifacts into one document model.
+ * Introduction: Maps Tika and inspection extraction artifacts into one document model.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-19
  */
 import { randomUUID } from "node:crypto";
 import type { NormalizedContent, NormalizationOutcome, QualityIndicator, ResolvedNormalizationInputs } from "./contracts.js";
@@ -53,7 +53,7 @@ export function normalizeDocument(inputs: ResolvedNormalizationInputs): Normaliz
   }
 
   const rawText = textArtifact.text ?? textArtifact.bytes.toString("utf8");
-  // Docling may put markdown in STRUCTURE.markdown
+  // Some extractors put markdown in STRUCTURE.markdown
   const structureObj = asRecord(structureArtifact?.json);
   const markdown = typeof structureObj?.markdown === "string" ? structureObj.markdown : null;
   const sourceText = markdown && markdown.trim().length > rawText.trim().length ? markdown : rawText;

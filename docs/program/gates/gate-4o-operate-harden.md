@@ -68,7 +68,7 @@ MoCI 365d is **operate + publisher**, not a 4O code gate (`BLOCKED_PUBLISHER`). 
 - [x] Unit tests (McLean-style KEY WORDS block)  
 - [ ] Optional later: pull text from `evidenceArtifactId` automatically (4O-B.2)
 
-Out: OCR, Docling, Arabic PDF as supported path, AI keyword invent.
+Out: OCR, Docling (rejected; do not restore), MinerU until a dedicated gate, Arabic PDF as a supported path, AI keyword invent.
 
 ---
 

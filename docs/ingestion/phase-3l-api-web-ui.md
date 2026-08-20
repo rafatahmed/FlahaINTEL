@@ -86,7 +86,7 @@ Safe messages with optional failed stage and correlation ID. No stack traces, se
 ## Residual limitations
 
 - Full website E2E requires acquisition workers (Scrapy/Playwright) and network/fixture hosts
-- Docling/Tika/Java readiness may be `NOT_CONFIGURED` on the API host when workers run separately
+- Tika/Java readiness may be `NOT_CONFIGURED` on the API host when workers run separately
 - No external IdP; session binds verified membership (email + tenant code, or UUIDs)
 
 ## Relationship to Phase 3M

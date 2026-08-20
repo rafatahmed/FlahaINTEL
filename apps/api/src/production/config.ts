@@ -75,7 +75,6 @@ export type ProductionConfig = {
   javaBin: string | null;
   tikaJar: string | null;
   tikaAllowlist: string | null;
-  doclingCache: string | null;
 };
 
 function integer(env: NodeJS.ProcessEnv, name: string, fallback: number, min: number, max: number): number {
@@ -247,7 +246,6 @@ export function loadProductionConfig(env: NodeJS.ProcessEnv = process.env): Prod
     javaBin: env.JAVA_BIN?.trim() || null,
     tikaJar: env.TIKA_JAR?.trim() || null,
     tikaAllowlist: env.TIKA_ALLOWLIST?.trim() || null,
-    doclingCache: env.DOCLING_CACHE_PATH?.trim() || null,
   };
 
   if (config.diskBlockFreeRatio >= config.diskWarnFreeRatio) {

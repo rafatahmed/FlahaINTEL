@@ -22,7 +22,7 @@ RSS remains a first-class, compatibility-preserved path alongside the general pi
 - Node.js 20 or newer  
 - PostgreSQL on `localhost:5432` (database `flaha_intel`)  
 - All Prisma migrations under `apps/api/prisma/migrations` applied  
-- Optional for full ingestion: pinned Scrapy / Playwright / Docling / Tika runtimes (see Phase 3N)
+- Optional for full ingestion: pinned Scrapy / Playwright / Tika runtimes (see Phase 3N)
 
 ## Setup (development)
 
@@ -196,7 +196,9 @@ npm run ops:smoke
 
 | Command | Purpose |
 |---------|---------|
-| `npm test` | API tests |
+| `npm test` | API tests (needs local PostgreSQL for `*.integration.test.ts`) |
+| `npm run test:unit --workspace=@flaha-intel/api` | API unit tests only (CI) |
+| `npm run test:web` | Web unit tests (Jobs outcome copy) |
 | `npm run build` | Build workspaces |
 | `npm run prisma:generate` | Prisma client |
 | `npm run governance:seed` | Seed taxonomy + org types |

@@ -466,8 +466,22 @@ export class ContentGovernanceService {
         headings: (read.content.headings ?? []).slice(0, 30),
       };
     } catch (error) {
-      if (error instanceof GovernanceError) throw error;
-      throw new GovernanceError("PREVIEW_UNAVAILABLE", "Normalized preview could not be loaded.", 404);
+      if (error instanceof GovernanceError && error.code === "CANDIDATE_NOT_FOUND") throw error;
+      return {
+        candidateId: candidate.id,
+        documentTitle: candidate.documentTitle,
+        language: candidate.language,
+        contentType: candidate.contentType,
+        plainTextPreview: "",
+        truncated: false,
+        authors: [],
+        publicationDate: null,
+        publisher: null,
+        canonicalSourceLocator: null,
+        finalAcquiredLocator: null,
+        contentHash: candidate.normalizedContentHash,
+        headings: [],
+      };
     }
   }
 

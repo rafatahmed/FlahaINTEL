@@ -106,11 +106,6 @@ async function probeRuntimes() {
   const chromiumVersion = `path-ok bytes=${chromeStat.size} (version probe skipped on Windows)`;
   log("probe chromium", { path: chromium, bytes: chromeStat.size });
 
-  log("probe start", { step: "docling" });
-  const doclingPy = requireEnv("DOCLING_PYTHON");
-  const docling = await run(doclingPy, ["-c", "import docling; print('ok')"], { timeoutMs: 60_000 });
-  log("probe docling", { code: docling.code });
-
   log("probe start", { step: "java" });
   const java = requireEnv("JAVA_BIN");
   // java -version writes to stderr; code is often 0. Bound time tightly.
@@ -134,17 +129,18 @@ async function probeRuntimes() {
   // Java exit codes can be non-zero while still printing version on stderr.
   const javaReady =
     javaV.code === 0 || /version/i.test(`${javaV.stdout}\n${javaV.stderr}`);
+  const tikaReady = tikaHelp.code === 0 || /usage/i.test(tikaHelp.stdout + tikaHelp.stderr);
   report.runtimes = {
     scrapy: scrapy.stdout.trim() || scrapy.stderr.trim(),
     playwright: pw.stdout.trim() || pw.stderr.trim(),
     chromium: chromium,
     chromiumVersion,
-    docling: docling.stdout.trim(),
+    docling: "REJECTED",
     java: (javaV.stderr || javaV.stdout).split(/\r?\n/)[0] || "unknown",
-    tika: tikaHelp.code === 0 || /usage/i.test(tikaHelp.stdout + tikaHelp.stderr) ? "READY" : "FAIL",
+    tika: tikaReady ? "READY" : "FAIL",
     postgresqlClient: (pg.stdout || pg.stderr).trim(),
     artifactRoot: requireEnv("ARTIFACT_STORE_ROOT"),
-    READY: scrapy.code === 0 && pw.code === 0 && docling.code === 0 && javaReady && pg.code === 0,
+    READY: scrapy.code === 0 && pw.code === 0 && javaReady && tikaReady && pg.code === 0,
   };
   if (!report.runtimes.READY) throw new Error(`Runtime probes failed: ${JSON.stringify(report.runtimes)}`);
 }

@@ -11,7 +11,7 @@
  * Last modified: 2026-08-19
  */
 import { describe, expect, it } from "vitest";
-import { rollupOverall, type ComponentHealth } from "./readinessRollup.js";
+import { rollupOverall, scoreWorkerLoops, type ComponentHealth } from "./readinessRollup.js";
 
 function row(component: string, state: ComponentHealth["state"]): ComponentHealth {
   return { component, state, detail: "" };
@@ -34,7 +34,6 @@ describe("rollupOverall", () => {
         row("Scrapy", "NOT_CONFIGURED"),
         row("Playwright", "NOT_CONFIGURED"),
         row("Chromium", "NOT_CONFIGURED"),
-        row("Docling", "NOT_CONFIGURED"),
         row("Java", "NOT_CONFIGURED"),
         row("ApacheTika", "NOT_CONFIGURED"),
         row("WorkerLoops", "NOT_CONFIGURED"),
@@ -65,5 +64,21 @@ describe("rollupOverall", () => {
 
   it("degrades on serial pipeline overdue", () => {
     expect(rollupOverall([...healthyCore, row("WorkerLoops", "DEGRADED")])).toBe("DEGRADED");
+  });
+});
+
+describe("scoreWorkerLoops", () => {
+  it("treats local extract+normalize as READY without acquisition", () => {
+    const scored = scoreWorkerLoops(["normalization", "extraction", "extraction"], false);
+    expect(scored.state).toBe("READY");
+    expect(scored.detail).toContain("extraction");
+    expect(scored.detail).not.toContain("waiting");
+  });
+
+  it("does not require acquisition on a development host", () => {
+    expect(scoreWorkerLoops(["extraction"], false).state).toBe("DEGRADED");
+    expect(scoreWorkerLoops(["extraction"], false).detail).toContain("normalization");
+    expect(scoreWorkerLoops(["extraction", "normalization"], true).state).toBe("DEGRADED");
+    expect(scoreWorkerLoops(["extraction", "normalization"], true).detail).toContain("acquisition");
   });
 });

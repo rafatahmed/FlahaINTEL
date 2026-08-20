@@ -19,7 +19,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { FilesystemArtifactStore } from "@flaha-intel/artifact-store";
 import { getProductionConfig } from "../production/config.js";
 import { readWorkerHeartbeats } from "../production/workerHeartbeats.js";
-import { rollupOverall, type HealthState as RollupState } from "./readinessRollup.js";
+import { rollupOverall, scoreWorkerLoops, type HealthState as RollupState } from "./readinessRollup.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -162,9 +162,6 @@ export async function collectSystemReadiness(
   // Worker loops (file heartbeats)
   try {
     const hearts = await readWorkerHeartbeats(120_000);
-    const families = new Set(hearts.live.map(w => w.family));
-    const expected = ["acquisition", "extraction", "normalization"];
-    const missing = expected.filter(f => !families.has(f));
     const serial = (process.env.FLAHA_WORKER_MODE || "").trim().toLowerCase() === "serial";
     if (serial) {
       const pipelineHb = path.join(path.dirname(cfg.workerHeartbeatPath), "pipeline-heartbeat.json");
@@ -189,17 +186,7 @@ export async function collectSystemReadiness(
         });
       }
     } else {
-      components.push({
-        component: "WorkerLoops",
-        state: hearts.live.length === 0
-          ? "NOT_CONFIGURED"
-          : missing.length
-            ? "DEGRADED"
-            : "READY",
-        detail: hearts.live.length
-          ? `${hearts.live.length} live workers; missing families: ${missing.join(",") || "none"}.`
-          : "No worker heartbeats (workers may be stopped).",
-      });
+      components.push(scoreWorkerLoops(hearts.live.map((w) => w.family), cfg.isProduction));
     }
   } catch {
     components.push({ component: "WorkerLoops", state: "NOT_CONFIGURED", detail: "Heartbeat registry unavailable." });
@@ -262,14 +249,6 @@ export async function collectSystemReadiness(
   } else {
     components.push({ component: "Chromium", state: "NOT_CONFIGURED", detail: "Chromium path not configured." });
   }
-
-  const python = cfg.pythonBin || process.env.PYTHON_BIN || "python";
-  const docling = await tryExec(python, ["-c", "import docling; print('ok')"], Math.max(timeout, 4000));
-  components.push({
-    component: "Docling",
-    state: docling ? "READY" : "NOT_CONFIGURED",
-    detail: docling ? "Python docling import succeeded." : "Docling not importable on API host.",
-  });
 
   const java = cfg.javaBin || process.env.JAVA_BIN || "java";
   const javaOk = await tryExec(java, ["-version"], timeout);

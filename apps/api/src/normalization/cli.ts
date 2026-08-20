@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-20
  */
 import path from "node:path";
 import { FilesystemArtifactRepository, FilesystemArtifactStore } from "@flaha-intel/artifact-store";
@@ -45,7 +45,7 @@ const accepted = new Set([
 for (const key of Object.keys(args)) if (!accepted.has(key)) throw new Error(`Unsupported argument: ${key}`);
 
 const rootPath = path.resolve(import.meta.dirname, "../../../..");
-const artifactRoot = path.resolve(process.env.FLAHA_ARTIFACT_ROOT ?? path.join(rootPath, ".flaha-artifacts"));
+const artifactRoot = path.resolve(process.env.FLAHA_ARTIFACT_ROOT ?? process.env.ARTIFACT_STORE_ROOT ?? path.join(rootPath, ".flaha-artifacts-local"));
 const repository = new FilesystemArtifactRepository(artifactRoot);
 await repository.initialize();
 const store = new FilesystemArtifactStore(artifactRoot, repository);

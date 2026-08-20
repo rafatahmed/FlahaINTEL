@@ -8,7 +8,7 @@ Introduction: Defines the durable, offline routing boundary from canonical acqui
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-16
-Last modified: 2026-07-16
+Last modified: 2026-08-19
 -->
 
 # Phase 3I — Extraction Routing
@@ -17,7 +17,7 @@ Phase 3I connects immutable Phase 3H artifacts to Phase 3G durable jobs. Phase 3
 
 HTML routes accept stored `text/html` or XHTML only. The stdlib parser handles baseline text, links, and metadata; lxml and selectolax handle eligible structural extraction. No HTML worker fetches a URL. Trafilatura remains deferred.
 
-English PDFs route to Docling Slim for approved text, layout, section, table, and digital-text capabilities. Apache Tika is the governed compatible fallback and broad-format parser for PDF, DOCX, PPTX, RTF, and plain text. pypdf is restricted to inspection, metadata, annotation/action inventory, and embedded-artifact inventory. Arabic and bilingual authoritative PDF extraction remain unsupported and require analyst review; no provider is launched when Phase 3F finds no eligible provider.
+English PDFs, Word, RTF, and plain text route to Apache Tika for text extraction. Layout, section, and table capabilities have no provider. Docling is rejected and is not launched. Structured PDF later is MinerU under a new approved gate. pypdf is restricted to inspection, metadata, annotation/action inventory, and embedded-artifact inventory. PPTX remains unsupported. Arabic and bilingual authoritative PDF extraction remain unsupported and require analyst review; no provider is launched when Phase 3F finds no eligible provider.
 
 Each attempt re-verifies the promoted input's identity, immutable state, safe key, regular-file status, byte length, and SHA-256. Workers receive one canonical reference and preallocated staging keys. JSONL contains identities, limits, evidence, hashes, and sizes only. Workers have a deny-all network policy and cannot access Prisma or choose providers, retries, fallbacks, final keys, runtime arguments, models, or environment maps.
 

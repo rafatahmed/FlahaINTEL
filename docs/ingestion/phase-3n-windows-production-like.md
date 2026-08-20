@@ -10,7 +10,7 @@ production-like on a single Windows host after Phase 3M hardening.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-30
-Last modified: 2026-07-30
+Last modified: 2026-08-20
 -->
 
 # Phase 3N — Windows Production-Like Deployment
@@ -77,7 +77,7 @@ Backups under .flaha-backups / .flaha-backups-offhost (gitignored)
 | Node.js | ≥ 20 (verified 24.x acceptable) |
 | npm | Workspace install from repo root |
 | PostgreSQL | Local `flaha_intel` with migrations applied |
-| Python | Pinned Scrapy/Docling envs (benchmark-isolated) |
+| Python | Pinned Scrapy env (benchmark-isolated). Docling is not an operate runtime. |
 | Java | Pinned JRE for Tika |
 | Chromium | Playwright r1228 under ms-playwright |
 | PowerShell | 5.1+ for ops scripts |

@@ -154,6 +154,7 @@ describe("isolation and lifecycle", () => {
       expect(value.stderr).toContain("DATABASE_URL_PRESENT=0");
       expect(value.stderr).toContain("SECRET_PRESENT=0");
       expect(value.stderr).toContain("TEST_MARKER=allowed");
+      expect(value.stderr).not.toMatch(/postgresql:\/\/forbidden/);
     } finally {
       if (priorDatabase === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = priorDatabase;
       if (priorSecret === undefined) delete process.env.FLAHA_UNRELATED_SECRET; else process.env.FLAHA_UNRELATED_SECRET = priorSecret;

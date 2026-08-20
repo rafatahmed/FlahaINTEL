@@ -19,27 +19,32 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=@flaha-intel/api
+      - name: Package builds
+        run: npm run build:packages
       - name: Typecheck / API build
         run: npm run build --workspace=@flaha-intel/api
+      - name: Linux Vite native binding
+        run: npm i @rolldown/binding-linux-x64-gnu --no-save --no-fund --no-audit
       - name: Web build
         run: npm run build --workspace=@flaha-intel/web
-      - name: Package builds
-        run: |
-          npm run build --workspace=@flaha-intel/artifact-store
-          npm run build --workspace=@flaha-intel/worker-supervisor
-          npm run build --workspace=@flaha-intel/ingestion-provider-core
       - name: Prisma validate
         run: npm run prisma:validate --workspace=@flaha-intel/api
+        env:
+          DATABASE_URL: postgresql://postgres:ci@127.0.0.1:5432/flaha_intel
       - name: Migration folders present
         run: test -d apps/api/prisma/migrations && test -f apps/api/prisma/migrations/migration_lock.toml
       - name: Lockfile integrity
         run: npm ci --ignore-scripts --dry-run
-      - name: Unit / integration tests (API)
-        run: npm test --workspace=@flaha-intel/api
+      - name: Unit tests (API)
+        run: npm run test:unit --workspace=@flaha-intel/api
         env:
-          # Non-production auth so header-based tests continue to work
           AUTH_MODE: development
           NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:ci@127.0.0.1:5432/flaha_intel
+      - name: Web unit tests
+        run: npm run test:web
       - name: Secret scan (basic)
         run: |
           if grep -RInE '(FLAHA_SESSION_SECRET|DATABASE_URL)=["'\'']?(?!postgresql://postgres:<PASSWORD>)(?!REPLACE)[A-Za-z0-9+/=]{20,}' ops apps --include='*.md' --include='*.example' --include='*.env' 2>/dev/null; then

@@ -416,7 +416,7 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
         },
       });
       if (!job) throw new AppError(404, "JOB_NOT_FOUND", "Job was not found.");
-      // Redact lease tokens
+      // Redact lease tokens. byteSize is BigInt — Fastify JSON cannot serialize it.
       const attempts = job.attempts.map(a => ({
         ...a,
         leaseTokenHash: a.leaseTokenHash ? "[redacted]" : null,
@@ -424,7 +424,12 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
         requestEnvelope: undefined,
         resultEnvelope: a.resultEnvelope ? { present: true } : null,
       }));
-      return { ...job, attempts, requestEnvelope: { capability: job.requestedCapability, mediaType: job.mediaType } };
+      return {
+        ...job,
+        attempts,
+        artifacts: job.artifacts.map(a => ({ ...a, byteSize: a.byteSize.toString() })),
+        requestEnvelope: { capability: job.requestedCapability, mediaType: job.mediaType },
+      };
     });
 
     app.get<{ Params: { id: string } }>("/jobs/:id/attempts", {

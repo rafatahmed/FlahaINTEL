@@ -22,7 +22,7 @@ Last modified: 2026-08-19
 
 Always on: PostgreSQL + Fastify (loopback) + Caddy + RSS scheduler.  
 Serial (timer): one worker family at a time; daily `markets:harvest`.  
-Engines (installed, not daemons): Scrapy, Playwright/Chromium, Docling, Java/Tika under `/opt/flahaintel/runtimes`. Never five persistent worker loops.
+Engines (installed, not daemons): Scrapy, Playwright/Chromium, Java/Tika under `/opt/flahaintel/runtimes`. Never five persistent worker loops. Docling is not installed.
 
 **Updates and migrations:** `ops/runbooks/small-host-update-and-migrate.md` — do not re-run this installer on a live host.
 

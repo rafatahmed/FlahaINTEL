@@ -15,7 +15,6 @@ $pins = [ordered]@{
   scrapy = "2.17.0"
   playwright = "1.61.1"
   chromium = "r1228"
-  docling = "2.111.0-slim"
   tika = "3.3.1"
   java = "21.0.11+10"
   postgresqlClient = "17"
@@ -33,8 +32,8 @@ function Resolve-Existing([string[]]$candidates) {
 
 $paths = [ordered]@{
   PYTHON_BIN = Resolve-Existing @(
-    (Join-Path $RepoRoot ".benchmark-envs\document-docling-slim-2.111.0-py314\Scripts\python.exe"),
-    "C:\Python314\python.exe"
+    "C:\Python314\python.exe",
+    (Join-Path $RepoRoot ".benchmark-runtime\crawler-scrapy-2.17.0\Scripts\python.exe")
   )
   SCRAPY_PYTHON = Resolve-Existing @(
     (Join-Path $RepoRoot ".benchmark-runtime\crawler-scrapy-2.17.0\Scripts\python.exe"),
@@ -49,12 +48,6 @@ $paths = [ordered]@{
     "$env:USERPROFILE\AppData\Local\ms-playwright\chromium-1228\chrome-win\chrome.exe",
     "$env:USERPROFILE\AppData\Local\ms-playwright\chromium_headless_shell-1228\chrome-headless-shell-win64\chrome-headless-shell.exe"
   )
-  DOCLING_PYTHON = Resolve-Existing @(
-    (Join-Path $RepoRoot ".benchmark-envs\document-docling-slim-2.111.0-py314\Scripts\python.exe")
-  )
-  DOCLING_CACHE_PATH = Resolve-Existing @(
-    (Join-Path $RepoRoot ".benchmark-models\document-docling-slim-2.111.0")
-  )
   JAVA_BIN = Resolve-Existing @(
     (Join-Path $RepoRoot ".benchmark-runtime\document-tika-3.3.1\jre\jdk-21.0.11+10-jre\bin\java.exe")
   )
@@ -68,7 +61,7 @@ $paths = [ordered]@{
     "C:\Program Files\PostgreSQL\17\bin",
     "C:\Program Files\PostgreSQL\16\bin"
   )
-  ARTIFACT_STORE_ROOT = if ($env:ARTIFACT_STORE_ROOT) { $env:ARTIFACT_STORE_ROOT } else { Join-Path $RepoRoot ".flaha-artifacts-prod" }
+  ARTIFACT_STORE_ROOT = if ($env:ARTIFACT_STORE_ROOT) { $env:ARTIFACT_STORE_ROOT } elseif ($env:FLAHA_ARTIFACT_ROOT) { $env:FLAHA_ARTIFACT_ROOT } else { Join-Path $RepoRoot ".flaha-artifacts-local" }
 }
 
 # Expand chromium wildcard if needed
@@ -136,16 +129,6 @@ if ($paths.PLAYWRIGHT_CHROMIUM_PATH) {
     $len = (Get-Item $p).Length
     if ($len -lt 10000) { throw "chromium binary too small" }
     return "path=$p bytes=$len revision=r1228"
-  }
-}
-if ($paths.DOCLING_PYTHON) {
-  Probe "docling" { & $paths.DOCLING_PYTHON -c "import docling; print('docling-import-ok')" }
-}
-if ($paths.DOCLING_CACHE_PATH) {
-  Probe "docling-models" {
-    $bytes = (Get-ChildItem $paths.DOCLING_CACHE_PATH -Recurse -File | Measure-Object Length -Sum).Sum
-    if ($bytes -lt 1000000) { throw "model cache too small: $bytes" }
-    return "bytes=$bytes path=$($paths.DOCLING_CACHE_PATH)"
   }
 }
 if ($paths.JAVA_BIN) {

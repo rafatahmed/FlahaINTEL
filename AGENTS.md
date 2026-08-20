@@ -88,6 +88,7 @@ All newly created human-authored files must follow `docs/standards/source-file-h
 5. **RSS fingerprint and collection accounting semantics** remain the compatibility baseline until a dedicated parity gate.
 6. Production API binds **loopback only**; reverse proxy terminates TLS.
 7. No unrestricted crawling, automatic publication, embeddings, AI classification/summarization, OCR, or PPTX processing without a new approved phase.
+8. **Document text extraction is Apache Tika only** (PDF, DOCX, RTF, TXT). `document.docling-slim` is rejected and must not be re-added. Layout/table/section extraction has no provider. Structured PDF later is **MinerU** under a new approved gate — do not implement MinerU until that gate exists. pypdf remains inspection-only. Arabic/bilingual authoritative PDF remains unsupported.
 
 ## Current verified status (RSS MVP)
 
@@ -223,6 +224,8 @@ Additional migrations in the Phase 3 lineage include durable ingestion jobs, gov
 - Unrestricted crawling; automatic publication
 - Embeddings, semantic search, AI summarization/classification
 - OCR (3E-I deferred); PPTX processing
+- Docling (rejected); do not re-home it
+- MinerU / structured PDF until a dedicated approved gate
 - Authoritative Arabic/bilingual PDF extraction as a supported path
 - Public self-service onboarding, billing, multi-host HA
 

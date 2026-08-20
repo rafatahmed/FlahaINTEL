@@ -161,7 +161,7 @@ for (const job of ready) {
         outcome: "SUCCESS",
         engine: "pdf-parse-lite",
         charCount: text.length,
-        warnings: ["no Docling layout"],
+        warnings: ["text only, no layout extractor"],
       }),
       "utf8",
     );
@@ -231,7 +231,7 @@ for (const job of ready) {
       capability: "DOCUMENT_TEXT_EXTRACTION",
       executionId: claim.attempt.id,
       requestId: envelope.requestId || `extraction.lite.${job.id}`,
-      warnings: ["eyes-pdf-lite: text extracted with pdf-parse (no Docling layout)"],
+      warnings: ["eyes-pdf-lite: text extracted with pdf-parse"],
       metrics: {
         startupDurationMs: 0,
         executionDurationMs: 50,
@@ -299,9 +299,6 @@ for (const job of ready) {
           id: "eyes-pdf-lite-norm",
           correlationId: sub.correlationId,
         });
-        if (!r?.worked && r?.outcome !== "CLAIMED" && !(r as { outcome?: string })?.outcome) {
-          // continue even if shape differs
-        }
         if (!r) break;
         advanced = await orchestrator.advanceUntilBlocked(actorCtx, sub.id);
       }

@@ -71,7 +71,7 @@ for (const job of jobs) {
   const owner = { jobId: job.id, attemptId: attempt.id };
   const rels = new Set(job.artifacts.map((a) => a.relationship));
 
-  if (!rels.has("RESULT") && !rels.has("OUTPUT")) {
+  if (!rels.has("RESULT")) {
     const result = await promoteBuf(
       owner,
       Buffer.from(JSON.stringify({ outcome: "SUCCESS", engine: "pdf-parse-lite" }), "utf8"),
@@ -89,7 +89,7 @@ for (const job of jobs) {
       },
     });
   }
-  if (!rels.has("METADATA") && !rels.has("MANIFEST")) {
+  if (!rels.has("METADATA")) {
     const meta = await promoteBuf(
       owner,
       Buffer.from(JSON.stringify({ engine: "pdf-parse-lite" }), "utf8"),
