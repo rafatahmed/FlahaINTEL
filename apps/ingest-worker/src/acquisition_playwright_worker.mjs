@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 import { createHash } from "node:crypto";
 import { lstat, open } from "node:fs/promises";
@@ -38,7 +38,7 @@ async function writeAllocation(role,bytes){
 try{
   if(request.operation!=="BROWSER_ACQUISITION"||payload.operation!==request.operation||request.provider.providerId!=="acquisition.playwright"||!["JAVASCRIPT_RENDERING","RENDERED_DOM_CAPTURE"].includes(payload.capability))throw new Error("closed operation authority mismatch");
   emit({...ctx("WORKER_PROGRESS",0),occurredAt:request.sentAt,stage:"PROBE",status:"STARTED",completedUnits:0,totalUnits:1,unit:"STEPS",metrics});
-  const l=payload.governedLocator,url=`${l.scheme}://${l.host}:${l.port}${l.relativeRoute}`,origin=new URL(url);const allowed=value=>{try{const u=new URL(value);return u.protocol===origin.protocol&&u.hostname===origin.hostname&&u.port===origin.port&&!u.username&&!u.password}catch{return false}};
+  const l=payload.governedLocator;const url=(l.scheme==="https"&&l.port===443)||(l.scheme==="http"&&l.port===80)?`${l.scheme}://${l.host}${l.relativeRoute}`:`${l.scheme}://${l.host}:${l.port}${l.relativeRoute}`;const origin=new URL(url);const effectivePort=u=>u.port||(u.protocol==="https:"?"443":u.protocol==="http:"?"80":"");const allowed=value=>{try{const u=new URL(value);return u.protocol===origin.protocol&&u.hostname.toLowerCase()===origin.hostname.toLowerCase()&&effectivePort(u)===effectivePort(origin)&&!u.username&&!u.password}catch{return false}};
   const launchOpts={headless:true,args:["--disable-extensions","--disable-webrtc","--no-sandbox","--disable-dev-shm-usage"]};
   if(process.env.PLAYWRIGHT_CHROMIUM_PATH) launchOpts.executablePath=process.env.PLAYWRIGHT_CHROMIUM_PATH;
   browser=await playwright.chromium.launch(launchOpts);const context=await browser.newContext({acceptDownloads:false,serviceWorkers:"block",permissions:[]});const page=await context.newPage(),network=[],downloads=[],popups=[];

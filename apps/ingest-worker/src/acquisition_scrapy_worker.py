@@ -9,12 +9,13 @@ Executes one closed Scrapy operation through the bounded worker JSONL protocol.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-16
-Last modified: 2026-07-16
+Last modified: 2026-08-21
 """
 import hashlib, json, os, stat, sys
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin
 import scrapy
 from scrapy.crawler import CrawlerProcess
+from acquisition_origin import public_url, same_origin
 
 def emit(value):
     print(json.dumps(value,separators=(",",":")),flush=True)
@@ -32,8 +33,8 @@ class ExactOriginMiddleware:
     @classmethod
     def from_crawler(cls,crawler): return cls(crawler)
     def process_request(self,request,spider):
-        value,origin=urlsplit(request.url),urlsplit(self.origin)
-        if value.scheme!=origin.scheme or value.hostname!=origin.hostname or value.port!=origin.port or value.username or value.password: raise scrapy.exceptions.IgnoreRequest("NETWORK_POLICY_VIOLATION")
+        if not same_origin(request.url,self.origin):
+            raise scrapy.exceptions.IgnoreRequest("NETWORK_POLICY_VIOLATION")
 class OneShotSpider(scrapy.Spider):
     name="flaha_acquisition"
     def __init__(self,value,output,**kwargs): super().__init__(**kwargs);self.value=value;self.output=output;self.result=None
@@ -42,21 +43,36 @@ class OneShotSpider(scrapy.Spider):
         links=[]
         if self.value["capability"] in ("CONTROLLED_CRAWLING","LINK_DISCOVERY"):
             for href in response.css("a::attr(href)").getall()[:self.value["limits"]["maxUrls"]]:
-                target=urljoin(response.url,href);a,o=urlsplit(target),urlsplit(self.value["origin"])
-                if (a.scheme,a.hostname,a.port)==(o.scheme,o.hostname,o.port): links.append(target)
+                target=urljoin(response.url,href)
+                if same_origin(target,self.value["origin"]): links.append(target)
         self.result={"status":response.status,"finalUrl":response.url,"redirectChain":response.meta.get("redirect_urls",[]),"headers":{k.decode("latin1"):b", ".join(v).decode("latin1") for k,v in response.headers.items()},"discoveredLinks":sorted(set(links)),"networkInventory":[{"url":u,"classification":"ALLOWED"} for u in [*response.meta.get("redirect_urls",[]),response.url]],"downloads":[],"popups":[],"robotsDecision":"ALLOW","body":bytes(response.body)}
-    def failed(self,failure): self.result={"failure":failure.value.__class__.__name__}
+    def failed(self,failure):
+        err=failure.value
+        name=err.__class__.__name__
+        detail=str(err).strip()
+        url=getattr(getattr(failure,"request",None),"url","")
+        if name=="IgnoreRequest" and "NETWORK_POLICY_VIOLATION" in detail:
+            self.result={"failure":"NETWORK_POLICY_VIOLATION","message":f"Redirect or extra request left the submitted origin ({url}). Paste the final https URL (including www if the site uses it)."}
+            return
+        if name=="IgnoreRequest":
+            self.result={"failure":"ROBOTS_DENIED","message":"This site's robots.txt does not allow FlahaINTEL to fetch that URL. Paste a URL the publisher allows."}
+            return
+        self.result={"failure":name,"message":(detail or name)[:512]}
     def closed(self,reason): self.output.append(self.result or {"failure":reason})
 def main():
     try:
         request=json.loads(sys.stdin.buffer.readline(1_048_577)); payload=request["payload"]
         if request["operation"]!="STATIC_ACQUISITION" or payload["operation"]!=request["operation"] or request["provider"]["providerId"]!="acquisition.scrapy": raise ValueError("closed operation authority mismatch")
-        locator,limits=payload["governedLocator"],payload["executionLimits"];url=f'{locator["scheme"]}://{locator["host"]}:{locator["port"]}{locator["relativeRoute"]}';origin=f'{locator["scheme"]}://{locator["host"]}:{locator["port"]}'
+        locator,limits=payload["governedLocator"],payload["executionLimits"];url=public_url(locator["scheme"],locator["host"],locator["port"],locator["relativeRoute"]);origin=public_url(locator["scheme"],locator["host"],locator["port"],"")
         emit({**context(request,"WORKER_PROGRESS",0),"occurredAt":request["sentAt"],"stage":"PROBE","status":"STARTED","completedUnits":0,"totalUnits":1,"unit":"STEPS","metrics":metrics()})
         if "dynamic-required" in locator["relativeRoute"]: emit(terminal(request,"FAILED",code="DYNAMIC_RENDER_REQUIRED",message="Static response requires a separately governed browser job.",retryable=False));return 0
         output=[];settings={"FLAHA_ORIGIN":origin,"TELNETCONSOLE_ENABLED":False,"LOG_ENABLED":False,"ROBOTSTXT_OBEY":True,"USER_AGENT":"FlahaINTEL/3H","CONCURRENT_REQUESTS":1,"DOWNLOAD_TIMEOUT":max(1,limits["wallTimeoutMs"]//1000),"DOWNLOAD_MAXSIZE":limits["maxResponseBytes"],"REDIRECT_MAX_TIMES":limits["maxRedirects"],"RETRY_TIMES":0,"DEPTH_LIMIT":limits["maxDepth"],"CLOSESPIDER_PAGECOUNT":limits["maxUrls"],"DOWNLOADER_MIDDLEWARES":{"__main__.ExactOriginMiddleware":50}}
         process=CrawlerProcess(settings);process.crawl(OneShotSpider,value={"url":url,"origin":origin,"limits":limits,"capability":payload["capability"]},output=output);process.start()
-        if output[0].get("failure"): emit(terminal(request,"FAILED",code="PROVIDER_EXECUTION_FAILURE",message=output[0]["failure"],retryable=True))
+        if output[0].get("failure"):
+            code=output[0]["failure"]
+            message=output[0].get("message") or code
+            known={"NETWORK_POLICY_VIOLATION","ROBOTS_DENIED","DYNAMIC_RENDER_REQUIRED"}
+            emit(terminal(request,"FAILED",code=code if code in known else "PROVIDER_EXECUTION_FAILURE",message=message[:512],retryable=code not in known))
         else:
             evidence=output[0];body=evidence.pop("body");allocation_by_role={value["role"]:value for value in payload["artifactAllocations"]}
             def write(role,data):

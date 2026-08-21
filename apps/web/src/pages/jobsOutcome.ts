@@ -90,6 +90,15 @@ export function explainExtractorError(raw: string): string {
   if (lower.includes("timed out") || lower.includes("timeout")) {
     return "The extractor ran out of time.";
   }
+  if (lower.includes("ignorerequest") || lower.includes("robots_denied") || lower.includes("robots.txt")) {
+    return "The site blocked this fetch (robots.txt or a request Scrapy ignored). Paste a URL the publisher allows, or the final https address including www if the site redirects there.";
+  }
+  if (lower.includes("network_policy") || lower.includes("left the submitted origin")) {
+    return "The page redirected off the exact URL origin you submitted (www vs apex, or http vs https). Paste the final address from the browser bar.";
+  }
+  if (lower.includes("governed verification") || lower.includes("provider_output_invalid") || lower.includes("provider_contract")) {
+    return "The fetch ran but the result did not pass the artifact checks. Submit the same URL again; this is not a waiting queue.";
+  }
   return text.replace(/PosixPath\((['"])(.*?)\1\)/g, "$2").slice(0, 280);
 }
 
@@ -144,7 +153,9 @@ export function jobOutcomeSummary(job: JobRecord): { severity: "success" | "warn
   const wait = state === "RETRY_WAIT"
     ? ` Next try: ${next}.`
     : state === "DEAD_LETTER" || state === "FAILED"
-      ? " This job will not retry. Submit the file again after the runtime is fixed."
+      ? String(job.requestedCapability || "").includes("ACQUISITION")
+        ? " This fetch will not retry by itself. Submit the page again with the final public URL."
+        : " This job will not retry. Submit the file again after the runtime is fixed."
       : "";
   return {
     severity: state === "DEAD_LETTER" || state === "FAILED" ? "error" : "warning",

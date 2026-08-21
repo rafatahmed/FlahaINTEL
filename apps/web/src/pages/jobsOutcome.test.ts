@@ -40,6 +40,8 @@ describe("jobOutcomeSummary", () => {
     expect(explainExtractorError("TIKA_RUNTIME_MISSING missing=/opt/tika.jar")).toContain("jar or allowlist");
     expect(explainExtractorError("TIKA_PARSE_FAILURE exit=1 jar=/opt/tika.jar")).toContain("could not extract this file");
     expect(explainExtractorError("Worker has no adapter for document.docling-slim.")).toContain("cannot run the selected extractor");
+    expect(explainExtractorError("IgnoreRequest")).toMatch(/robots\.txt|publisher allows/i);
+    expect(explainExtractorError("Redirect or extra request left the submitted origin")).toMatch(/final address/i);
     expect(jobStateLabel("DEAD_LETTER")).toBe("Stopped");
   });
 
