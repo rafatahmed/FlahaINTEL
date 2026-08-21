@@ -100,5 +100,6 @@ describe("scoreSerialPipeline", () => {
     const scored = scoreSerialPipeline(null, null, 48_000, 2, false);
     expect(scored.state).toBe("DEGRADED");
     expect(scored.detail).toMatch(/claimable/i);
+    expect(scored.detail).toMatch(/oneshot|pipeline/i);
   });
 });

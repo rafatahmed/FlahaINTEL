@@ -125,6 +125,7 @@ step_user_dirs() {
     useradd --system --home /var/lib/flahaintel --shell /usr/sbin/nologin flahaintel
   fi
   mkdir -p "${INSTALL_ROOT}" /var/lib/flahaintel/{artifacts,state,web,backups,intakes} /var/log/flahaintel /etc/flahaintel
+  touch /var/lib/flahaintel/state/pipeline-kick
   chown -R flahaintel:flahaintel /var/lib/flahaintel /var/log/flahaintel
 }
 
@@ -322,6 +323,7 @@ step_systemd() {
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-api.service" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline.service" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline.timer" /etc/systemd/system/
+  cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline.path" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-harvest.service" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-harvest.timer" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-backup.service" /etc/systemd/system/
@@ -334,6 +336,7 @@ step_systemd() {
   fi
   systemctl daemon-reload
   systemctl enable --now flahaintel-api.service
+  systemctl enable --now flahaintel-pipeline.path
   systemctl enable --now flahaintel-pipeline.timer
   systemctl enable --now flahaintel-harvest.timer
   systemctl enable --now flahaintel-backup.timer

@@ -1,3 +1,4 @@
-# FlahaINTEL — flahaintel may start the serial pipeline oneshot without waiting.
+# Leftover. The API unit sets NoNewPrivileges=true, so sudo cannot start the pipeline.
+# Canonical kick: touch /var/lib/flahaintel/state/pipeline-kick (flahaintel-pipeline.path).
 # Install: cp to /etc/sudoers.d/flahaintel-pipeline-kick && chmod 440 && visudo -c
 flahaintel ALL=(root) NOPASSWD: /usr/bin/systemctl start --no-block flahaintel-pipeline.service

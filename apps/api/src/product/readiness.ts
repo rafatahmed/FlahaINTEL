@@ -18,6 +18,7 @@ import { promisify } from "node:util";
 import type { PrismaClient } from "@prisma/client";
 import type { FilesystemArtifactStore } from "@flaha-intel/artifact-store";
 import { getProductionConfig } from "../production/config.js";
+import { isPipelineKickConfigured, maybeKickIdleSerialPipeline } from "../production/pipelineKick.js";
 import { readWorkerHeartbeats } from "../production/workerHeartbeats.js";
 import { rollupOverall, scoreSerialPipeline, scoreWorkerLoops, type HealthState as RollupState, type SerialPipelineHeartbeat } from "./readinessRollup.js";
 
@@ -173,6 +174,13 @@ export async function collectSystemReadiness(
         },
       }).catch(() => 0);
       const pipelineLive = hearts.live.length > 0;
+      maybeKickIdleSerialPipeline({
+        mode: "serial",
+        kickConfigured: isPipelineKickConfigured(),
+        claimableCount,
+        liveFamilies: hearts.live.map((w) => w.family),
+        runningJobs: pipelineLive ? [{}] : [],
+      });
       try {
         const st = await stat(pipelineHb);
         const ageMs = Date.now() - st.mtimeMs;

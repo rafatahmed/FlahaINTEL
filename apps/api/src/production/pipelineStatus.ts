@@ -21,6 +21,7 @@ import {
   type JobWaitExplanation,
   type PipelineSnapshot,
 } from "./pipelineContext.js";
+import { isPipelineKickConfigured, maybeKickIdleSerialPipeline } from "./pipelineKick.js";
 import { readWorkerHeartbeats } from "./workerHeartbeats.js";
 import type { WorkerFamily } from "./workerLoop.js";
 
@@ -90,7 +91,7 @@ export async function collectPipelineSnapshot(db: PrismaClient): Promise<Pipelin
   }
   return {
     mode: serial ? "serial" : "loops",
-    kickConfigured: Boolean(process.env.FLAHA_PIPELINE_KICK_CMD?.trim()),
+    kickConfigured: isPipelineKickConfigured(),
     liveFamilies: [...new Set((hearts.live ?? []).map((w) => w.family))],
     runningJobs: running.map((j) => ({ id: j.id, capability: j.requestedCapability, state: j.state })),
     claimableCount,
@@ -107,6 +108,7 @@ export async function attachJobWaits(
   waits: Map<string, JobWaitExplanation>;
 }> {
   const snapshot = await collectPipelineSnapshot(db);
+  maybeKickIdleSerialPipeline(snapshot);
   const ids = jobs.map((j) => j.id);
   const submissions = ids.length
     ? await db.productSubmission.findMany({

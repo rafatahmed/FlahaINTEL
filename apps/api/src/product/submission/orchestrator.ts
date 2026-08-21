@@ -118,6 +118,9 @@ export class SubmissionOrchestrator {
     const existing = await this.db.productSubmission.findUnique({ where: { idempotencyKey: command.idempotencyKey } });
     if (existing) {
       if (existing.tenantId !== actor.tenantId) throw new ProductError("IDEMPOTENCY_CONFLICT", "Idempotency key belongs to another tenant.", 409);
+      if (!["SUCCEEDED", "FAILED", "CANCELLED", "REJECTED"].includes(existing.overallStatus)) {
+        kickSerialPipeline();
+      }
       return existing;
     }
 
@@ -217,6 +220,9 @@ export class SubmissionOrchestrator {
     const existing = await this.db.productSubmission.findUnique({ where: { idempotencyKey: meta.idempotencyKey } });
     if (existing) {
       if (existing.tenantId !== actor.tenantId) throw new ProductError("IDEMPOTENCY_CONFLICT", "Idempotency key belongs to another tenant.", 409);
+      if (!["SUCCEEDED", "FAILED", "CANCELLED", "REJECTED"].includes(existing.overallStatus)) {
+        kickSerialPipeline();
+      }
       return existing;
     }
 

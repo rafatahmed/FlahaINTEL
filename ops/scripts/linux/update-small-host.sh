@@ -83,16 +83,21 @@ fi
 echo "==== systemd ===="
 cp "${CURRENT}/ops/systemd/small-host/"*.service /etc/systemd/system/ || true
 cp "${CURRENT}/ops/systemd/small-host/"*.timer /etc/systemd/system/ || true
+cp "${CURRENT}/ops/systemd/small-host/"*.path /etc/systemd/system/ || true
 if [[ -f "${CURRENT}/ops/sudoers/flahaintel-pipeline-kick" ]]; then
   cp "${CURRENT}/ops/sudoers/flahaintel-pipeline-kick" /etc/sudoers.d/flahaintel-pipeline-kick
   sed -i 's/\r$//' /etc/sudoers.d/flahaintel-pipeline-kick
   chmod 440 /etc/sudoers.d/flahaintel-pipeline-kick
   visudo -c >/dev/null
 fi
-if [[ -f /etc/flahaintel/production.env ]] && ! grep -q '^FLAHA_PIPELINE_KICK_CMD=' /etc/flahaintel/production.env; then
-  echo 'FLAHA_PIPELINE_KICK_CMD=sudo -n /usr/bin/systemctl start --no-block flahaintel-pipeline.service' >> /etc/flahaintel/production.env
+if [[ -f /etc/flahaintel/production.env ]] && ! grep -q '^FLAHA_PIPELINE_KICK_FILE=' /etc/flahaintel/production.env; then
+  echo 'FLAHA_PIPELINE_KICK_FILE=/var/lib/flahaintel/state/pipeline-kick' >> /etc/flahaintel/production.env
 fi
+mkdir -p /var/lib/flahaintel/state
+touch /var/lib/flahaintel/state/pipeline-kick
+chown flahaintel:flahaintel /var/lib/flahaintel/state/pipeline-kick
 systemctl daemon-reload
+systemctl enable --now flahaintel-pipeline.path || true
 systemctl restart flahaintel-pipeline.timer || true
 systemctl restart flahaintel-api
 systemctl stop flahaintel-pipeline.service || true
