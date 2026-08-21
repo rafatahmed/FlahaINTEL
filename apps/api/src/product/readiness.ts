@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 
 import { access, constants, readFile, readdir, stat, statfs } from "node:fs/promises";
@@ -161,11 +161,18 @@ export async function collectSystemReadiness(
 
   // Worker loops (file heartbeats)
   try {
-    const hearts = await readWorkerHeartbeats(120_000);
+    const hearts = await readWorkerHeartbeats(cfg.workerIdleBackoffMs * 2);
     const serial = (process.env.FLAHA_WORKER_MODE || "").trim().toLowerCase() === "serial";
     if (serial) {
       const pipelineHb = path.join(path.dirname(cfg.workerHeartbeatPath), "pipeline-heartbeat.json");
-      const staleMs = Number(process.env.FLAHA_PIPELINE_STALE_MS || 2_700_000);
+      const staleMs = cfg.workerIdleBackoffMs * 6;
+      const claimableCount = await db.ingestionJob.count({
+        where: {
+          state: { in: ["READY", "RETRY_WAIT"] },
+          OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: new Date() } }],
+        },
+      }).catch(() => 0);
+      const pipelineLive = hearts.live.length > 0;
       try {
         const st = await stat(pipelineHb);
         const ageMs = Date.now() - st.mtimeMs;
@@ -175,9 +182,9 @@ export async function collectSystemReadiness(
         } catch {
           parsed = {};
         }
-        components.push(scoreSerialPipeline(parsed, ageMs, staleMs));
+        components.push(scoreSerialPipeline(parsed, ageMs, staleMs, claimableCount, pipelineLive));
       } catch {
-        components.push(scoreSerialPipeline(null, null, staleMs));
+        components.push(scoreSerialPipeline(null, null, staleMs, claimableCount, pipelineLive));
       }
     } else {
       components.push(scoreWorkerLoops(hearts.live.map((w) => w.family), cfg.isProduction));

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 
 import path from "node:path";
@@ -26,13 +26,31 @@ import { SubmissionOrchestrator } from "../../product/submission/orchestrator.js
 import { assertSafeToStart, loadProductionConfig } from "../config.js";
 import { runWorkerLoop, type WorkerFamily } from "../workerLoop.js";
 import { resolvePython, resolveScrapyPython } from "../runtimeBins.js";
+import { selectNextWorkerFamily } from "../pipelineStatus.js";
 
-const family = (process.argv[2] || "") as WorkerFamily;
+const familyArg = process.argv[2] || "";
 const allowed: WorkerFamily[] = ["acquisition", "extraction", "normalization", "submission-advance", "stale-recovery"];
-if (!allowed.includes(family)) {
-  console.error(JSON.stringify({ error: "USAGE", message: `worker family required: ${allowed.join("|")}` }));
+if (familyArg === "next-family") {
+  const cfg = loadProductionConfig();
+  assertSafeToStart(cfg);
+  selectNextWorkerFamily(prisma)
+    .then((next) => {
+      process.stdout.write(`${JSON.stringify(next)}\n`);
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error(JSON.stringify({ error: "NEXT_FAMILY_FAILED", message: String(error).slice(0, 500) }));
+      process.exit(1);
+    })
+    .finally(() => {
+      void prisma.$disconnect();
+    });
+} else if (!allowed.includes(familyArg as WorkerFamily)) {
+  console.error(JSON.stringify({ error: "USAGE", message: `worker family required: ${[...allowed, "next-family"].join("|")}` }));
   process.exit(2);
 }
+
+const family = familyArg as WorkerFamily;
 
 async function main(): Promise<void> {
   const cfg = loadProductionConfig();
@@ -110,7 +128,7 @@ async function main(): Promise<void> {
         overallStatus: { in: ["RUNNING", "ACCEPTED", "WAITING_MANUAL"] },
       },
       orderBy: { updatedAt: "asc" },
-      take: 5,
+      take: cfg.workerMaxJobs,
       select: { id: true, tenantId: true, createdById: true },
     });
     if (!pending.length) return { worked: false as const, outcome: "IDLE" };
@@ -167,9 +185,11 @@ async function main(): Promise<void> {
   }
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(JSON.stringify({ error: "WORKER_FATAL", message: String(error).slice(0, 500) }));
-    process.exit(1);
-  });
+if (familyArg !== "next-family") {
+  main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(JSON.stringify({ error: "WORKER_FATAL", message: String(error).slice(0, 500) }));
+      process.exit(1);
+    });
+}

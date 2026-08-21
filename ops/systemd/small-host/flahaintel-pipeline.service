@@ -3,7 +3,7 @@
 # Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
 #
 # Title: FlahaINTEL serial pipeline oneshot (small host)
-# Introduction: Runs acquisition → extract → normalize → advance → recovery one family at a time.
+# Introduction: Drains claimable jobs one heavy runtime at a time; next stage of the same item is not held behind unrelated fetches.
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19

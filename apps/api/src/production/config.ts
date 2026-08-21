@@ -8,10 +8,11 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-21
  */
 
 import path from "node:path";
+import { DEFAULT_EXECUTION_LIMITS } from "@flaha-intel/ingestion-provider-core";
 
 export class ProductionConfigError extends Error {
   constructor(message: string) {
@@ -62,6 +63,9 @@ export type ProductionConfig = {
   workerIdleBackoffMs: number;
   workerMaxJobs: number;
   workerShutdownMs: number;
+  defaultLanguageHint: string;
+  extractionWallTimeoutMs: number;
+  extractionStartupTimeoutMs: number;
   rateLimitLoginPerMinute: number;
   rateLimitSubmissionsPerUserHour: number;
   rateLimitSubmissionsPerTenantHour: number;
@@ -233,6 +237,21 @@ export function loadProductionConfig(env: NodeJS.ProcessEnv = process.env): Prod
     workerIdleBackoffMs: integer(env, "WORKER_IDLE_BACKOFF_MS", 5_000, 500, 120_000),
     workerMaxJobs: integer(env, "WORKER_MAX_JOBS", 100, 1, 10_000),
     workerShutdownMs: integer(env, "WORKER_SHUTDOWN_MS", 30_000, 1_000, 300_000),
+    defaultLanguageHint: (env.FLAHA_DEFAULT_LANGUAGE_HINT?.trim() || "en").slice(0, 16),
+    extractionWallTimeoutMs: integer(
+      env,
+      "EXTRACTION_WALL_TIMEOUT_MS",
+      DEFAULT_EXECUTION_LIMITS.wallTimeoutMs,
+      1_000,
+      3_600_000,
+    ),
+    extractionStartupTimeoutMs: integer(
+      env,
+      "EXTRACTION_STARTUP_TIMEOUT_MS",
+      DEFAULT_EXECUTION_LIMITS.startupTimeoutMs,
+      1_000,
+      300_000,
+    ),
     rateLimitLoginPerMinute: integer(env, "RATE_LIMIT_LOGIN_PER_MINUTE", 10, 1, 1_000),
     rateLimitSubmissionsPerUserHour: integer(env, "RATE_LIMIT_SUBMISSIONS_PER_USER_HOUR", 30, 1, 10_000),
     rateLimitSubmissionsPerTenantHour: integer(env, "RATE_LIMIT_SUBMISSIONS_PER_TENANT_HOUR", 200, 1, 100_000),

@@ -41,6 +41,8 @@ import { assertPermission } from "../product/auth.js";
 import { assertWebsiteUrlIfEnforced } from "../production/crawlPolicy.js";
 import { ProductError } from "../product/errors.js";
 import { SubmissionOrchestrator } from "../product/submission/orchestrator.js";
+import { getProductionConfig } from "../production/config.js";
+import { attachJobWaits } from "../production/pipelineStatus.js";
 import { PROMOTABLE_CLASSES } from "./contracts.js";
 
 export class IntakeError extends Error {
@@ -149,13 +151,27 @@ export class EvidenceIntakeService {
     }
 
     let extractionJobState: string | null = null;
+    const jobIds = [sub.acquisitionJobId, sub.extractionJobId, sub.normalizationJobId].filter(Boolean) as string[];
+    const stageJobs = jobIds.length
+      ? await this.db.ingestionJob.findMany({
+          where: { id: { in: jobIds } },
+          select: { id: true, state: true, attemptCount: true, requestedCapability: true, nextAttemptAt: true },
+        })
+      : [];
     if (sub.extractionJobId) {
-      const job = await this.db.ingestionJob.findUnique({
-        where: { id: sub.extractionJobId },
-        select: { state: true, attemptCount: true },
-      });
+      const job = stageJobs.find((j) => j.id === sub.extractionJobId);
       extractionJobState = job ? `${job.state} (attempts ${job.attemptCount})` : null;
     }
+    const { pipeline: hostPipeline, waits } = await attachJobWaits(this.db, stageJobs);
+    const currentJobId =
+      sub.currentStage === "ACQUISITION"
+        ? sub.acquisitionJobId
+        : sub.currentStage === "EXTRACTION"
+          ? sub.extractionJobId
+          : sub.currentStage === "NORMALIZATION"
+            ? sub.normalizationJobId
+            : null;
+    const wait = currentJobId ? waits.get(currentJobId) : undefined;
 
     const finished =
       sub.overallStatus === "SUCCEEDED" ||
@@ -173,6 +189,8 @@ export class EvidenceIntakeService {
       governanceCandidateId: sub.governanceCandidateId,
       extractionJobState,
       finished,
+      wait: wait ?? null,
+      host: hostPipeline,
       stages: sub.stages.map((s) => ({
         stageKind: s.stageKind,
         status: s.status,
@@ -182,7 +200,7 @@ export class EvidenceIntakeService {
         ? sub.governanceCandidateId
           ? "Pipeline finished — open Content / Governance for the candidate."
           : `Pipeline ${sub.overallStatus} at ${sub.currentStage}.`
-        : "Accepted. Waiting to start the next step. The host processes one item at a time.",
+        : wait?.detail || hostPipeline.operatorNote,
     };
 
     // Refresh promoteResult snapshot for honesty (does not change intake status PROMOTED).
@@ -239,8 +257,9 @@ export class EvidenceIntakeService {
       throw new IntakeError("TRAVERSAL_FILENAME", "Filename is not allowed.");
     }
     if (!params.buffer.length) throw new IntakeError("EMPTY_UPLOAD", "Upload is empty.");
-    if (params.buffer.length > 40_000_000) {
-      throw new IntakeError("FILE_TOO_LARGE", "Upload exceeds 40 MB intake limit.", 413);
+    const maxUploadBytes = getProductionConfig().maxUploadBytes;
+    if (params.buffer.length > maxUploadBytes) {
+      throw new IntakeError("FILE_TOO_LARGE", `Upload exceeds ${maxUploadBytes} bytes intake limit.`, 413);
     }
     const lower = filename.toLowerCase();
     if (lower.endsWith(".pptx") || lower.endsWith(".exe") || lower.endsWith(".dll")) {
@@ -495,7 +514,7 @@ export class EvidenceIntakeService {
     const submission = await this.submissions.createDocumentSubmission(actor, buf, {
       filename: row.originalFilename || "upload.bin",
       declaredMediaType: row.mediaType || undefined,
-      languageHint: "en",
+      languageHint: getProductionConfig().defaultLanguageHint,
       chainMode: "AUTO_CHAIN",
       idempotencyKey: `intake-${row.id}.doc`,
       correlationId: row.correlationId,

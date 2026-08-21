@@ -22,11 +22,18 @@ export function JobsPage() {
   const [selectedId, setSelectedId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [pipelineNote, setPipelineNote] = useState("");
+  const [pollMs, setPollMs] = useState(0);
 
   const load = useCallback(async () => {
     try {
-      const page = await api.jobs({ limit: 40 });
-      setItems(page.items as Array<Record<string, unknown>>);
+      const page = await api.jobs({ limit: 40 }) as {
+        items: Array<Record<string, unknown>>;
+        pipeline?: { operatorNote?: string; pollMs?: number };
+      };
+      setItems(page.items);
+      if (typeof page.pipeline?.operatorNote === "string") setPipelineNote(page.pipeline.operatorNote);
+      if (typeof page.pipeline?.pollMs === "number" && page.pipeline.pollMs > 0) setPollMs(page.pipeline.pollMs);
       if (selectedId) {
         setSelected(await api.job(selectedId));
       }
@@ -40,9 +47,13 @@ export function JobsPage() {
 
   useEffect(() => {
     void load();
-    const timer = setInterval(() => void load(), 5000);
-    return () => clearInterval(timer);
   }, [load]);
+
+  useEffect(() => {
+    if (!pollMs) return;
+    const timer = setInterval(() => void load(), pollMs);
+    return () => clearInterval(timer);
+  }, [load, pollMs]);
 
   async function openJob(id: string) {
     try {
@@ -69,11 +80,10 @@ export function JobsPage() {
         <Button onClick={() => void load()}>Refresh</Button>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
-      {items.some((j) => ["READY", "RETRY_WAIT", "RUNNING", "LEASED"].includes(String(j.state))) && (
+      {(pipelineNote || items.some((j) => ["READY", "RETRY_WAIT", "RUNNING", "LEASED"].includes(String(j.state)))) && (
         <Alert severity="info">
-          Submit checks the file or URL first, then this list runs <strong>one item at a time</strong> (fetch → extract →
-          prepare for review). “Waiting to start” means this item is in line — not failed. When the current item
-          finishes, the next one starts. You do not set a wait time.
+          {pipelineNote ||
+            "Jobs wait only for this item's previous stage, a live host step, or retry backoff — not a timed queue."}
         </Alert>
       )}
       <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 2 }}>
@@ -82,7 +92,7 @@ export function JobsPage() {
             {items.length === 0 && (
               <Typography color="text.secondary">
                 No pipeline jobs listed. If you just submitted a website or PDF, refresh. Items appear here after
-                Submit accepts them, then run one at a time.
+                Submit accepts them. Fetch/extract runs in the host pipeline, not inside the Submit request.
               </Typography>
             )}
             {items.map((job) => (

@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-21
  */
 
 export type HealthState = "READY" | "DEGRADED" | "UNAVAILABLE" | "NOT_CONFIGURED";
@@ -80,37 +80,54 @@ export function scoreSerialPipeline(
   heartbeat: SerialPipelineHeartbeat | null,
   ageMs: number | null,
   staleMs: number,
+  claimableCount = 0,
+  pipelineLive = false,
 ): ComponentHealth {
-  if (ageMs === null || !heartbeat) {
-    return {
-      component: "WorkerLoops",
-      state: "DEGRADED",
-      detail: "Serial pipeline heartbeat missing. Enable flahaintel-pipeline.timer and run it once.",
-    };
-  }
-  const ageMin = Math.round(ageMs / 60_000);
-  const staleMin = Math.round(staleMs / 60_000);
-  const failed = Object.entries(heartbeat.familyExits ?? {})
+  const failed = Object.entries(heartbeat?.familyExits ?? {})
     .filter(([, code]) => code !== 0)
     .map(([name]) => name);
-  if (ageMs > staleMs) {
-    return {
-      component: "WorkerLoops",
-      state: "DEGRADED",
-      detail: `Serial pipeline overdue (${ageMin}m since last tick; stale after ${staleMin}m). Check flahaintel-pipeline.timer.`,
-    };
-  }
   if (failed.length) {
     return {
       component: "WorkerLoops",
       state: "DEGRADED",
-      detail: `Serial pipeline last tick ${ageMin}m ago; last tick failed: ${failed.join(", ")}.`,
+      detail: `Serial pipeline last tick failed: ${failed.join(", ")}.`,
+    };
+  }
+  if (claimableCount > 0 && !pipelineLive && (ageMs === null || !heartbeat)) {
+    return {
+      component: "WorkerLoops",
+      state: "DEGRADED",
+      detail: `${claimableCount} claimable job(s) and no serial pipeline heartbeat. Submit kicks flahaintel-pipeline.service.`,
+    };
+  }
+  if (claimableCount > 0 && !pipelineLive && ageMs !== null && ageMs > staleMs) {
+    const ageMin = Math.round(ageMs / 60_000);
+    return {
+      component: "WorkerLoops",
+      state: "DEGRADED",
+      detail: `${claimableCount} claimable job(s); last serial tick ${ageMin}m ago and no live worker. Submit kicks the oneshot — there is no 15-minute clock.`,
+    };
+  }
+  if (pipelineLive) {
+    return {
+      component: "WorkerLoops",
+      state: "READY",
+      detail: "Serial pipeline worker is live.",
+    };
+  }
+  if (claimableCount === 0) {
+    return {
+      component: "WorkerLoops",
+      state: "READY",
+      detail: "Serial pipeline idle (no claimable jobs). Submit starts it; it is not a timed queue.",
     };
   }
   return {
     component: "WorkerLoops",
     state: "READY",
-    detail: `Serial pipeline last tick ${ageMin}m ago (stale after ${staleMin}m).`,
+    detail: heartbeat
+      ? "Serial pipeline last tick succeeded."
+      : "Serial pipeline heartbeat missing.",
   };
 }
 

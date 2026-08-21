@@ -75,6 +75,7 @@ type IntakeRow = {
     governanceCandidateId?: string | null;
     operatorNote?: string;
     submissionId?: string;
+    wait?: { code?: string; detail?: string } | null;
   };
 };
 
@@ -161,12 +162,16 @@ function describePromote(row: IntakeRow): { severity: "success" | "warning" | "i
                 : (stage || "process");
       return {
         severity: "info",
-        text: `Accepted (submission ${subId}…). Now: ${step}. The host does one item at a time; this starts when the previous item finishes. Open Jobs to watch. Then Content → Governance.`,
+        text: pipe?.operatorNote
+          ? `Accepted (submission ${subId}…). ${pipe.operatorNote}`
+          : `Accepted (submission ${subId}…). Now: ${step}. This waits only if this item's previous stage is still running, or the host is busy with a live step. Open Jobs to watch. Then Content → Governance.`,
       };
     }
     return {
       severity: "info",
-      text: `Accepted (submission ${subId}…). Waiting to start the next step — one item at a time.`,
+      text: pipe?.operatorNote
+        ? `Accepted (submission ${subId}…). ${pipe.operatorNote}`
+        : `Accepted (submission ${subId}…). Next step is a background worker — this page does not wait for extract.`,
     };
   }
   if (kind === "PRODUCT_SOIL_REPORT") {
@@ -253,7 +258,7 @@ export function SubmitPage(props: {
       });
       const intake = res.intake as IntakeRow;
       setInfo(
-        `Accepted this page. Fetch starts now (one item at a time). Open Jobs to watch; Content / Governance fill after extract finishes.`,
+        `Accepted this page. Fetch starts in the host pipeline (this request does not wait). Open Jobs to watch; Content / Governance fill after extract of this page finishes.`,
       );
       await loadRecent();
       setTab("recent");
@@ -300,8 +305,8 @@ export function SubmitPage(props: {
       setInfo(
         notes.join(" · ") +
           (files.length > 1
-            ? " Each file was checked then accepted in order. The host processes one at a time; the next starts when the current one finishes."
-            : " Checked and accepted. The host processes one item at a time — open Jobs to watch."),
+            ? " Each file was checked then accepted. A later file waits only if this host is already running a heavy step, or that file's own previous stage is not done."
+            : " Checked and accepted. Open Jobs for the real wait reason (previous stage, host busy, or starting)."),
       );
       if (lastSubId && props.onOpenSubmission) props.onOpenSubmission(lastSubId);
       if (lastDeepLink && props.onDeepLink) props.onDeepLink(lastDeepLink);
@@ -327,7 +332,7 @@ export function SubmitPage(props: {
     try {
       const sub = await api.advanceSubmission(String(subId));
       setInfo(
-        `Moved to stage ${String(sub.currentStage || "?")} · ${String(sub.overallStatus || "?")}. If it still says waiting to start, the host is finishing the current item.`,
+        `Moved to stage ${String(sub.currentStage || "?")} · ${String(sub.overallStatus || "?")}. Advance does not wait for extract; it only starts the next stage when the previous job of this item has succeeded.`,
       );
       await loadRecent();
     } catch (e) {
@@ -398,9 +403,10 @@ export function SubmitPage(props: {
       {tab === "new" && (
         <Stack spacing={2}>
           <Alert severity="info">
-            <strong>Flow:</strong> check the file or URL → accept it → process <em>one at a time</em> (fetch or extract
-            → prepare for review → Governance). Several files: the next waits until the current one finishes. Sister
-            products stay separate: FlahaSOIL · FlahaCALC · FlahaFAST — <strong>never</strong> auto-written.
+            <strong>Flow:</strong> check the file or URL → accept it → background pipeline (fetch or extract → prepare
+            for review → Governance). A step waits only for <em>this item's</em> previous stage, or while this host is
+            already running a heavy runtime. Sister products stay separate: FlahaSOIL · FlahaCALC · FlahaFAST —{" "}
+            <strong>never</strong> auto-written.
           </Alert>
 
           {/* Type matrix cards */}
@@ -487,7 +493,7 @@ export function SubmitPage(props: {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Choose the evidence type, then one or more files, then <strong>Land file → promote</strong>. Each file
-                is checked, then accepted, then processed in order. Eyes documents finish at human Approve (not RSS).
+                is checked and accepted. Eyes documents finish at human Approve (not RSS).
               </Typography>
               <Stack spacing={1.5}>
                 <FormControl size="small" fullWidth>

@@ -93,10 +93,6 @@ export async function runWorkerLoop(options: WorkerLoopOptions): Promise<void> {
       } else {
         consecutiveIdle += 1;
         incMetric(`worker.${options.family}.idle`);
-        if (exitOnIdle > 0 && consecutiveIdle >= exitOnIdle) {
-          opsLog("info", "Worker idle exit", { component: options.family, outcome: "IDLE" });
-          break;
-        }
       }
 
       await writeWorkerHeartbeat({
@@ -107,6 +103,18 @@ export async function runWorkerLoop(options: WorkerLoopOptions): Promise<void> {
         jobsCompleted,
         lastOutcome: result.outcome ?? (result.worked ? "OK" : "IDLE"),
       });
+
+      if (result.worked) {
+        if (jobsCompleted >= cfg.workerMaxJobs) {
+          opsLog("info", "Worker max jobs reached", { component: options.family });
+          break;
+        }
+        continue;
+      }
+      if (exitOnIdle > 0 && consecutiveIdle >= exitOnIdle) {
+        opsLog("info", "Worker idle exit", { component: options.family, outcome: "IDLE" });
+        break;
+      }
     } catch (error) {
       incMetric(`worker.${options.family}.errors`);
       opsLog("error", "Worker tick failed", {
@@ -125,10 +133,7 @@ export async function runWorkerLoop(options: WorkerLoopOptions): Promise<void> {
     }
 
     if (stopping) break;
-    const delay = consecutiveIdle === 0
-      ? cfg.workerPollMs
-      : Math.min(cfg.workerIdleBackoffMs * Math.min(consecutiveIdle, 6), cfg.workerIdleBackoffMs * 6);
-    await sleep(delay);
+    await sleep(Math.min(cfg.workerIdleBackoffMs * Math.min(consecutiveIdle, 6), cfg.workerIdleBackoffMs * 6));
   }
 
   opsLog("info", "Worker loop stopped", {

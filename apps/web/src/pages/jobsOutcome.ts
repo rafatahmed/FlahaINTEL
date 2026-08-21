@@ -25,7 +25,7 @@ export function providerLabel(providerId: string): string {
 }
 
 /** What this job does, in operator English. Not a runtime/provider id. */
-export function workStep(job: Pick<JobRecord, "requestedCapability" | "selectedProviderId" | "jobType">): {
+export function workStep(job: JobRecord): {
   verb: string;
   noun: string;
 } {
@@ -107,21 +107,26 @@ export function jobOutcomeSummary(job: JobRecord): { severity: "success" | "warn
     };
   }
   if (failed.length === 0) {
+    const wait = job.wait as { code?: string; detail?: string } | undefined;
     if (state === "RETRY_WAIT") {
-      return { severity: "warning", title: "Waiting to retry", body: `Will ${step.verb} ${step.noun} again. One item at a time.` };
+      return {
+        severity: "warning",
+        title: "Waiting to retry",
+        body: wait?.detail || `Will ${step.verb} ${step.noun} again after retry backoff for this same step.`,
+      };
     }
     if (state === "READY" || state === "PENDING") {
       return {
         severity: "info",
-        title: `Waiting to ${step.verb} ${step.noun}`,
-        body: "Accepted. The host does one item at a time. This one starts when the current item finishes. You do not need to click again.",
+        title: `Ready to ${step.verb} ${step.noun}`,
+        body: wait?.detail || "Accepted. This step starts when its previous stage on this same item is done, or when the host is free. There is no timed queue.",
       };
     }
     if (state === "LEASED" || state === "RUNNING") {
       return {
         severity: "info",
         title: `Now: ${step.verb} ${step.noun}`,
-        body: "This is the item being processed. Anything else you submitted waits until this step finishes.",
+        body: wait?.detail || "This step is running. Other heavy steps wait only while this process holds the runtime.",
       };
     }
     return { severity: "info", title: jobStateLabel(state), body: next ? `Step: ${next}.` : "No step selected yet." };

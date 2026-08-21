@@ -24,8 +24,9 @@ import type { ProductActor } from "../auth.js";
 import { assertPermission } from "../auth.js";
 import { ProductError } from "../errors.js";
 import { kickSerialPipeline } from "../../production/pipelineKick.js";
+import { CHAIN_CONTINUATION_PRIORITY } from "../../production/pipelineContext.js";
+import { getProductionConfig } from "../../production/config.js";
 import {
-  MAX_UPLOAD_BYTES,
   REJECTED_UPLOAD_TYPES,
   SUPPORTED_UPLOAD_TYPES,
   type DocumentSubmissionMeta,
@@ -137,7 +138,7 @@ export class SubmissionOrchestrator {
 
     const correlationId = (command.correlationId || actor.correlationId).slice(0, 200);
     const chainMode = command.chainMode ?? "AUTO_CHAIN";
-    const languageHint = (command.languageHint || "en").slice(0, 16);
+    const languageHint = (command.languageHint || getProductionConfig().defaultLanguageHint).slice(0, 16);
     const acquisitionMode = command.acquisitionMode ?? "STATIC";
     const wire = wireActor(actor, correlationId);
 
@@ -224,8 +225,9 @@ export class SubmissionOrchestrator {
       throw new ProductError("TRAVERSAL_FILENAME", "Filename is not allowed.", 400, "INPUT");
     }
     if (!bytes.length) throw new ProductError("EMPTY_UPLOAD", "Upload is empty.", 400, "INPUT");
-    if (bytes.length > MAX_UPLOAD_BYTES) {
-      throw new ProductError("FILE_TOO_LARGE", `Upload exceeds ${MAX_UPLOAD_BYTES} bytes.`, 413, "INPUT");
+    const maxUploadBytes = getProductionConfig().maxUploadBytes;
+    if (bytes.length > maxUploadBytes) {
+      throw new ProductError("FILE_TOO_LARGE", `Upload exceeds ${maxUploadBytes} bytes.`, 413, "INPUT");
     }
 
     const lower = filename.toLowerCase();
@@ -257,7 +259,7 @@ export class SubmissionOrchestrator {
     }
 
     const correlationId = (meta.correlationId || actor.correlationId).slice(0, 200);
-    const languageHint = (meta.languageHint || "en").slice(0, 16);
+    const languageHint = (meta.languageHint || getProductionConfig().defaultLanguageHint).slice(0, 16);
     const chainMode = meta.chainMode ?? "AUTO_CHAIN";
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     const owner = { jobId: `upload-${randomUUID()}`, attemptId: "input" };
@@ -338,12 +340,19 @@ export class SubmissionOrchestrator {
         ? "DOCUMENT_TEXT_EXTRACTION"
         : "DOCUMENT_BROAD_FORMAT_FALLBACK";
     const extractKey = safeKey(`${submission.idempotencyKey}.extract`);
+    const cfg = getProductionConfig();
+    const languages = [submission.languageHint || cfg.defaultLanguageHint];
+    const executionLimits = {
+      wallTimeoutMs: cfg.extractionWallTimeoutMs,
+      startupTimeoutMs: cfg.extractionStartupTimeoutMs,
+    };
     const job = isHtml
       ? await this.extraction.createHtmlExtractionJob({
           idempotencyKey: extractKey,
           capability: capability as "HTML_TEXT_EXTRACTION",
           mediaType: submission.inputMediaType,
-          languageHints: [submission.languageHint],
+          languageHints: languages,
+          executionLimits,
           inputArtifact,
           actor: wire,
         })
@@ -351,12 +360,10 @@ export class SubmissionOrchestrator {
           idempotencyKey: extractKey,
           capability: capability as "DOCUMENT_TEXT_EXTRACTION",
           mediaType: submission.inputMediaType,
-          languageHints: [submission.languageHint],
+          languageHints: languages,
           inputArtifact,
           actor: wire,
-          executionLimits: submission.inputMediaType === "application/pdf"
-            ? { wallTimeoutMs: 180_000, startupTimeoutMs: 60_000 }
-            : undefined,
+          executionLimits,
         });
 
     await this.db.productSubmission.update({
@@ -491,7 +498,8 @@ export class SubmissionOrchestrator {
       idempotencyKey: safeKey(`${submission.idempotencyKey}.extract`),
       capability: "HTML_TEXT_EXTRACTION",
       mediaType: "text/html",
-      languageHints: [submission.languageHint],
+      languageHints: [submission.languageHint || getProductionConfig().defaultLanguageHint],
+      priority: CHAIN_CONTINUATION_PRIORITY,
       inputArtifact,
       actor: wire,
     });
@@ -511,7 +519,7 @@ export class SubmissionOrchestrator {
     const wire = wireActor(actor, submission.correlationId);
     const mediaType = submission.inputMediaType || "text/html";
     const isHtml = mediaType.includes("html") || submission.submissionType === "WEBSITE_URL";
-    const language = submission.languageHint || "en";
+    const language = submission.languageHint || getProductionConfig().defaultLanguageHint;
     const normKey = safeKey(`${submission.idempotencyKey}.norm`);
     const job = isHtml
       ? await this.normalization.createHtmlNormalizationJob({
@@ -521,6 +529,7 @@ export class SubmissionOrchestrator {
           profileId: "HTML_GENERIC_PAGE_V1",
           profileVersion: "1.0.0",
           idempotencyKey: normKey,
+          priority: CHAIN_CONTINUATION_PRIORITY,
           actor: wire,
         })
       : await this.normalization.createDocumentNormalizationJob({
@@ -530,6 +539,7 @@ export class SubmissionOrchestrator {
           profileId: mediaType === "application/pdf" ? "PDF_DOCUMENT_V1" : mediaType === "text/plain" ? "PLAIN_TEXT_V1" : "OFFICE_DOCUMENT_V1",
           profileVersion: "1.0.0",
           idempotencyKey: normKey,
+          priority: CHAIN_CONTINUATION_PRIORITY,
           actor: wire,
         });
     await this.db.productSubmission.update({

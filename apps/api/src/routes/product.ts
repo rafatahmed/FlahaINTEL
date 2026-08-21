@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-21
  */
 
 import type { PrismaClient } from "@prisma/client";
@@ -26,7 +26,8 @@ import {
 } from "../product/auth.js";
 import { isProductError, ProductError } from "../product/errors.js";
 import { collectSystemReadiness } from "../product/readiness.js";
-import { MAX_PREVIEW_BYTES, MAX_UPLOAD_BYTES } from "../product/submission/contracts.js";
+import { MAX_PREVIEW_BYTES } from "../product/submission/contracts.js";
+import { attachJobWaits } from "../production/pipelineStatus.js";
 import { SubmissionOrchestrator } from "../product/submission/orchestrator.js";
 import { AppError } from "../errors.js";
 import { isGovernanceError } from "../contentGovernance/errors.js";
@@ -67,7 +68,7 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
 
   return async (app) => {
     const prod = getProductionConfig();
-    const uploadLimit = Math.min(MAX_UPLOAD_BYTES, prod.maxUploadBytes);
+    const uploadLimit = prod.maxUploadBytes;
     await app.register(multipart, {
       limits: {
         files: 1,
@@ -394,11 +395,19 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
             id: true, jobType: true, state: true, priority: true, requestedCapability: true,
             selectedProviderId: true, mediaType: true, languageHints: true, attemptCount: true,
             maxAttempts: true, createdAt: true, updatedAt: true, completedAt: true, failedAt: true,
-            cancelRequestedAt: true, idempotencyKey: true,
+            cancelRequestedAt: true, idempotencyKey: true, nextAttemptAt: true,
           },
         }),
       ]);
-      return { items, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
+      const { pipeline, waits } = await attachJobWaits(prisma, items);
+      return {
+        items: items.map((job) => ({ ...job, wait: waits.get(job.id) ?? null })),
+        pipeline,
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      };
     });
 
     app.get<{ Params: { id: string } }>("/jobs/:id", {
@@ -424,11 +433,14 @@ export function productRoutes({ prisma, store, orchestrator: provided }: Product
         requestEnvelope: undefined,
         resultEnvelope: a.resultEnvelope ? { present: true } : null,
       }));
+      const { pipeline, waits } = await attachJobWaits(prisma, [job]);
       return {
         ...job,
         attempts,
         artifacts: job.artifacts.map(a => ({ ...a, byteSize: a.byteSize.toString() })),
         requestEnvelope: { capability: job.requestedCapability, mediaType: job.mediaType },
+        wait: waits.get(job.id) ?? null,
+        pipeline,
       };
     });
 

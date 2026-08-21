@@ -154,7 +154,7 @@ That calls `POST /api/auth/logout` (revokes the session id, clears cookies) and 
 
 Submit → **Website (Eyes)** lands a URL, then the **serial pipeline** acquires → extracts → normalizes → opens a Governance candidate.
 
-- Jobs sitting in **READY** wait for the serial oneshot. Submit kicks `flahaintel-pipeline.service` (`--no-block`). The timer is **boot-only**, not every 15 minutes. Do **not** start `npm run worker:*` on this host.
+- Jobs sitting in **READY** are claimable. Submit kicks `flahaintel-pipeline.service` (`--no-block`). A job waits only for **this item's previous stage**, a live heavy runtime on this 2 GB host, or retry backoff — not for every other fetch to finish, and not for a 15-minute clock. The timer is **boot-only**. Do **not** start `npm run worker:*` on this host.
 - Run one tick now: `systemctl start flahaintel-pipeline.service`
 - Intake **PROMOTED** means queued, not finished. Human **Approve** in Governance is the product end-state (**VAULTED** in Content). RSS promotion eligibility does not apply.
 - **One webpage Submit** fetches the URL the operator pasted (one page). It is **not** limited to `crawl-policy.json` hosts. Private/loopback addresses are still blocked. RSS feeds stay under Sources. Bounded crawls (depth/pages) remain capped; this is not an open spider.

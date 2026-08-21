@@ -45,7 +45,7 @@ export function intakeRoutes(
     const intakes = new EvidenceIntakeService(prisma, store, orchestrator);
 
     await app.register(multipart, {
-      limits: { files: 1, fields: 20, fileSize: Math.min(40_000_000, prod.maxUploadBytes * 2), parts: 25 },
+      limits: { files: 1, fields: 20, fileSize: prod.maxUploadBytes, parts: 25 },
     });
 
     app.get("/intake/matrix", async (request) => {

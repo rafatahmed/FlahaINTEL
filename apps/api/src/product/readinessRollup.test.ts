@@ -84,15 +84,21 @@ describe("scoreWorkerLoops", () => {
 });
 
 describe("scoreSerialPipeline", () => {
-  it("is READY when the last tick is fresh and all families exited 0", () => {
-    const scored = scoreSerialPipeline({ familyExits: { extraction: 0, normalization: 0 } }, 60_000, 2_700_000);
+  it("is READY when idle with no claimable jobs even if the last tick is old", () => {
+    const scored = scoreSerialPipeline({ familyExits: { extraction: 0, normalization: 0 } }, 3_600_000, 48_000, 0, false);
     expect(scored.state).toBe("READY");
-    expect(scored.detail).toContain("last tick");
+    expect(scored.detail).toMatch(/idle/i);
   });
 
   it("degrades when a family failed even if the tick is recent", () => {
-    const scored = scoreSerialPipeline({ familyExits: { extraction: 1 } }, 60_000, 2_700_000);
+    const scored = scoreSerialPipeline({ familyExits: { extraction: 1 } }, 60_000, 48_000, 0, false);
     expect(scored.state).toBe("DEGRADED");
     expect(scored.detail).toContain("extraction");
+  });
+
+  it("degrades only when claimable jobs exist and the oneshot is not live", () => {
+    const scored = scoreSerialPipeline(null, null, 48_000, 2, false);
+    expect(scored.state).toBe("DEGRADED");
+    expect(scored.detail).toMatch(/claimable/i);
   });
 });

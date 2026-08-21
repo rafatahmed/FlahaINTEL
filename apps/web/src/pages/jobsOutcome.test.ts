@@ -48,15 +48,17 @@ describe("jobOutcomeSummary", () => {
     expect(providerLabel("document.docling-slim")).toContain("retired");
   });
 
-  it("does not say Queued or Current provider for a waiting website fetch", () => {
+  it("does not invent a timed queue for a ready website fetch", () => {
     const summary = jobOutcomeSummary({
       state: "READY",
       requestedCapability: "STATIC_HTTP_ACQUISITION",
       selectedProviderId: "acquisition.scrapy",
       attempts: [],
+      wait: { code: "CLAIMABLE", detail: "Accepted and ready. No previous stage of this item is blocking it." },
     });
-    expect(summary.title).toBe("Waiting to fetch the website");
-    expect(summary.body).toContain("one item at a time");
+    expect(summary.title).toBe("Ready to fetch the website");
+    expect(summary.body).toMatch(/No previous stage/i);
+    expect(summary.body).not.toMatch(/one item at a time/i);
     expect(summary.body).not.toMatch(/Current provider/i);
     expect(jobStateLabel("READY")).toBe("Waiting to start");
   });
