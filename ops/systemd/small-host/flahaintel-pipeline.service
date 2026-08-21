@@ -7,12 +7,13 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-19
+# Last modified: 2026-08-21
 
 [Unit]
 Description=FlahaINTEL serial ingestion pipeline (one family at a time)
 After=network.target postgresql.service flahaintel-api.service
 Requires=postgresql.service
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot

@@ -324,6 +324,8 @@ step_systemd() {
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline.service" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline.timer" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline.path" /etc/systemd/system/
+  cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline-need.service" /etc/systemd/system/
+  cp "${CURRENT}/ops/systemd/small-host/flahaintel-pipeline-need.timer" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-harvest.service" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-harvest.timer" /etc/systemd/system/
   cp "${CURRENT}/ops/systemd/small-host/flahaintel-backup.service" /etc/systemd/system/
@@ -337,6 +339,7 @@ step_systemd() {
   systemctl daemon-reload
   systemctl enable --now flahaintel-api.service
   systemctl enable --now flahaintel-pipeline.path
+  systemctl enable --now flahaintel-pipeline-need.timer
   systemctl enable --now flahaintel-pipeline.timer
   systemctl enable --now flahaintel-harvest.timer
   systemctl enable --now flahaintel-backup.timer

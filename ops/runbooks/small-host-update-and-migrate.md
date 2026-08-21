@@ -154,8 +154,8 @@ That calls `POST /api/auth/logout` (revokes the session id, clears cookies) and 
 
 Submit → **Website (Eyes)** lands a URL, then the **serial pipeline** acquires → extracts → normalizes → opens a Governance candidate.
 
-- Jobs sitting in **READY** are claimable. Submit (and an idle job/readiness page) touch `/var/lib/flahaintel/state/pipeline-kick`; `flahaintel-pipeline.path` starts the oneshot. `sudo systemctl` from the API **cannot** work (`NoNewPrivileges=true`). A job waits only for **this item's previous stage**, a live heavy runtime on this 2 GB host, or retry backoff — not for every other fetch to finish, and not for a 15-minute clock. The timer is **boot-only**. Do **not** start `npm run worker:*` on this host.
-- Run one tick now: `systemctl start flahaintel-pipeline.service` (or `touch /var/lib/flahaintel/state/pipeline-kick` after the path unit is enabled).
+- Jobs sitting in **READY** are claimable. Submit **writes** `/var/lib/flahaintel/state/pipeline-kick` (content change, not `sudo`). `flahaintel-pipeline.path` uses **PathModified only** — `PathExists` is forbidden (it retriggers until systemd silences the unit). `sudo systemctl` from the API **cannot** work (`NoNewPrivileges=true`). If a tick leaves claimable work, it writes `pipeline-need-run` and `flahaintel-pipeline-need.timer` starts the oneshot (file-gated, minutely) — not a 15-minute queue. Do **not** start `npm run worker:*` on this host.
+- Run one tick now: `systemctl start flahaintel-pipeline.service` (or write a new line to `/var/lib/flahaintel/state/pipeline-kick` after the path unit is enabled).
 - Intake **PROMOTED** means queued, not finished. Human **Approve** in Governance is the product end-state (**VAULTED** in Content). RSS promotion eligibility does not apply.
 - **One webpage Submit** fetches the URL the operator pasted (one page). It is **not** limited to `crawl-policy.json` hosts. Private/loopback addresses are still blocked. RSS feeds stay under Sources. Bounded crawls (depth/pages) remain capped; this is not an open spider.
 

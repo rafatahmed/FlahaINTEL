@@ -1,0 +1,19 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: Serial pipeline leftover pickup (small host)
+# Introduction: Root unit that starts the oneshot only when pipeline-need-run exists. Not a job queue clock.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-08-21
+# Last modified: 2026-08-21
+
+[Unit]
+Description=FlahaINTEL start serial pipeline if leftover work is marked
+After=postgresql.service
+ConditionPathExists=/var/lib/flahaintel/state/pipeline-need-run
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'systemctl reset-failed flahaintel-pipeline.service 2>/dev/null || true; systemctl is-active --quiet flahaintel-pipeline.service || systemctl start --no-block flahaintel-pipeline.service'

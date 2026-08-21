@@ -97,7 +97,9 @@ mkdir -p /var/lib/flahaintel/state
 touch /var/lib/flahaintel/state/pipeline-kick
 chown flahaintel:flahaintel /var/lib/flahaintel/state/pipeline-kick
 systemctl daemon-reload
+systemctl reset-failed flahaintel-pipeline.service || true
 systemctl enable --now flahaintel-pipeline.path || true
+systemctl enable --now flahaintel-pipeline-need.timer || true
 systemctl restart flahaintel-pipeline.timer || true
 systemctl restart flahaintel-api
 systemctl stop flahaintel-pipeline.service || true

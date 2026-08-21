@@ -97,7 +97,7 @@ export function scoreSerialPipeline(
     return {
       component: "WorkerLoops",
       state: "DEGRADED",
-      detail: `${claimableCount} claimable job(s) and no serial pipeline heartbeat. Submit or a job page starts the oneshot (state file).`,
+      detail: `${claimableCount} claimable job(s) and no serial pipeline heartbeat. Submit writes the kick file; leftover pickup is file-gated (not a 15-minute queue).`,
     };
   }
   if (claimableCount > 0 && !pipelineLive && ageMs !== null && ageMs > staleMs) {
@@ -105,7 +105,7 @@ export function scoreSerialPipeline(
     return {
       component: "WorkerLoops",
       state: "DEGRADED",
-      detail: `${claimableCount} claimable job(s); last serial tick ${ageMin}m ago and no live worker. Submit or a job page starts the oneshot — there is no 15-minute clock.`,
+      detail: `${claimableCount} claimable job(s); last serial tick ${ageMin}m ago and no live worker. Submit starts the oneshot immediately; leftover work is picked up within a minute if still marked.`,
     };
   }
   if (pipelineLive) {

@@ -4,7 +4,7 @@
  * Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
  *
  * Title: Serial pipeline kick tests
- * Introduction: Kick is a no-op when unset; file touch is the NoNewPrivileges path.
+ * Introduction: Kick writes content (not utimes) and arms leftover need-run.
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-21
@@ -20,6 +20,7 @@ import {
   kickSerialPipelineAsync,
   maybeKickIdleSerialPipeline,
   pipelineKickFilePath,
+  pipelineNeedRunPath,
   resetPipelineKickThrottleForTests,
 } from "./pipelineKick.js";
 
@@ -55,20 +56,20 @@ describe("kickSerialPipeline", () => {
     expect(isPipelineKickConfigured()).toBe(false);
   });
 
-  it("touches the kick file in serial mode", async () => {
+  it("writes kick and need-run files on submit (content change, not utimes-only)", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "flaha-pipeline-kick-"));
     const file = path.join(dir, "pipeline-kick");
     process.env.FLAHA_PIPELINE_KICK_FILE = file;
     delete process.env.FLAHA_PIPELINE_KICK_CMD;
     resetPipelineKickThrottleForTests();
     expect(pipelineKickFilePath()).toBe(file);
-    expect(await kickSerialPipelineAsync()).toBe(true);
-    const body = await readFile(file, "utf8");
-    expect(body).toMatch(/T/);
-    expect(await kickSerialPipelineAsync()).toBe(false);
+    expect(pipelineNeedRunPath()).toBe(path.join(dir, "pipeline-need-run"));
+    expect(await kickSerialPipelineAsync("submit")).toBe(true);
+    expect(await readFile(file, "utf8")).toMatch(/submit/);
+    expect(await readFile(path.join(dir, "pipeline-need-run"), "utf8")).toMatch(/submit/);
   });
 
-  it("re-kicks when a claimable serial job is idle", async () => {
+  it("arms need-run when a claimable serial job is idle", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "flaha-pipeline-kick-"));
     const file = path.join(dir, "pipeline-kick");
     process.env.FLAHA_PIPELINE_KICK_FILE = file;
@@ -81,7 +82,18 @@ describe("kickSerialPipeline", () => {
       liveFamilies: [],
       runningJobs: [],
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(await readFile(file, "utf8")).toMatch(/T/);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(await readFile(path.join(dir, "pipeline-need-run"), "utf8")).toMatch(/idle/);
+  });
+
+  it("does not idle-kick when another step is running", () => {
+    maybeKickIdleSerialPipeline({
+      mode: "serial",
+      kickConfigured: true,
+      claimableCount: 1,
+      liveFamilies: [],
+      runningJobs: [{ id: "acq-1" }],
+    });
+    expect(isPipelineKickConfigured()).toBe(Boolean(previous.file || previous.cmd || previous.state));
   });
 });

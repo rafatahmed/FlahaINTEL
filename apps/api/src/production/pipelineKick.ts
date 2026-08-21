@@ -10,43 +10,51 @@
  * Created date: 2026-08-21
  * Last modified: 2026-08-21
  */
-import { mkdir, utimes, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { opsLog } from "./logging.js";
 
-const MIN_KICK_GAP_MS = 5_000;
-let lastKickAt = 0;
+const MIN_PATH_KICK_GAP_MS = 15_000;
+let lastPathKickAt = 0;
 
 export function resetPipelineKickThrottleForTests(): void {
-  lastKickAt = 0;
+  lastPathKickAt = 0;
 }
 
 function serialMode(): boolean {
   return (process.env.FLAHA_WORKER_MODE || "").trim().toLowerCase() === "serial";
 }
 
-/** State file watched by flahaintel-pipeline.path. Sudo systemctl cannot run under NoNewPrivileges. */
+function stateDir(): string | null {
+  const fromFile = process.env.FLAHA_PIPELINE_KICK_FILE?.trim();
+  if (fromFile) return path.dirname(path.resolve(fromFile));
+  const state = process.env.FLAHA_STATE_DIR?.trim();
+  if (state && serialMode()) return path.resolve(state);
+  return null;
+}
+
+/** Watched by flahaintel-pipeline.path (PathModified only). Sudo systemctl cannot run under NoNewPrivileges. */
 export function pipelineKickFilePath(): string | null {
   const explicit = process.env.FLAHA_PIPELINE_KICK_FILE?.trim();
   if (explicit) return explicit;
-  const state = process.env.FLAHA_STATE_DIR?.trim();
-  if (state && serialMode()) return path.join(state, "pipeline-kick");
-  return null;
+  const dir = stateDir();
+  return dir ? path.join(dir, "pipeline-kick") : null;
+}
+
+/** Presence arms flahaintel-pipeline-need.timer if a run left claimable work or Submit could not path-start. */
+export function pipelineNeedRunPath(): string | null {
+  const dir = stateDir();
+  return dir ? path.join(dir, "pipeline-need-run") : null;
 }
 
 export function isPipelineKickConfigured(): boolean {
   return Boolean(pipelineKickFilePath() || process.env.FLAHA_PIPELINE_KICK_CMD?.trim());
 }
 
-async function touchKickFile(file: string): Promise<void> {
+async function writeStateFile(file: string, reason: string): Promise<void> {
   await mkdir(path.dirname(file), { recursive: true });
-  const now = new Date();
-  try {
-    await utimes(file, now, now);
-  } catch {
-    await writeFile(file, `${now.toISOString()}\n`, "utf8");
-  }
+  await writeFile(file, `${new Date().toISOString()} ${reason}\n`, "utf8");
 }
 
 function spawnKickCommand(command: string): void {
@@ -74,32 +82,47 @@ function spawnKickCommand(command: string): void {
 
 /**
  * Fire-and-forget. Submit and idle job pages must not wait for extract/fetch.
- * Prefer FLAHA_PIPELINE_KICK_FILE (systemd path unit). FLAHA_PIPELINE_KICK_CMD
- * is leftover; sudo cannot work while the API has NoNewPrivileges=true.
+ * Write a content change (not utimes) so systemd PathModified sees IN_CLOSE_WRITE.
+ * Also arm pipeline-need-run so a leftover pickup timer can start the oneshot
+ * if the path unit misses or this run skipped a READY job.
  */
 export function kickSerialPipeline(): void {
-  void kickSerialPipelineAsync();
+  void kickSerialPipelineAsync("submit");
 }
 
-export async function kickSerialPipelineAsync(): Promise<boolean> {
+export async function kickSerialPipelineAsync(mode: "submit" | "idle" = "submit"): Promise<boolean> {
   if (!isPipelineKickConfigured()) return false;
-  const now = Date.now();
-  if (lastKickAt > 0 && now - lastKickAt < MIN_KICK_GAP_MS) return false;
-  lastKickAt = now;
 
-  const file = pipelineKickFilePath();
-  if (file) {
+  const need = pipelineNeedRunPath();
+  if (need) {
     try {
-      await touchKickFile(file);
+      await writeStateFile(need, mode);
     } catch (error) {
-      opsLog("warn", "Pipeline kick file write failed", {
+      opsLog("warn", "Pipeline need-run write failed", {
         component: "pipeline",
-        errorCode: error instanceof Error ? error.message.slice(0, 64) : "KICK_FILE",
+        errorCode: error instanceof Error ? error.message.slice(0, 64) : "NEED_RUN",
       });
     }
   }
-  const command = process.env.FLAHA_PIPELINE_KICK_CMD?.trim();
-  if (command) spawnKickCommand(command);
+
+  const now = Date.now();
+  const writePath = mode === "submit" || lastPathKickAt === 0 || now - lastPathKickAt >= MIN_PATH_KICK_GAP_MS;
+  if (writePath) {
+    lastPathKickAt = now;
+    const file = pipelineKickFilePath();
+    if (file) {
+      try {
+        await writeStateFile(file, mode);
+      } catch (error) {
+        opsLog("warn", "Pipeline kick file write failed", {
+          component: "pipeline",
+          errorCode: error instanceof Error ? error.message.slice(0, 64) : "KICK_FILE",
+        });
+      }
+    }
+    const command = process.env.FLAHA_PIPELINE_KICK_CMD?.trim();
+    if (command && !file) spawnKickCommand(command);
+  }
   return true;
 }
 
@@ -115,5 +138,5 @@ export function maybeKickIdleSerialPipeline(input: {
   if (input.claimableCount <= 0) return;
   if (input.liveFamilies.length > 0) return;
   if (input.runningJobs.length > 0) return;
-  kickSerialPipeline();
+  void kickSerialPipelineAsync("idle");
 }

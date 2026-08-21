@@ -1,0 +1,23 @@
+# Flaha Agri Tech
+# Precision Agriculture Division
+# Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
+#
+# Title: Serial pipeline leftover pickup timer
+# Introduction: If pipeline-need-run exists, start the oneshot. Skips when the file is absent. Not a 15-minute queue.
+#
+# Created by: Rafat Al Khashan
+# Created date: 2026-08-21
+# Last modified: 2026-08-21
+
+[Unit]
+Description=FlahaINTEL leftover serial pipeline pickup (file-gated)
+
+[Timer]
+OnBootSec=20s
+OnCalendar=minutely
+AccuracySec=10s
+Persistent=false
+Unit=flahaintel-pipeline-need.service
+
+[Install]
+WantedBy=timers.target

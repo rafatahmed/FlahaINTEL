@@ -3,21 +3,25 @@
 # Copyright © 2026–2027 Flaha Agri Tech. All rights reserved.
 #
 # Title: Serial pipeline kick path (small host)
-# Introduction: Starts the oneshot when the API touches a state file. Works with NoNewPrivileges (sudo cannot).
+# Introduction: Starts the oneshot when the API writes the kick file. Works with NoNewPrivileges (sudo cannot).
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-21
 # Last modified: 2026-08-21
+#
+# Do not use PathExists: with a persistent file and Type=oneshot it retriggers
+# until systemd TriggerLimit silences the unit — READY jobs then sit forever.
 
 [Unit]
-Description=FlahaINTEL serial pipeline kick on state file
+Description=FlahaINTEL serial pipeline kick on kick-file write
 After=postgresql.service
 
 [Path]
-PathExists=/var/lib/flahaintel/state/pipeline-kick
 PathChanged=/var/lib/flahaintel/state/pipeline-kick
 PathModified=/var/lib/flahaintel/state/pipeline-kick
 MakeDirectory=true
+TriggerLimitIntervalSec=30s
+TriggerLimitBurst=8
 Unit=flahaintel-pipeline.service
 
 [Install]

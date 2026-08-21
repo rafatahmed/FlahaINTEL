@@ -22,7 +22,9 @@ export NODE_ENV="${NODE_ENV:-production}"
 export WORKER_EXIT_ON_IDLE="${WORKER_EXIT_ON_IDLE:-1}"
 export WORKER_MAX_JOBS="${WORKER_MAX_JOBS_PER_CLAIM:-1}"
 STATE_DIR="${FLAHA_STATE_DIR:-/var/lib/flahaintel/state}"
+NEED_RUN="${STATE_DIR}/pipeline-need-run"
 mkdir -p "${STATE_DIR}"
+rm -f "${NEED_RUN}"
 started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 node_tsx() {
   /usr/bin/node --conditions=development --import tsx "$@"
@@ -86,3 +88,18 @@ cat > "${STATE_DIR}/pipeline-heartbeat.json" <<EOF
 {"startedAt":"${started}","finishedAt":"${finished}","mode":"serial","familyExits":{${family_exits}}}
 EOF
 chown flahaintel:flahaintel "${STATE_DIR}/pipeline-heartbeat.json" 2>/dev/null || true
+# Skip-list is per process. A READY job we could not claim this tick is still
+# claimable. systemd merges a path-start while this oneshot is running, so mark
+# leftover work for flahaintel-pipeline-need.timer (file-gated, not a 15-minute queue).
+saved_skip="${PIPELINE_SKIP_JOB_IDS}"
+PIPELINE_SKIP_JOB_IDS=""
+export PIPELINE_SKIP_JOB_IDS
+left_json="$(next_family_json || true)"
+left_family="$(family_of "${left_json}")"
+PIPELINE_SKIP_JOB_IDS="${saved_skip}"
+export PIPELINE_SKIP_JOB_IDS
+if [[ -n "${left_family}" && "${left_family}" != "idle" ]]; then
+  umask 022
+  printf '%s leftover\n' "${finished}" > "${NEED_RUN}"
+  chown flahaintel:flahaintel "${NEED_RUN}" 2>/dev/null || true
+fi
