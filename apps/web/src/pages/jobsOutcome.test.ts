@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-21
+ * Last modified: 2026-08-22
  */
 import { describe, expect, it } from "vitest";
 import { explainExtractorError, jobOutcomeSummary, jobStateLabel, providerLabel } from "./jobsOutcome";
@@ -42,6 +42,9 @@ describe("jobOutcomeSummary", () => {
     expect(explainExtractorError("Worker has no adapter for document.docling-slim.")).toContain("cannot run the selected extractor");
     expect(explainExtractorError("IgnoreRequest")).toMatch(/robots\.txt|publisher allows/i);
     expect(explainExtractorError("Redirect or extra request left the submitted origin")).toMatch(/final address/i);
+    expect(explainExtractorError("WorkerSupervisorError: Worker exited before emitting a terminal result.")).toMatch(/crashed before it could fetch/i);
+    expect(explainExtractorError("browserType.launch: Executable doesn't exist at /var/lib/flahaintel/.cache/ms-playwright/chrome-headless-shell")).toMatch(/Chromium is missing/i);
+    expect(explainExtractorError("BROWSER_RUNTIME_MISSING Chromium is not at /opt/chrome")).toMatch(/Chromium is missing/i);
     expect(jobStateLabel("DEAD_LETTER")).toBe("Stopped");
   });
 

@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-22
  */
 
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
@@ -76,7 +76,10 @@ export class WorkerSupervisor {
       if (failure) throw failure;
       if (!terminal) {
         if (cancelRequested) throw new WorkerCancelledError("Worker exited without a cancellation result.");
-        throw new WorkerProtocolError("Worker exited before emitting a terminal result.");
+        const detail = stderr.trim().replace(/\s+/g, " ").slice(0, 400);
+        throw new WorkerProtocolError(detail
+          ? `Worker exited before emitting a terminal result. ${detail}`
+          : "Worker exited before emitting a terminal result.");
       }
       const finalTerminal = terminal as WorkerMessage;
       if (cancelRequested && finalTerminal.outcome !== "CANCELLED") throw new WorkerCancelledError("Worker emitted a late non-cancellation result.");

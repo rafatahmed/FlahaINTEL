@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-08-21
+ * Last modified: 2026-08-22
  */
 import { createHash } from "node:crypto";
 import { lstat, open } from "node:fs/promises";
@@ -16,9 +16,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const playwright = process.env.PLAYWRIGHT_MODULE
-  ? require(process.env.PLAYWRIGHT_MODULE)
-  : require("../../../.benchmark-runtime/browser-playwright-1.61.1/node_modules/playwright");
+function loadPlaywright() {
+  if (process.env.PLAYWRIGHT_MODULE) return require(process.env.PLAYWRIGHT_MODULE);
+  return require("../../../.benchmark-runtime/browser-playwright-1.61.1/node_modules/playwright");
+}
 
 const reader=createInterface({input:process.stdin,crlfDelay:Infinity});
 const request=JSON.parse(await new Promise(resolve=>reader.once("line",resolve)));reader.close();
@@ -38,6 +39,7 @@ async function writeAllocation(role,bytes){
 try{
   if(request.operation!=="BROWSER_ACQUISITION"||payload.operation!==request.operation||request.provider.providerId!=="acquisition.playwright"||!["JAVASCRIPT_RENDERING","RENDERED_DOM_CAPTURE"].includes(payload.capability))throw new Error("closed operation authority mismatch");
   emit({...ctx("WORKER_PROGRESS",0),occurredAt:request.sentAt,stage:"PROBE",status:"STARTED",completedUnits:0,totalUnits:1,unit:"STEPS",metrics});
+  const playwright=loadPlaywright();
   const l=payload.governedLocator;const url=(l.scheme==="https"&&l.port===443)||(l.scheme==="http"&&l.port===80)?`${l.scheme}://${l.host}${l.relativeRoute}`:`${l.scheme}://${l.host}:${l.port}${l.relativeRoute}`;const origin=new URL(url);const effectivePort=u=>u.port||(u.protocol==="https:"?"443":u.protocol==="http:"?"80":"");const allowed=value=>{try{const u=new URL(value);return u.protocol===origin.protocol&&u.hostname.toLowerCase()===origin.hostname.toLowerCase()&&effectivePort(u)===effectivePort(origin)&&!u.username&&!u.password}catch{return false}};
   const launchOpts={headless:true,args:["--disable-extensions","--disable-webrtc","--no-sandbox","--disable-dev-shm-usage"]};
   if(process.env.PLAYWRIGHT_CHROMIUM_PATH) launchOpts.executablePath=process.env.PLAYWRIGHT_CHROMIUM_PATH;

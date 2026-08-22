@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-08-20
+ * Last modified: 2026-08-22
  */
 
 import { access, readFile } from "node:fs/promises";
@@ -106,6 +106,12 @@ describe("protocol rejection", () => {
     ["progress_after_terminal", "WORKER_PROTOCOL_ERROR"], ["unknown_message", "WORKER_PROTOCOL_ERROR"],
     ["exit_before_result", "WORKER_PROTOCOL_ERROR"], ["outside_staging", "WORKER_PROTOCOL_ERROR"],
   ])("rejects %s", async (mode, code) => expectCode(start(mode).result, code));
+  test("attaches worker stderr when the process exits before a terminal result", async () => {
+    await expect(start("exit_before_result").result).rejects.toMatchObject({
+      code: "WORKER_PROTOCOL_ERROR",
+      message: expect.stringContaining("acquisition_origin"),
+    });
+  });
   test("rejects unsupported request contract before launch", async () => {
     const value = request(); value.contractVersion = "2.0.0";
     await expectCode(new WorkerSupervisor(options(), validator).start(value).result, "WORKER_PROTOCOL_ERROR");

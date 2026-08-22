@@ -8,7 +8,7 @@
 #
 # Created by: Rafat Al Khashan
 # Created date: 2026-08-19
-# Last modified: 2026-08-19
+# Last modified: 2026-08-22
 #
 # Pins: scrapy 2.17.0 · playwright 1.61.1 · chromium r1228 · tika 3.3.1 · Java 21
 
@@ -72,12 +72,13 @@ step 04-playwright bash -c "
   export PLAYWRIGHT_BROWSERS_PATH='${RT}/ms-playwright'
   npx playwright install-deps chromium || true
   npx playwright install chromium
+  npx playwright install chromium-headless-shell
   npx playwright --version
 "
 
-CHROME="$(find "${RT}/ms-playwright" -type f -name chrome -path '*chromium-*' | head -n 1)"
+CHROME="$(find "${RT}/ms-playwright" -type f -name chrome-headless-shell | head -n 1)"
 if [[ -z "${CHROME}" ]]; then
-  CHROME="$(find "${RT}/ms-playwright" -type f -name chrome-headless-shell | head -n 1)"
+  CHROME="$(find "${RT}/ms-playwright" -type f -name chrome -path '*chromium-*' | head -n 1)"
 fi
 TIKA_ALLOW="${ROOT}/benchmarks/ingestion/config/document-tika-parser-allowlist.xml"
 PW_CLI="${RT}/playwright/node_modules/.bin/playwright"

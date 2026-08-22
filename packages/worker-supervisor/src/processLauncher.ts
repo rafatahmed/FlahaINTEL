@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-22
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
@@ -18,7 +18,14 @@ import { access, lstat, mkdir } from "node:fs/promises";
 import { WorkerConfigurationError } from "./errors.js";
 import type { SupervisorOptions } from "./types.js";
 
-const RUNTIME_PATH_ENV = ["TIKA_JAR", "TIKA_ALLOWLIST", "JAVA_BIN"] as const;
+const RUNTIME_PATH_ENV = [
+  "TIKA_JAR",
+  "TIKA_ALLOWLIST",
+  "JAVA_BIN",
+  "PLAYWRIGHT_CHROMIUM_PATH",
+  "PLAYWRIGHT_BROWSERS_PATH",
+  "PLAYWRIGHT_MODULE",
+] as const;
 
 function absoluteRuntimePath(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -37,6 +44,14 @@ export function pickRuntimePathEnv(
   return picked;
 }
 
+export function compactEnv(values: Record<string, string | undefined>): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== "") env[key] = value;
+  }
+  return env;
+}
+
 export async function launchWorker(options: SupervisorOptions): Promise<ChildProcessWithoutNullStreams> {
   if (!path.isAbsolute(options.pythonExecutable)) throw new WorkerConfigurationError("Python executable must be an explicit absolute path.");
   if (!path.isAbsolute(options.workerEntryPoint)) throw new WorkerConfigurationError("Worker entry point must be an explicit absolute path.");
@@ -48,12 +63,19 @@ export async function launchWorker(options: SupervisorOptions): Promise<ChildPro
     if (!path.isAbsolute(options.temporaryDirectory) || path.relative(options.workingDirectory, options.temporaryDirectory).startsWith("..")) throw new WorkerConfigurationError("Worker temporary directory must be governed by its working directory.");
     await mkdir(options.temporaryDirectory, { recursive: true }); if ((await lstat(options.temporaryDirectory)).isSymbolicLink()) throw new WorkerConfigurationError("Worker temporary directory cannot be a link.");
   }
-  const env: NodeJS.ProcessEnv = {
+  const runtimePaths = pickRuntimePathEnv(process.env, options.environment);
+  const env: NodeJS.ProcessEnv = compactEnv({
     SYSTEMROOT: process.env.SYSTEMROOT, WINDIR: process.env.WINDIR, TEMP: options.temporaryDirectory ?? process.env.TEMP, TMP: options.temporaryDirectory ?? process.env.TMP,
     PYTHONIOENCODING: "utf-8", PYTHONUNBUFFERED: "1",
     FLAHA_WORKER_TEST_MARKER: options.environment?.FLAHA_WORKER_TEST_MARKER,
-    ...pickRuntimePathEnv(process.env, options.environment),
-  };
+    ...runtimePaths,
+  });
+  if (options.runtime === "NODE") {
+    const isolatedHome = options.temporaryDirectory ?? options.workingDirectory;
+    env.HOME = isolatedHome;
+    env.XDG_CACHE_HOME = isolatedHome;
+    env.XDG_CONFIG_HOME = isolatedHome;
+  }
   delete env.DATABASE_URL;
   const args = options.runtime === "NODE" ? [options.workerEntryPoint] : ["-I", "-u", options.workerEntryPoint];
   return spawn(options.pythonExecutable, args, {

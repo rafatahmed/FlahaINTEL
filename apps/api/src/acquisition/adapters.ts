@@ -9,20 +9,34 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-16
- * Last modified: 2026-07-16
+ * Last modified: 2026-08-22
  */
 import { randomUUID } from "node:crypto";
-import { mkdir, rm } from "node:fs/promises";
+import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { ProtocolValidator, WorkerSupervisor, type SupervisorOptions, type WorkerRequest } from "@flaha-intel/worker-supervisor";
+import { playwrightWorkerEnv } from "../production/runtimeBins.js";
 import { sanitizeHeaders, validateLocator } from "./networkPolicy.js";
-import type { AcquisitionAdapter, AcquisitionAdapterResult, AcquisitionAttemptContext, AcquisitionEvidence } from "./contracts.js";
+import type { AcquisitionAdapter, AcquisitionAdapterResult, AdapterFailure, AcquisitionAttemptContext, AcquisitionEvidence } from "./contracts.js";
 
 export type AcquisitionRuntime = { executable: string; script: string; args?: string[]; runtime?: "PYTHON" | "NODE"; schemas?: string };
 type Wire = { operation:string; executionId:string; providerId:string; providerVersion:string; capability:string; status?:number; finalUrl?:string; redirectChain?:string[]; headers?:Record<string,string>; discoveredLinks?:string[]; networkInventory?:AcquisitionEvidence["networkInventory"]; downloads?:AcquisitionEvidence["downloads"]; popups?:AcquisitionEvidence["popups"]; robotsDecision?:AcquisitionEvidence["robotsDecision"]; artifacts?:Array<{artifactId:string;role:string;mediaType:string;stagingKey:string;byteLength:number;checksum:string;writeComplete:true}> };
 
 function options(runtime:AcquisitionRuntime, timeoutMs:number, workingDirectory:string, temporaryDirectory:string):SupervisorOptions {
-  return { pythonExecutable:runtime.executable,workerEntryPoint:runtime.script,workingDirectory,temporaryDirectory,runtime:runtime.runtime ?? (runtime.executable===process.execPath?"NODE":"PYTHON"),timeoutMs:timeoutMs+5_000,cancellationGraceMs:500,maximumLineBytes:1_048_576,maximumMessages:64,maximumProgress:32,maximumStderrBytes:8_192 };
+  return { pythonExecutable:runtime.executable,workerEntryPoint:runtime.script,workingDirectory,temporaryDirectory,runtime:runtime.runtime ?? (runtime.executable===process.execPath?"NODE":"PYTHON"),timeoutMs:timeoutMs+5_000,cancellationGraceMs:500,maximumLineBytes:1_048_576,maximumMessages:64,maximumProgress:32,maximumStderrBytes:8_192,environment:playwrightWorkerEnv() };
+}
+
+export async function missingBrowserRuntime(source: NodeJS.ProcessEnv = process.env): Promise<AdapterFailure | null> {
+  const chromium = playwrightWorkerEnv(source).PLAYWRIGHT_CHROMIUM_PATH;
+  const production = source.NODE_ENV === "production" || source.AUTH_MODE === "production";
+  if (!chromium) {
+    if (!production) return null;
+    return { outcome: "FAILED", code: "BROWSER_RUNTIME_MISSING", message: "PLAYWRIGHT_CHROMIUM_PATH is not set on this host. Run ops/scripts/linux/provision-runtimes.sh. Do not resubmit until Chromium exists.", retryable: false, fallbackEligible: false, securityRelevant: false };
+  }
+  try { await access(chromium); return null; }
+  catch {
+    return { outcome: "FAILED", code: "BROWSER_RUNTIME_MISSING", message: `Chromium is not at ${chromium}. Run ops/scripts/linux/provision-runtimes.sh. Do not resubmit until that binary exists.`, retryable: false, fallbackEligible: false, securityRelevant: false };
+  }
 }
 async function execute(runtime:AcquisitionRuntime,context:AcquisitionAttemptContext,providerId:string,providerVersion:string,dynamic:boolean):Promise<AcquisitionAdapterResult> {
   const url=await validateLocator(context.locator); const operation=dynamic?"BROWSER_ACQUISITION":"STATIC_ACQUISITION"; const correlationId=randomUUID(); const stagingPrefix=`staging/${context.jobId}/${context.attemptId}`;
@@ -42,4 +56,4 @@ async function execute(runtime:AcquisitionRuntime,context:AcquisitionAttemptCont
   finally { context.signal.removeEventListener("abort",cancel); await rm(temporaryDirectory,{recursive:true,force:true,maxRetries:10,retryDelay:100}); }
 }
 export class ScrapyAcquisitionAdapter implements AcquisitionAdapter { readonly providerId="acquisition.scrapy" as const; readonly providerVersion="2.17.0"; constructor(private readonly runtime:AcquisitionRuntime){} execute(context:AcquisitionAttemptContext){return execute(this.runtime,context,this.providerId,this.providerVersion,false)} }
-export class PlaywrightAcquisitionAdapter implements AcquisitionAdapter { readonly providerId="acquisition.playwright" as const; readonly providerVersion="1.61.1"; constructor(private readonly runtime:AcquisitionRuntime){} execute(context:AcquisitionAttemptContext){if(!["JAVASCRIPT_RENDERING","RENDERED_DOM_CAPTURE"].includes(context.capability))return Promise.resolve({outcome:"FAILED" as const,code:"INVALID_PROVIDER_REQUEST",message:"Playwright requires an explicit dynamic capability.",retryable:false,fallbackEligible:false,securityRelevant:true});return execute(this.runtime,context,this.providerId,this.providerVersion,true)} }
+export class PlaywrightAcquisitionAdapter implements AcquisitionAdapter { readonly providerId="acquisition.playwright" as const; readonly providerVersion="1.61.1"; constructor(private readonly runtime:AcquisitionRuntime){} async execute(context:AcquisitionAttemptContext){if(!["JAVASCRIPT_RENDERING","RENDERED_DOM_CAPTURE"].includes(context.capability))return {outcome:"FAILED" as const,code:"INVALID_PROVIDER_REQUEST",message:"Playwright requires an explicit dynamic capability.",retryable:false,fallbackEligible:false,securityRelevant:true};const missing=await missingBrowserRuntime();if(missing)return missing;return execute(this.runtime,context,this.providerId,this.providerVersion,true)} }

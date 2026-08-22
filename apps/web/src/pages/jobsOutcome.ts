@@ -8,7 +8,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-08-19
- * Last modified: 2026-08-21
+ * Last modified: 2026-08-22
  */
 
 export type JobRecord = Record<string, unknown>;
@@ -98,6 +98,12 @@ export function explainExtractorError(raw: string): string {
   }
   if (lower.includes("governed verification") || lower.includes("provider_output_invalid") || lower.includes("provider_contract")) {
     return "The fetch ran but the result did not pass the artifact checks. Submit the same URL again; this is not a waiting queue.";
+  }
+  if (lower.includes("exited before emitting")) {
+    return "The website worker crashed before it could fetch. This is a host runtime problem (Python/Scrapy import or process kill), not a wait and not the site blocking you yet. Do not resubmit until the worker runs.";
+  }
+  if (lower.includes("browser_runtime_missing") || lower.includes("executable doesn't exist") || lower.includes("download new browsers") || lower.includes("npx playwright install")) {
+    return "Chromium is missing for the browser worker. Static fetch does not need it. For JavaScript pages, provision Playwright browsers on the host, then submit once.";
   }
   return text.replace(/PosixPath\((['"])(.*?)\1\)/g, "$2").slice(0, 280);
 }

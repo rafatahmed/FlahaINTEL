@@ -9,7 +9,7 @@
  *
  * Created by: Rafat Al Khashan
  * Created date: 2026-07-15
- * Last modified: 2026-08-19
+ * Last modified: 2026-08-22
  */
 
 export interface WorkerRequest {
@@ -32,6 +32,9 @@ export interface SupervisorOptions {
     TIKA_JAR?: string;
     TIKA_ALLOWLIST?: string;
     JAVA_BIN?: string;
+    PLAYWRIGHT_CHROMIUM_PATH?: string;
+    PLAYWRIGHT_BROWSERS_PATH?: string;
+    PLAYWRIGHT_MODULE?: string;
   };
   onDiagnostic?: (text: string) => void;
 }

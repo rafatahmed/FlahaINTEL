@@ -9,7 +9,7 @@ Emits controlled protocol outcomes used to verify the worker boundary.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-15
-Last modified: 2026-07-15
+Last modified: 2026-08-22
 """
 
 import os
@@ -46,7 +46,9 @@ def run(request):
     delay = int(options.get("delayMs", 250)) / 1000
     if mode == "malformed": print("{malformed", flush=True); return 0
     if mode == "oversized_output": print("x" * (2 * 1024 * 1024), flush=True); return 0
-    if mode == "exit_before_result": return 0
+    if mode == "exit_before_result":
+        print("import crash: No module named acquisition_origin", file=sys.stderr, flush=True)
+        return 0
     if mode == "stderr": print("reference diagnostic", file=sys.stderr, flush=True)
     if mode == "stderr_overflow": print("d" * 10000, file=sys.stderr, flush=True)
     if mode == "environment":

@@ -9,10 +9,14 @@ Executes one closed Scrapy operation through the bounded worker JSONL protocol.
 
 Created by: Rafat Al Khashan
 Created date: 2026-07-16
-Last modified: 2026-08-21
+Last modified: 2026-08-22
 """
 import hashlib, json, os, stat, sys
+from pathlib import Path
 from urllib.parse import urljoin
+
+# Isolated python (-I/-P) does not put the script directory on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from acquisition_origin import public_url, same_origin
